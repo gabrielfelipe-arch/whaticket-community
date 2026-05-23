@@ -6,6 +6,7 @@ import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
 import Tag from "../models/Tag";
+import { getPauseSeconds } from "../helpers/MessageQueueTiming";
 
 const include = [
   { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] },
@@ -67,9 +68,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     name,
     message,
     audience = "contacts",
-    intervalSeconds = 30,
+    intervalPattern = "30",
     pauseAfter = 20,
     pauseSeconds = 300,
+    pauseMinutes,
     whatsappId,
     contactIds = [],
     tagIds = []
@@ -83,11 +85,12 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     name,
     message,
     audience,
-    intervalSeconds: Number(intervalSeconds || 30),
+    intervalSeconds: Number(parseInt(String(intervalPattern).split(":")[0], 10) || 30),
+    intervalPattern: intervalPattern || "30",
     pauseAfter: Number(pauseAfter || 20),
-    pauseSeconds: Number(pauseSeconds || 300),
+    pauseSeconds: getPauseSeconds({ pauseSeconds, pauseMinutes }) || 300,
     whatsappId: whatsappId || null,
-    status: "running"
+    status: "scheduled"
   });
 
   const contacts = await resolveCampaignContacts({
@@ -121,11 +124,29 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
-  if (!["running", "paused", "canceled"].includes(status)) {
+  if (!["scheduled", "running", "paused", "canceled"].includes(status)) {
     throw new AppError("ERR_INVALID_CAMPAIGN_STATUS", 400);
   }
 
   await campaign.update({ status });
+
+  if (status === "running") {
+    const pendingWithDate = await CampaignContact.count({
+      where: {
+        campaignId: campaign.id,
+        status: "pending",
+        nextRunAt: { [Op.gt]: new Date(0) }
+      }
+    });
+
+    if (!pendingWithDate) {
+      const pending = await CampaignContact.findOne({
+        where: { campaignId: campaign.id, status: "pending" },
+        order: [["id", "ASC"]]
+      });
+      await pending?.update({ nextRunAt: new Date() });
+    }
+  }
   const updated = await Campaign.findByPk(campaign.id, { include });
   return res.status(200).json(updated);
 };

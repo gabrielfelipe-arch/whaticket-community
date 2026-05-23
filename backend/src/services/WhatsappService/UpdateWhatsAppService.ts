@@ -10,6 +10,7 @@ interface WhatsappData {
   name?: string;
   status?: string;
   session?: string;
+  qrcode?: string;
   isDefault?: boolean;
   greetingMessage?: string;
   farewellMessage?: string;
@@ -42,10 +43,11 @@ const UpdateWhatsAppService = async ({
     status,
     isDefault,
     session,
+    qrcode,
     greetingMessage,
     farewellMessage,
     uraFlowId,
-    queueIds = []
+    queueIds
   } = whatsappData;
 
   try {
@@ -54,7 +56,7 @@ const UpdateWhatsAppService = async ({
     throw new AppError(err.message);
   }
 
-  if (queueIds.length > 1 && !greetingMessage) {
+  if (queueIds && queueIds.length > 1 && !greetingMessage) {
     throw new AppError("ERR_WAPP_GREETING_REQUIRED");
   }
 
@@ -75,13 +77,16 @@ const UpdateWhatsAppService = async ({
     name,
     status,
     session,
+    qrcode,
     greetingMessage,
     farewellMessage,
     isDefault,
     uraFlowId: uraFlowId || null
   });
 
-  await AssociateWhatsappQueue(whatsapp, queueIds);
+  if (Array.isArray(queueIds)) {
+    await AssociateWhatsappQueue(whatsapp, queueIds);
+  }
 
   return { whatsapp, oldDefaultWhatsapp };
 };

@@ -298,7 +298,7 @@ const Contacts = () => {
               select
               variant="outlined"
               size="small"
-              label="Tags"
+              label="Etiquetas"
               value={tagFilterIds}
               onChange={handleTagFilterChange}
               className={classes.tagFilter}
@@ -360,7 +360,7 @@ const Contacts = () => {
               <TableCell align="center">
                 {i18n.t("contacts.table.email")}
               </TableCell>
-              <TableCell align="center">Tags</TableCell>
+              <TableCell align="center">Etiquetas</TableCell>
               <TableCell align="center">
                 {i18n.t("contacts.table.actions")}
               </TableCell>

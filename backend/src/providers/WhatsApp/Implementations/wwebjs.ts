@@ -36,6 +36,7 @@ import { getIO } from "../../../libs/socket";
 import Whatsapp from "../../../models/Whatsapp";
 import AppError from "../../../errors/AppError";
 import { logger } from "../../../utils/logger";
+import ClearWhatsAppChromeLocks from "../../../helpers/ClearWhatsAppChromeLocks";
 import { WhatsappProvider } from "../whatsappProvider";
 import {
   ProviderMessage,
@@ -490,6 +491,7 @@ const deleteMessage = async (
 const init = async (whatsapp: Whatsapp): Promise<void> => {
   try {
     removeSession(whatsapp.id);
+    ClearWhatsAppChromeLocks(whatsapp.id);
 
     const io = getIO();
     const sessionName = whatsapp.name;
@@ -684,6 +686,16 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
     await wbot.initialize();
   } catch (err) {
     logger.error(err, "Error on whatsapp session");
+    ClearWhatsAppChromeLocks(whatsapp.id);
+    try {
+      await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
+      getIO().emit("whatsappSession", {
+        action: "update",
+        session: whatsapp
+      });
+    } catch (updateErr) {
+      logger.error(updateErr, "Error updating whatsapp after session failure");
+    }
   }
 };
 

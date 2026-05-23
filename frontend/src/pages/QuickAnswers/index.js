@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useContext, useState, useEffect, useReducer } from "react";
 import openSocket from "../../services/socket-io";
 
 import {
@@ -13,6 +13,7 @@ import {
   TableRow,
   InputAdornment,
   TextField,
+  Chip,
 } from "@material-ui/core";
 import { Edit, DeleteOutline } from "@material-ui/icons";
 import SearchIcon from "@material-ui/icons/Search";
@@ -29,6 +30,7 @@ import QuickAnswersModal from "../../components/QuickAnswersModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_QUICK_ANSWERS") {
@@ -85,6 +87,7 @@ const useStyles = makeStyles((theme) => ({
 
 const QuickAnswers = () => {
   const classes = useStyles();
+  const { user } = useContext(AuthContext);
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -126,7 +129,14 @@ const QuickAnswers = () => {
 
     socket.on("quickAnswer", (data) => {
       if (data.action === "update" || data.action === "create") {
-        dispatch({ type: "UPDATE_QUICK_ANSWERS", payload: data.quickAnswer });
+        if (isVisibleQuickAnswer(data.quickAnswer)) {
+          dispatch({ type: "UPDATE_QUICK_ANSWERS", payload: data.quickAnswer });
+        } else {
+          dispatch({
+            type: "DELETE_QUICK_ANSWERS",
+            payload: +data.quickAnswer.id,
+          });
+        }
       }
 
       if (data.action === "delete") {
@@ -140,7 +150,16 @@ const QuickAnswers = () => {
     return () => {
       socket.disconnect();
     };
-  }, []);
+  }, [user]);
+
+  const isVisibleQuickAnswer = quickAnswer =>
+    user?.profile === "admin" ||
+    quickAnswer.global ||
+    Number(quickAnswer.userId) === Number(user?.id);
+
+  const canManageQuickAnswer = quickAnswer =>
+    user?.profile === "admin" ||
+    (!quickAnswer.global && Number(quickAnswer.userId) === Number(user?.id));
 
   const handleSearch = (event) => {
     setSearchParam(event.target.value.toLowerCase());
@@ -245,6 +264,8 @@ const QuickAnswers = () => {
               <TableCell align="center">
                 {i18n.t("quickAnswers.table.message")}
               </TableCell>
+              <TableCell align="center">Visibilidade</TableCell>
+              <TableCell align="center">Criada por</TableCell>
               <TableCell align="center">
                 {i18n.t("quickAnswers.table.actions")}
               </TableCell>
@@ -257,26 +278,40 @@ const QuickAnswers = () => {
                   <TableCell align="center">{quickAnswer.shortcut}</TableCell>
                   <TableCell align="center">{quickAnswer.message}</TableCell>
                   <TableCell align="center">
-                    <IconButton
+                    <Chip
                       size="small"
-                      onClick={() => handleEditQuickAnswers(quickAnswer)}
-                    >
-                      <Edit />
-                    </IconButton>
+                      color={quickAnswer.global ? "primary" : "default"}
+                      label={quickAnswer.global ? "Publica" : "Privada"}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    {quickAnswer.user?.name || (quickAnswer.global ? "Administrador" : "")}
+                  </TableCell>
+                  <TableCell align="center">
+                    {canManageQuickAnswer(quickAnswer) && (
+                      <>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEditQuickAnswers(quickAnswer)}
+                        >
+                          <Edit />
+                        </IconButton>
 
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        setConfirmModalOpen(true);
-                        setDeletingQuickAnswers(quickAnswer);
-                      }}
-                    >
-                      <DeleteOutline />
-                    </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setConfirmModalOpen(true);
+                            setDeletingQuickAnswers(quickAnswer);
+                          }}
+                        >
+                          <DeleteOutline />
+                        </IconButton>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
-              {loading && <TableRowSkeleton columns={3} />}
+              {loading && <TableRowSkeleton columns={5} />}
             </>
           </TableBody>
         </Table>

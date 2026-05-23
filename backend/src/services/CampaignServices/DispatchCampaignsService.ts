@@ -6,6 +6,7 @@ import Contact from "../../models/Contact";
 import ScheduledMessage from "../../models/ScheduledMessage";
 import { logger } from "../../utils/logger";
 import { sendDirectMessage } from "./MessageDispatchService";
+import { getNextIntervalSeconds } from "../../helpers/MessageQueueTiming";
 
 let running = false;
 
@@ -17,6 +18,10 @@ const dispatchCampaignRecipient = async (recipient: CampaignContact) => {
   const campaign = recipient.campaign;
 
   try {
+    if (campaign.status === "scheduled") {
+      await campaign.update({ status: "running" });
+    }
+
     await sendDirectMessage({
       contact: recipient.contact,
       body: campaign.message,
@@ -46,11 +51,17 @@ const dispatchCampaignRecipient = async (recipient: CampaignContact) => {
       await pending.update({
         nextRunAt: addSeconds(
           new Date(),
-          shouldPause ? campaign.pauseSeconds : campaign.intervalSeconds
+          shouldPause
+            ? campaign.pauseSeconds
+            : getNextIntervalSeconds({
+                intervalPattern: campaign.intervalPattern,
+                fallbackSeconds: campaign.intervalSeconds,
+                sentCount
+              })
         )
       });
     } else {
-      await campaign.update({ status: "finished" });
+      await campaign.update({ status: "completed" });
     }
   } catch (err) {
     await recipient.update({
@@ -64,6 +75,8 @@ const dispatchCampaignRecipient = async (recipient: CampaignContact) => {
 
 const dispatchScheduledMessage = async (schedule: ScheduledMessage) => {
   try {
+    await schedule.update({ status: "running" });
+
     await sendDirectMessage({
       contact: schedule.contact,
       body: schedule.message,
@@ -71,10 +84,41 @@ const dispatchScheduledMessage = async (schedule: ScheduledMessage) => {
     });
 
     await schedule.update({
-      status: "sent",
+      status: "completed",
       sentAt: new Date(),
       errorMessage: null
     });
+
+    if (schedule.batchId) {
+      const sentCount = await ScheduledMessage.count({
+        where: { batchId: schedule.batchId, status: { [Op.in]: ["sent", "completed"] } }
+      });
+      const shouldPause =
+        schedule.pauseAfter > 0 && sentCount > 0 && sentCount % schedule.pauseAfter === 0;
+      const nextSchedule = await ScheduledMessage.findOne({
+        where: {
+          batchId: schedule.batchId,
+          status: "scheduled",
+          nextRunAt: null
+        },
+        order: [["sequence", "ASC"], ["id", "ASC"]]
+      });
+
+      if (nextSchedule) {
+        await nextSchedule.update({
+          nextRunAt: addSeconds(
+            new Date(),
+            shouldPause
+              ? schedule.pauseSeconds
+              : getNextIntervalSeconds({
+                  intervalPattern: schedule.intervalPattern,
+                  fallbackSeconds: schedule.intervalSeconds,
+                  sentCount
+                })
+          )
+        });
+      }
+    }
   } catch (err) {
     await schedule.update({
       status: "error",
@@ -98,10 +142,10 @@ const DispatchCampaignsService = async (): Promise<void> => {
       },
       include: [
         { model: Contact, as: "contact" },
-        { model: Campaign, as: "campaign", where: { status: "running" } }
+        { model: Campaign, as: "campaign", where: { status: { [Op.in]: ["scheduled", "running"] } } }
       ],
       order: [["nextRunAt", "ASC"], ["id", "ASC"]],
-      limit: 5
+      limit: 1
     });
 
     for (const recipient of recipients) {
@@ -110,12 +154,12 @@ const DispatchCampaignsService = async (): Promise<void> => {
 
     const schedules = await ScheduledMessage.findAll({
       where: {
-        status: "pending",
-        scheduledAt: { [Op.lte]: now }
+        status: "scheduled",
+        nextRunAt: { [Op.lte]: now }
       },
       include: [{ model: Contact, as: "contact" }],
-      order: [["scheduledAt", "ASC"]],
-      limit: 10
+      order: [["nextRunAt", "ASC"], ["sequence", "ASC"], ["id", "ASC"]],
+      limit: 1
     });
 
     for (const schedule of schedules) {

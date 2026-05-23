@@ -57,14 +57,6 @@ const useStyles = makeStyles(theme => ({
 		flexWrap: "wrap",
 		gap: theme.spacing(0.5),
 	},
-	tagCreator: {
-		display: "flex",
-		alignItems: "center",
-		marginTop: theme.spacing(1),
-		"& > *:not(:last-child)": {
-			marginRight: theme.spacing(1),
-		},
-	},
 }));
 
 const ContactSchema = Yup.object().shape({
@@ -89,7 +81,6 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
 	const [contact, setContact] = useState(initialState);
 	const [tags, setTags] = useState([]);
-	const [newTagName, setNewTagName] = useState("");
 
 	const loadTags = async () => {
 		try {
@@ -165,24 +156,6 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 		}
 	};
 
-	const handleCreateTag = async (setFieldValue, values) => {
-		if (!newTagName.trim()) return;
-
-		try {
-			const { data } = await api.post("/tags", { name: newTagName.trim() });
-			const updatedTags = tags.some(tag => tag.id === data.id)
-				? tags
-				: [...tags, data].sort((a, b) => a.name.localeCompare(b.name));
-			setTags(updatedTags);
-			if (!values.tagIds?.includes(data.id)) {
-				setFieldValue("tagIds", [...(values.tagIds || []), data.id]);
-			}
-			setNewTagName("");
-		} catch (err) {
-			toastError(err);
-		}
-	};
-
 	return (
 		<div className={classes.root}>
 			<Dialog open={open} onClose={handleClose} maxWidth="lg" scroll="paper">
@@ -202,7 +175,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 						}, 400);
 					}}
 				>
-					{({ values, errors, touched, isSubmitting, setFieldValue }) => (
+					{({ values, errors, touched, isSubmitting }) => (
 						<Form>
 							<DialogContent dividers>
 								<Typography variant="subtitle1" gutterBottom>
@@ -246,7 +219,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 									as={TextField}
 									select
 									fullWidth
-									label="Tags"
+									label="Etiquetas"
 									name="tagIds"
 									variant="outlined"
 									margin="dense"
@@ -278,23 +251,6 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										</MenuItem>
 									))}
 								</Field>
-								<div className={classes.tagCreator}>
-									<TextField
-										fullWidth
-										margin="dense"
-										variant="outlined"
-										label="Nova tag"
-										value={newTagName}
-										onChange={event => setNewTagName(event.target.value)}
-									/>
-									<Button
-										color="primary"
-										variant="outlined"
-										onClick={() => handleCreateTag(setFieldValue, values)}
-									>
-										Criar tag
-									</Button>
-								</div>
 								<Typography
 									style={{ marginBottom: 8, marginTop: 12 }}
 									variant="subtitle1"

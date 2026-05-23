@@ -20,6 +20,7 @@ import Ticket from "./Ticket";
 import Queue from "./Queue";
 import UserQueue from "./UserQueue";
 import Whatsapp from "./Whatsapp";
+import QuickAnswer from "./QuickAnswer";
 
 @Table
 class User extends Model<User> {
@@ -66,6 +67,9 @@ class User extends Model<User> {
 
   @HasMany(() => Ticket)
   tickets: Ticket[];
+
+  @HasMany(() => QuickAnswer)
+  quickAnswers: QuickAnswer[];
 
   @BelongsToMany(() => Queue, () => UserQueue)
   queues: Queue[];

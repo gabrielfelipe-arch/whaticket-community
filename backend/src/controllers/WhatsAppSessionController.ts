@@ -4,6 +4,7 @@ import { getIO } from "../libs/socket";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import { StartWhatsAppSession } from "../services/WbotServices/StartWhatsAppSession";
 import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppService";
+import ClearWhatsAppLocalAuth from "../helpers/ClearWhatsAppLocalAuth";
 
 const store = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
@@ -17,9 +18,12 @@ const store = async (req: Request, res: Response): Promise<Response> => {
 const update = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
 
+  whatsappProvider.removeSession(+whatsappId);
+  ClearWhatsAppLocalAuth(+whatsappId);
+
   const { whatsapp } = await UpdateWhatsAppService({
     whatsappId,
-    whatsappData: { session: "" }
+    whatsappData: { session: "", qrcode: "", status: "DISCONNECTED" }
   });
 
   StartWhatsAppSession(whatsapp);
@@ -32,6 +36,7 @@ const remove = async (req: Request, res: Response): Promise<Response> => {
   const whatsapp = await ShowWhatsAppService(whatsappId);
 
   await whatsappProvider.logout(whatsapp.id);
+  ClearWhatsAppLocalAuth(whatsapp.id);
   await whatsapp.update({
     status: "DISCONNECTED",
     qrcode: "",

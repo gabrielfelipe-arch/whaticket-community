@@ -14,6 +14,7 @@ import apiRoutes from "./apiRoutes";
 import customAdminRoutes from "./customAdminRoutes";
 import campaignRoutes from "./campaignRoutes";
 import tagRoutes from "./tagRoutes";
+import reportRoutes from "./reportRoutes";
 
 const routes = Router();
 
@@ -31,6 +32,7 @@ routes.use("/api/messages", apiRoutes);
 routes.use(customAdminRoutes);
 routes.use(campaignRoutes);
 routes.use(tagRoutes);
+routes.use(reportRoutes);
 
 export default routes;
 

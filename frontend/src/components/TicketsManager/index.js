@@ -94,7 +94,7 @@ const TicketsManager = () => {
   const { user } = useContext(AuthContext);
   const [openCount, setOpenCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
-  const userQueueIds = user.queues.map((q) => q.id);
+  const userQueueIds = user.queues?.map((q) => q.id) || [];
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
 
   useEffect(() => {
@@ -103,6 +103,19 @@ const TicketsManager = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setSelectedQueueIds(prevSelectedQueueIds => {
+      if (!userQueueIds.length) return [];
+
+      const validSelectedQueueIds = prevSelectedQueueIds.filter(queueId =>
+        userQueueIds.includes(queueId)
+      );
+
+      return validSelectedQueueIds.length ? validSelectedQueueIds : userQueueIds;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(userQueueIds)]);
 
   useEffect(() => {
     if (tab === "search") {

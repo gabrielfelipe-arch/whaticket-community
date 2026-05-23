@@ -18,6 +18,7 @@ type IndexQuery = {
 interface QuickAnswerData {
   shortcut: string;
   message: string;
+  global?: boolean;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -25,22 +26,21 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   const { quickAnswers, count, hasMore } = await ListQuickAnswerService({
     searchParam,
-    pageNumber
+    pageNumber,
+    userId: Number(req.user.id),
+    userProfile: req.user.profile
   });
 
   return res.json({ quickAnswers, count, hasMore });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
-
   const newQuickAnswer: QuickAnswerData = req.body;
 
   const QuickAnswerSchema = Yup.object().shape({
     shortcut: Yup.string().required(),
-    message: Yup.string().required()
+    message: Yup.string().required(),
+    global: Yup.boolean()
   });
 
   try {
@@ -50,7 +50,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   const quickAnswer = await CreateQuickAnswerService({
-    ...newQuickAnswer
+    ...newQuickAnswer,
+    userId: Number(req.user.id),
+    userProfile: req.user.profile
   });
 
   const io = getIO();
@@ -65,7 +67,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { quickAnswerId } = req.params;
 
-  const quickAnswer = await ShowQuickAnswerService(quickAnswerId);
+  const quickAnswer = await ShowQuickAnswerService(
+    quickAnswerId,
+    Number(req.user.id),
+    req.user.profile
+  );
 
   return res.status(200).json(quickAnswer);
 };
@@ -74,15 +80,12 @@ export const update = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  if (req.user.profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
-
   const quickAnswerData: QuickAnswerData = req.body;
 
   const schema = Yup.object().shape({
     shortcut: Yup.string(),
-    message: Yup.string()
+    message: Yup.string(),
+    global: Yup.boolean()
   });
 
   try {
@@ -95,7 +98,9 @@ export const update = async (
 
   const quickAnswer = await UpdateQuickAnswerService({
     quickAnswerData,
-    quickAnswerId
+    quickAnswerId,
+    userId: Number(req.user.id),
+    userProfile: req.user.profile
   });
 
   const io = getIO();
@@ -111,13 +116,13 @@ export const remove = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  if (req.user.profile !== "admin") {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
-
   const { quickAnswerId } = req.params;
 
-  await DeleteQuickAnswerService(quickAnswerId);
+  await DeleteQuickAnswerService(
+    quickAnswerId,
+    Number(req.user.id),
+    req.user.profile
+  );
 
   const io = getIO();
   io.emit("quickAnswer", {

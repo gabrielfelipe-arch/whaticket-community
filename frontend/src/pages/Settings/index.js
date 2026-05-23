@@ -39,7 +39,15 @@ const useStyles = makeStyles(theme => ({
 		flex: 1,
 		padding: theme.spacing(2),
 		overflowY: "auto",
-		...theme.scrollbarStyles
+		...theme.scrollbarStyles,
+		backgroundColor: theme.palette.background.default
+	},
+	pageHeader: {
+		display: "flex",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		gap: theme.spacing(2),
+		marginBottom: theme.spacing(2)
 	},
 	header: {
 		display: "flex",
@@ -62,6 +70,14 @@ const useStyles = makeStyles(theme => ({
 	},
 	tableWrapper: {
 		overflowX: "auto"
+	},
+	contentPaper: {
+		padding: theme.spacing(2),
+		borderRadius: 6
+	},
+	sectionSubtitle: {
+		color: theme.palette.text.secondary,
+		marginTop: theme.spacing(0.5)
 	}
 }));
 
@@ -97,9 +113,20 @@ const resources = [
 		title: "Mensagem rapida",
 		fields: [
 			{ name: "shortcut", label: "Atalho", required: true },
-			{ name: "message", label: "Mensagem", multiline: true, required: true }
+			{ name: "message", label: "Mensagem", multiline: true, required: true },
+			{ name: "global", label: "Publica para todos", type: "boolean" }
 		],
-		columns: ["id", "shortcut", "message"]
+		columns: ["id", "shortcut", "message", "global"]
+	},
+	{
+		label: "Etiquetas",
+		endpoint: "/tags",
+		title: "Etiqueta",
+		fields: [
+			{ name: "name", label: "Nome", required: true },
+			{ name: "color", label: "Cor", type: "color" }
+		],
+		columns: ["id", "name", "color"]
 	},
 	{
 		label: "URA - Fluxos",
@@ -175,7 +202,7 @@ const resources = [
 		fields: [
 			{ name: "title", label: "Titulo", required: true },
 			{ name: "content", label: "Conteudo", multiline: true, required: true },
-			{ name: "tags", label: "Tags" },
+			{ name: "tags", label: "Palavras-chave" },
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
 		columns: ["id", "title", "tags", "active"]
@@ -196,6 +223,7 @@ const defaultValue = field => {
 	if (field.name === "provider") return "openai";
 	if (field.name === "model") return defaultModelsByProvider.openai;
 	if (field.name === "action") return "SEND_MESSAGE";
+	if (field.name === "color") return "#607d8b";
 	return "";
 };
 
@@ -674,10 +702,17 @@ const ResourcePanel = ({ resource, classes }) => {
 										margin="dense"
 										variant="outlined"
 										label={field.label}
-										type={field.type === "number" ? "number" : "text"}
+										type={
+											field.type === "number"
+												? "number"
+												: field.type === "color"
+													? "color"
+													: "text"
+										}
 										multiline={!!field.multiline}
 										rows={field.multiline ? 4 : 1}
 										required={!!field.required}
+										InputLabelProps={field.type === "color" ? { shrink: true } : undefined}
 										value={form[field.name] || ""}
 										onChange={event => handleChange(field.name, event.target.value)}
 									/>
@@ -780,6 +815,14 @@ const Settings = () => {
 
 	return (
 		<Container maxWidth={false} className={classes.root}>
+			<div className={classes.pageHeader}>
+				<div>
+					<Typography variant="h5">Configurações</Typography>
+					<Typography variant="body2" className={classes.sectionSubtitle}>
+						Cadastros administrativos, integrações, URA, IA, etiquetas e personalização visual.
+					</Typography>
+				</div>
+			</div>
 			<Tabs
 				value={tab}
 				indicatorColor="primary"
@@ -795,17 +838,19 @@ const Settings = () => {
 				))}
 			</Tabs>
 
-			{tab === 0 ? (
-				<GeneralSettings
-					settings={settings}
-					onChangeSetting={handleChangeSetting}
-					getSettingValue={getSettingValue}
-					onUploadLogo={handleUploadLogo}
-					classes={classes}
-				/>
-			) : (
-				<ResourcePanel resource={resources[tab - 1]} classes={classes} />
-			)}
+			<Paper className={classes.contentPaper} variant="outlined">
+				{tab === 0 ? (
+					<GeneralSettings
+						settings={settings}
+						onChangeSetting={handleChangeSetting}
+						getSettingValue={getSettingValue}
+						onUploadLogo={handleUploadLogo}
+						classes={classes}
+					/>
+				) : (
+					<ResourcePanel resource={resources[tab - 1]} classes={classes} />
+				)}
+			</Paper>
 		</Container>
 	);
 };

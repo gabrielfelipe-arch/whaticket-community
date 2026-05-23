@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 
 import * as Yup from "yup";
 import { Formik, Form, Field } from "formik";
@@ -13,12 +13,15 @@ import {
   DialogContent,
   DialogTitle,
   CircularProgress,
+  FormControlLabel,
+  Switch,
 } from "@material-ui/core";
 import { green } from "@material-ui/core/colors";
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -66,10 +69,12 @@ const QuickAnswersModal = ({
 }) => {
   const classes = useStyles();
   const isMounted = useRef(true);
+  const { user } = useContext(AuthContext);
 
   const initialState = {
     shortcut: "",
     message: "",
+    global: user?.profile === "admin",
   };
 
   const [quickAnswer, setQuickAnswer] = useState(initialState);
@@ -183,6 +188,24 @@ const QuickAnswersModal = ({
                     fullWidth
                   />
                 </div>
+                {user?.profile === "admin" && (
+                  <Field name="global">
+                    {({ field, form }) => (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            color="primary"
+                            checked={!!field.value}
+                            onChange={event =>
+                              form.setFieldValue("global", event.target.checked)
+                            }
+                          />
+                        }
+                        label="Publica para todos"
+                      />
+                    )}
+                  </Field>
+                )}
               </DialogContent>
               <DialogActions>
                 <Button

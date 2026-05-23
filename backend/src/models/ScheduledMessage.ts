@@ -36,11 +36,36 @@ class ScheduledMessage extends Model<ScheduledMessage> {
   @BelongsTo(() => Whatsapp)
   whatsapp: Whatsapp;
 
+  @Column
+  batchId: string;
+
+  @Default(0)
+  @Column
+  sequence: number;
+
   @Column(DataType.TEXT)
   message: string;
 
   @Column
   scheduledAt: Date;
+
+  @Column
+  nextRunAt: Date;
+
+  @Default(30)
+  @Column
+  intervalSeconds: number;
+
+  @Column
+  intervalPattern: string;
+
+  @Default(20)
+  @Column
+  pauseAfter: number;
+
+  @Default(300)
+  @Column
+  pauseSeconds: number;
 
   @Default("pending")
   @Column

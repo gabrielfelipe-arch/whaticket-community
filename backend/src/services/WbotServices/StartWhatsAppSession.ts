@@ -19,5 +19,10 @@ export const StartWhatsAppSession = async (
     await whatsappProvider.init(whatsapp);
   } catch (err) {
     logger.error(err);
+    await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
+    io.emit("whatsappSession", {
+      action: "update",
+      session: whatsapp
+    });
   }
 };

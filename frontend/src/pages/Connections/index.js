@@ -230,21 +230,43 @@ const Connections = () => {
 				{(whatsApp.status === "CONNECTED" ||
 					whatsApp.status === "PAIRING" ||
 					whatsApp.status === "TIMEOUT") && (
-					<Button
-						size="small"
-						variant="outlined"
-						color="secondary"
-						onClick={() => {
-							handleOpenConfirmationModal("disconnect", whatsApp.id);
-						}}
-					>
-						{i18n.t("connections.buttons.disconnect")}
-					</Button>
+					<>
+						<Button
+							size="small"
+							variant="outlined"
+							color="secondary"
+							onClick={() => {
+								handleOpenConfirmationModal("disconnect", whatsApp.id);
+							}}
+						>
+							{i18n.t("connections.buttons.disconnect")}
+						</Button>{" "}
+						{whatsApp.status !== "CONNECTED" && (
+							<Button
+								size="small"
+								variant="outlined"
+								color="primary"
+								onClick={() => handleRequestNewQrCode(whatsApp.id)}
+							>
+								{i18n.t("connections.buttons.newQr")}
+							</Button>
+						)}
+					</>
 				)}
 				{whatsApp.status === "OPENING" && (
-					<Button size="small" variant="outlined" disabled color="default">
-						{i18n.t("connections.buttons.connecting")}
-					</Button>
+					<>
+						<Button size="small" variant="outlined" disabled color="default">
+							{i18n.t("connections.buttons.connecting")}
+						</Button>{" "}
+						<Button
+							size="small"
+							variant="outlined"
+							color="primary"
+							onClick={() => handleRequestNewQrCode(whatsApp.id)}
+						>
+							{i18n.t("connections.buttons.newQr")}
+						</Button>
+					</>
 				)}
 			</>
 		);

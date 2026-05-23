@@ -35,7 +35,12 @@ const QrcodeModal = ({ open, onClose, whatsAppId }) => {
 				setQrCode(data.session.qrcode);
 			}
 
-			if (data.action === "update" && data.session.qrcode === "") {
+			if (
+				data.action === "update" &&
+				data.session.id === whatsAppId &&
+				data.session.qrcode === "" &&
+				data.session.status === "CONNECTED"
+			) {
 				onClose();
 			}
 		});

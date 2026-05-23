@@ -41,6 +41,9 @@ class Campaign extends Model<Campaign> {
   @Column
   intervalSeconds: number;
 
+  @Column
+  intervalPattern: string;
+
   @Default(20)
   @Column
   pauseAfter: number;
