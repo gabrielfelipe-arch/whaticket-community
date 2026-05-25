@@ -12,19 +12,6 @@ async function addColumnIfMissing(
   }
 }
 
-async function addTicketColumnInstantIfMissing(
-  queryInterface: QueryInterface,
-  column: string,
-  definition: string
-) {
-  const description = await queryInterface.describeTable("Tickets") as Record<string, unknown>;
-  if (!description[column]) {
-    await queryInterface.sequelize.query(
-      `ALTER TABLE Tickets ADD COLUMN ${column} ${definition}, ALGORITHM=INSTANT`
-    );
-  }
-}
-
 module.exports = {
   up: async (queryInterface: QueryInterface) => {
     await addColumnIfMissing(queryInterface, "UraOptions", "aiHumanHandoffEnabled", {
@@ -43,8 +30,14 @@ module.exports = {
       type: DataTypes.TEXT,
       allowNull: true
     });
-    await addTicketColumnInstantIfMissing(queryInterface, "aiHumanHandoffQueueId", "INTEGER NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "aiHumanHandoffMessage", "TEXT NULL");
+    await addColumnIfMissing(queryInterface, "Tickets", "aiHumanHandoffQueueId", {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "Tickets", "aiHumanHandoffMessage", {
+      type: DataTypes.TEXT,
+      allowNull: true
+    });
   },
 
   down: async (queryInterface: QueryInterface) => {

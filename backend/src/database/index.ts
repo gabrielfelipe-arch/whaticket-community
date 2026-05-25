@@ -26,6 +26,7 @@ import AiTaggerHistory from "../models/AiTaggerHistory";
 import SatisfactionSurvey from "../models/SatisfactionSurvey";
 import SatisfactionSurveyResponse from "../models/SatisfactionSurveyResponse";
 import AuditLog from "../models/AuditLog";
+import AiInteractionLog from "../models/AiInteractionLog";
 
 
 // eslint-disable-next-line
@@ -61,7 +62,8 @@ const models = [
   AiTaggerHistory,
   SatisfactionSurvey,
   SatisfactionSurveyResponse,
-  AuditLog
+  AuditLog,
+  AiInteractionLog
 ];
 
 sequelize.addModels(models);

@@ -6,7 +6,19 @@ const useStyles = makeStyles(theme => ({
 	contactsHeader: {
 		display: "flex",
 		alignItems: "center",
-		padding: "0px 6px 6px 6px",
+		justifyContent: "space-between",
+		gap: theme.spacing(2),
+		padding: theme.spacing(0.5, 0, 2, 0),
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		marginBottom: theme.spacing(2),
+		"& h5, & h6": {
+			fontWeight: 800,
+			color: theme.palette.text.primary,
+		},
+		[theme.breakpoints.down("xs")]: {
+			alignItems: "flex-start",
+			flexDirection: "column",
+		},
 	},
 }));
 

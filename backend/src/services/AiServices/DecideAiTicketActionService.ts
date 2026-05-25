@@ -1,9 +1,9 @@
 import AiSetting from "../../models/AiSetting";
-import KnowledgeBaseArticle from "../../models/KnowledgeBaseArticle";
 import Message from "../../models/Message";
 import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import GenerateAiResponseService, { AiProviderError } from "./GenerateAiResponseService";
+import SearchKnowledgeBaseService, { KnowledgeFragment } from "./SearchKnowledgeBaseService";
 
 export type AiTicketAction =
   | "responder_com_base"
@@ -45,36 +45,6 @@ const normalizeText = (value = ""): string =>
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
-
-const getTerms = (message: string): string[] => {
-  const stopWords = new Set([
-    "para",
-    "como",
-    "qual",
-    "quais",
-    "onde",
-    "quando",
-    "porque",
-    "por",
-    "que",
-    "com",
-    "uma",
-    "uns",
-    "das",
-    "dos",
-    "meu",
-    "minha",
-    "voce",
-    "pode",
-    "preciso",
-    "manda",
-    "passa"
-  ]);
-
-  return normalizeText(message)
-    .split(/\W+/)
-    .filter(term => term.length >= 2 && !stopWords.has(term));
-};
 
 const extractJson = (content: string): any | null => {
   try {
@@ -122,7 +92,7 @@ const getRecentHistory = async (ticketId: number): Promise<string> => {
   const messages = await Message.findAll({
     where: { ticketId },
     order: [["createdAt", "DESC"]],
-    limit: 12
+    limit: 3
   });
 
   return messages
@@ -131,76 +101,14 @@ const getRecentHistory = async (ticketId: number): Promise<string> => {
     .join("\n");
 };
 
-const getRelevantArticles = async (message: string): Promise<KnowledgeBaseArticle[]> => {
-  const articles = await KnowledgeBaseArticle.findAll({
-    where: { active: true },
-    order: [["updatedAt", "DESC"]]
-  });
-
-  const terms = getTerms(message);
-  if (!terms.length) return articles.slice(0, 8);
-
-  const scored = articles
-    .map(article => {
-      const searchable = normalizeText(`${article.title} ${article.tags || ""} ${article.content}`);
-      const score = terms.reduce((total, term) => {
-        if (searchable.includes(term)) return total + 2;
-        return total + (searchable.split(/\W+/).some(word => word.startsWith(term)) ? 1 : 0);
-      }, 0);
-
-      return { article, score };
-    })
-    .filter(item => item.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(item => item.article);
-
-  return scored.length ? scored.slice(0, 8) : articles.slice(0, 8);
-};
-
-const buildKnowledgeText = (articles: KnowledgeBaseArticle[]): string =>
-  articles
-    .map((article, index) => [
-      `#${index + 1} ${article.title}`,
-      article.tags ? `Tags: ${article.tags}` : "",
-      article.content
+const buildKnowledgeText = (fragments: KnowledgeFragment[]): string =>
+  fragments
+    .map((fragment, index) => [
+      `#${index + 1} ${fragment.title}`,
+      fragment.tags ? `Tags: ${fragment.tags}` : "",
+      fragment.fragment
     ].filter(Boolean).join("\n"))
     .join("\n\n");
-
-const customerShowsClosureIntent = (message: string): boolean => {
-  const normalized = normalizeText(message);
-
-  return [
-    "so isso",
-    "era so isso",
-    "somente isso",
-    "e so isso",
-    "eh so isso",
-    "nao quero mais nada",
-    "nao preciso de mais nada",
-    "nao preciso mais nada",
-    "pode finalizar",
-    "pode finaliza",
-    "pode fechar",
-    "pode encerrar",
-    "tudo certo",
-    "resolveu",
-    "resolvido",
-    "me ajudou",
-    "deu certo",
-    "obrigado era so isso",
-    "obg era so isso"
-  ].some(term => normalized.includes(normalizeText(term)));
-};
-
-const isAffirmative = (message: string): boolean => {
-  const normalized = normalizeText(message).replace(/[^\w\s]/g, " ").trim();
-  return /^(sim|s|ss|pode|pode sim|isso|isso mesmo|ok|okay|certo|finaliza|fechar|encerra|encerrar)$/.test(normalized);
-};
-
-const customerThanksOnly = (message: string): boolean => {
-  const normalized = normalizeText(message).replace(/[^\w\s]/g, " ").trim();
-  return /^(obrigado|obrigada|obg|vlw|valeu|gratidao|brigado|brigada)(\s+.*)?$/.test(normalized);
-};
 
 const historyHasRecentAiAnswer = (history: string): boolean => {
   const lines = history
@@ -267,6 +175,7 @@ const buildDecisionPrompt = ({
     "Se o cliente agradecer depois de uma resposta util da IA e o historico indicar que a duvida foi atendida, pode encerrar_atendimento.",
     "Se o cliente pedir para fechar/finalizar, disser que era so isso, nao quer mais nada, tudo certo, resolveu ou pode fechar, use encerrar_atendimento.",
     "Se o cliente disser que nao resolveu ou ainda tem problema, use encaminhar_atendente.",
+    "Quando decidir encerrar o atendimento, inclua obrigatoriamente [FECHAR TICKET] no final do campo resposta.",
     "Intencoes validas: consulta_valor, pedido_atendente, pedido_encerramento, cliente_satisfeito, cliente_nao_satisfeito, pergunta_sobre_produto_ou_servico, agendamento, acompanhamento, reclamacao, sem_resposta_segura, confirmacao_opcao.",
     "Acoes validas: responder_com_base, pedir_confirmacao, pedir_mais_informacoes, encaminhar_atendente, encerrar_atendimento, sem_resposta_segura, nao_responder.",
     "Quando acao for responder_com_base, preencha resposta com uma resposta curta, objetiva e baseada somente na base.",
@@ -346,7 +255,7 @@ const DecideAiTicketActionService = async ({
 
   const pendingOptions = parseOptions(ticket.lastAiQuestionOptions);
   const history = await getRecentHistory(ticket.id);
-  const articles = await getRelevantArticles(
+  const articles = await SearchKnowledgeBaseService(
     pendingOptions.length
       ? `${message} ${pendingOptions.map(option => option.valor).join(" ")}`
       : message
@@ -368,7 +277,9 @@ const DecideAiTicketActionService = async ({
     rawDecision = await GenerateAiResponseService({
       aiSettingId: aiSetting.id,
       message: prompt,
-      contactName
+      contactName,
+      ticketId: ticket.id,
+      skipKnowledgeSearch: true
     });
   } catch (error) {
     if (error instanceof AiProviderError) {
@@ -436,18 +347,11 @@ const DecideAiTicketActionService = async ({
   }
 
   if (decision.acao === "encerrar_atendimento") {
-    const hasClosureIntent = customerShowsClosureIntent(message);
-    const hasHelpfulContext = historyHasRecentAiAnswer(history);
-    const isThanksOnly = customerThanksOnly(message);
-    const answeredFinishQuestion = lastAiAskedToFinish(history) && (isAffirmative(message) || hasClosureIntent);
-
-    if (!answeredFinishQuestion && !hasClosureIntent && (!isThanksOnly || !hasHelpfulContext)) {
-      decision.acao = "pedir_mais_informacoes";
-      decision.intencao = "pergunta_normal";
-      decision.respostaSegura = true;
-      decision.motivo = "Encerramento bloqueado por falta de contexto claro de resolucao";
+    if (!decision.resposta) {
       decision.resposta =
-        "Fico feliz em ajudar. Precisa de mais alguma coisa ou posso finalizar seu atendimento?";
+        "Que bom que pude ajudar. Vou finalizar seu atendimento. Se precisar novamente, e so chamar. [FECHAR TICKET]";
+    } else if (!decision.resposta.includes("[FECHAR TICKET]")) {
+      decision.resposta = `${decision.resposta} [FECHAR TICKET]`;
     }
   }
 

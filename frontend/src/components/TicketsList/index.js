@@ -21,20 +21,23 @@ const useStyles = makeStyles(theme => ({
 		overflow: "hidden",
 		borderTopRightRadius: 0,
 		borderBottomRightRadius: 0,
+		background: theme.palette.background.paper,
 	},
 
 	ticketsList: {
 		flex: 1,
 		overflowY: "scroll",
 		...theme.scrollbarStyles,
-		borderTop: "2px solid rgba(0, 0, 0, 0.12)",
+		borderTop: `1px solid ${theme.palette.divider}`,
+		padding: theme.spacing(1),
+		background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
 	},
 
 	ticketsListHeader: {
-		color: "rgb(67, 83, 105)",
+		color: theme.palette.text.primary,
 		zIndex: 2,
-		backgroundColor: "white",
-		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+		backgroundColor: theme.palette.background.paper,
+		borderBottom: `1px solid ${theme.palette.divider}`,
 		display: "flex",
 		alignItems: "center",
 		justifyContent: "space-between",
@@ -42,14 +45,14 @@ const useStyles = makeStyles(theme => ({
 
 	ticketsCount: {
 		fontWeight: "normal",
-		color: "rgb(104, 121, 146)",
+		color: theme.palette.text.secondary,
 		marginLeft: "8px",
 		fontSize: "14px",
 	},
 
 	noTicketsText: {
 		textAlign: "center",
-		color: "rgb(104, 121, 146)",
+		color: theme.palette.text.secondary,
 		fontSize: "14px",
 		lineHeight: "1.4",
 	},
@@ -277,7 +280,7 @@ const reducer = (state, action) => {
 				className={classes.ticketsList}
 				onScroll={handleScroll}
 			>
-				<List style={{ paddingTop: 0 }}>
+			<List style={{ paddingTop: 0 }}>
 					{ticketsList.length === 0 && !loading ? (
 						<div className={classes.noTicketsDiv}>
 							<span className={classes.noTicketsTitle}>

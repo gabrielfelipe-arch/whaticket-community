@@ -1,7 +1,9 @@
 import axios from "axios";
 import AiSetting from "../../models/AiSetting";
-import KnowledgeBaseArticle from "../../models/KnowledgeBaseArticle";
+import Message from "../../models/Message";
+import AiInteractionLog from "../../models/AiInteractionLog";
 import { logger } from "../../utils/logger";
+import SearchKnowledgeBaseService from "./SearchKnowledgeBaseService";
 
 export class AiProviderError extends Error {
   public provider: string;
@@ -35,78 +37,16 @@ interface Request {
   aiSettingId?: number | null;
   message: string;
   contactName?: string;
+  ticketId?: number | null;
+  systemPromptOverride?: string;
+  skipKnowledgeSearch?: boolean;
 }
 
 const DEFAULT_MODELS: Record<string, string> = {
   openai: "gpt-4o-mini",
-  deepseek: "deepseek-chat",
-  gemini: "gemini-2.5-flash",
+  deepseek: "deepseek-v3",
+  gemini: "gemini-1.5-flash",
   groq: "llama-3.3-70b-versatile"
-};
-
-const normalizeText = (value = ""): string =>
-  value
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-
-const getSearchTerms = (message: string): string[] => {
-  const stopWords = new Set([
-    "para",
-    "como",
-    "qual",
-    "quais",
-    "onde",
-    "quando",
-    "porque",
-    "por",
-    "que",
-    "com",
-    "uma",
-    "uns",
-    "das",
-    "dos",
-    "das",
-    "meu",
-    "minha",
-    "voce",
-    "pode",
-    "preciso"
-  ]);
-
-  return normalizeText(message)
-    .split(/\W+/)
-    .filter(term => term.length >= 3 && !stopWords.has(term));
-};
-
-const buildKnowledgeContext = async (message: string): Promise<string> => {
-  const articles = await KnowledgeBaseArticle.findAll({
-    where: { active: true },
-    order: [["updatedAt", "DESC"]]
-  });
-
-  const terms = getSearchTerms(message);
-  const scoredArticles = articles
-    .map(article => {
-      const searchable = normalizeText(
-        `${article.title} ${article.tags || ""} ${article.content}`
-      );
-      const score = terms.reduce(
-        (total, term) => total + (searchable.includes(term) ? 1 : 0),
-        0
-      );
-
-      return { article, score };
-    })
-    .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map(({ article }) => article);
-
-  const selectedArticles = (scoredArticles.length ? scoredArticles : articles).slice(0, 8);
-
-  return selectedArticles
-    .map(article => `Titulo: ${article.title}\n${article.content}`)
-    .join("\n\n");
 };
 
 const getConfiguredModel = (provider: string, model?: string): string => {
@@ -141,12 +81,78 @@ const getProviderTemperature = (provider: string, value: number | string): numbe
 const getProviderMaxTokens = (provider: string, value: number | string): number => {
   const parsed = Number(value || 800);
   const fallback = Number.isNaN(parsed) || parsed <= 0 ? 800 : parsed;
+  return Math.min(fallback, 2000);
+};
 
-  if (provider === "groq") {
-    return Math.min(fallback, 4096);
-  }
+const estimateTokens = (text = ""): number => Math.ceil(text.length / 4);
 
-  return fallback;
+const truncateByApproxTokens = (text: string, maxTokens: number): string => {
+  const maxChars = maxTokens * 4;
+  if (text.length <= maxChars) return text;
+  return text.slice(0, maxChars);
+};
+
+const getRecentMessages = async (ticketId?: number | null): Promise<Array<{ role: string; content: string }>> => {
+  if (!ticketId) return [];
+
+  const messages = await Message.findAll({
+    where: { ticketId },
+    order: [["createdAt", "DESC"]],
+    limit: 3
+  });
+
+  return messages.reverse().map(message => ({
+    role: message.fromMe ? "assistant" : "user",
+    content: message.body || ""
+  }));
+};
+
+const buildKnowledgeContext = async (
+  message: string,
+  skipKnowledgeSearch?: boolean
+): Promise<string> => {
+  if (skipKnowledgeSearch) return "";
+
+  const fragments = await SearchKnowledgeBaseService(message);
+  return fragments
+    .map(fragment => [
+      `Titulo: ${fragment.title}`,
+      fragment.tags ? `Palavras chave: ${fragment.tags}` : "",
+      fragment.fragment
+    ].filter(Boolean).join("\n"))
+    .join("\n\n");
+};
+
+const createAiLog = async ({
+  aiSettingId,
+  ticketId,
+  provider,
+  model,
+  promptTokens,
+  completionTokens,
+  status,
+  errorMessage
+}: {
+  aiSettingId: number;
+  ticketId?: number | null;
+  provider: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  status: string;
+  errorMessage?: string;
+}) => {
+  await AiInteractionLog.create({
+    aiSettingId,
+    ticketId: ticketId || null,
+    provider,
+    modelUsed: model,
+    promptTokens,
+    completionTokens,
+    totalTokens: promptTokens + completionTokens,
+    status,
+    errorMessage: errorMessage || null
+  });
 };
 
 const sleep = (ms: number): Promise<void> =>
@@ -217,7 +223,10 @@ const runWithAiRetries = async <T>(
 const GenerateAiResponseService = async ({
   aiSettingId,
   message,
-  contactName
+  contactName,
+  ticketId,
+  systemPromptOverride,
+  skipKnowledgeSearch
 }: Request): Promise<string | null> => {
   const aiSetting = aiSettingId
     ? await AiSetting.findByPk(aiSettingId)
@@ -227,7 +236,8 @@ const GenerateAiResponseService = async ({
     return null;
   }
 
-  const knowledgeContext = await buildKnowledgeContext(message);
+  const knowledgeContext = await buildKnowledgeContext(message, skipKnowledgeSearch);
+  const recentMessages = await getRecentMessages(ticketId);
   const systemPrompt = [
     "Voce e um assistente de atendimento configuravel para qualquer ramo de negocio.",
     `Nome da IA: ${aiSetting.name || "Assistente Virtual"}.`,
@@ -236,11 +246,13 @@ const GenerateAiResponseService = async ({
     aiSetting.behaviorPrompt
       ? `Comportamento configurado:\n${aiSetting.behaviorPrompt}`
       : "",
-    aiSetting.systemPrompt || "",
+    systemPromptOverride || aiSetting.systemPrompt || "",
     "Responda sempre considerando a mensagem atual do usuario.",
+    "Considere obrigatoriamente as 3 ultimas mensagens enviadas no historico para entender respostas curtas como 'nao', 'sim', 'so isso' ou 'pode fechar'.",
     "Use a base de conhecimento quando ela tiver informacao relacionada. Se a base nao tiver informacao suficiente, diga isso de forma objetiva e peca os dados necessarios ou encaminhe para atendimento humano.",
     "Nao invente valores, prazos, links, telefones, regras, nomes, procedimentos ou orientacoes que nao estejam no perfil configurado ou na base de conhecimento.",
     "Nao assuma ramo, produto, servico, fila ou equipe fixa. Use somente as configuracoes e a base cadastrada.",
+    "Se identificar pelo contexto que o usuario esta satisfeito, pediu fechamento ou nao precisa de mais nada, termine a resposta com a tag [FECHAR TICKET].",
     contactName ? `Nome do contato: ${contactName}` : "",
     knowledgeContext ? `Base de conhecimento:\n${knowledgeContext}` : ""
   ]
@@ -251,6 +263,12 @@ const GenerateAiResponseService = async ({
   const model = getConfiguredModel(provider, aiSetting.model);
   const temperature = getProviderTemperature(provider, aiSetting.temperature);
   const maxTokens = getProviderMaxTokens(provider, aiSetting.maxTokens);
+  const userMessage = truncateByApproxTokens(message, 900);
+  const safeSystemPrompt = truncateByApproxTokens(systemPrompt, 900);
+  const promptTokensEstimate =
+    estimateTokens(safeSystemPrompt) +
+    estimateTokens(userMessage) +
+    recentMessages.reduce((total, item) => total + estimateTokens(item.content), 0);
 
   if (!["openai", "deepseek", "gemini", "groq"].includes(provider)) {
     logger.warn(`AI provider not supported yet: ${provider}`);
@@ -271,9 +289,13 @@ const GenerateAiResponseService = async ({
               parts: [{ text: systemPrompt }]
             },
             contents: [
+              ...recentMessages.map(item => ({
+                role: item.role === "assistant" ? "model" : "user",
+                parts: [{ text: truncateByApproxTokens(item.content, 160) }]
+              })),
               {
                 role: "user",
-                parts: [{ text: message }]
+                parts: [{ text: userMessage }]
               }
             ],
             generationConfig: {
@@ -296,10 +318,22 @@ const GenerateAiResponseService = async ({
       );
 
       const parts = data?.candidates?.[0]?.content?.parts || [];
-      return parts
+      const output = parts
         .map((part: { text?: string }) => part.text || "")
         .join("")
         .trim() || null;
+      const completionTokens = Number(data?.usageMetadata?.candidatesTokenCount || estimateTokens(output || ""));
+      const promptTokens = Number(data?.usageMetadata?.promptTokenCount || promptTokensEstimate);
+      await createAiLog({
+        aiSettingId: aiSetting.id,
+        ticketId,
+        provider,
+        model,
+        promptTokens,
+        completionTokens,
+        status: "success"
+      });
+      return output;
     }
 
     const endpoint =
@@ -317,10 +351,14 @@ const GenerateAiResponseService = async ({
           temperature,
           max_tokens: maxTokens,
           messages: [
-            { role: "system", content: systemPrompt },
+            { role: "system", content: safeSystemPrompt },
+            ...recentMessages.map(item => ({
+              role: item.role,
+              content: truncateByApproxTokens(item.content, 160)
+            })),
             {
               role: "user",
-              content: message
+              content: userMessage
             }
           ]
         },
@@ -335,7 +373,17 @@ const GenerateAiResponseService = async ({
       { aiSettingId: aiSetting.id, provider, model }
     );
 
-    return data?.choices?.[0]?.message?.content?.trim() || null;
+    const output = data?.choices?.[0]?.message?.content?.trim() || null;
+    await createAiLog({
+      aiSettingId: aiSetting.id,
+      ticketId,
+      provider,
+      model,
+      promptTokens: Number(data?.usage?.prompt_tokens || promptTokensEstimate),
+      completionTokens: Number(data?.usage?.completion_tokens || estimateTokens(output || "")),
+      status: "success"
+    });
+    return output;
   } catch (error) {
     if (axios.isAxiosError(error)) {
       const providerMessage =
@@ -355,6 +403,16 @@ const GenerateAiResponseService = async ({
         },
         "Error generating AI response"
       );
+      await createAiLog({
+        aiSettingId: aiSetting.id,
+        ticketId,
+        provider,
+        model,
+        promptTokens: promptTokensEstimate,
+        completionTokens: 0,
+        status: "error",
+        errorMessage: providerMessage
+      }).catch(() => {});
 
       throw new AiProviderError({
         provider,

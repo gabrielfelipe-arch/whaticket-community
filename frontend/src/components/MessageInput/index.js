@@ -53,11 +53,11 @@ const initRecorder = async () => {
 
 const useStyles = makeStyles(theme => ({
   mainWrapper: {
-    background: "#eee",
+    background: theme.palette.background.paper,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    borderTop: "1px solid rgba(0, 0, 0, 0.12)",
+    borderTop: `1px solid ${theme.palette.divider}`,
     [theme.breakpoints.down("sm")]: {
       position: "fixed",
       bottom: 0,
@@ -66,21 +66,22 @@ const useStyles = makeStyles(theme => ({
   },
 
   newMessageBox: {
-    background: "#eee",
+    background: theme.palette.background.paper,
     width: "100%",
     display: "flex",
-    padding: "7px",
+    padding: theme.spacing(1.25),
     alignItems: "center",
   },
 
   messageInputWrapper: {
-    padding: 6,
+    padding: theme.spacing(0.75, 1.25),
     marginRight: 7,
-    background: "#fff",
+    background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
     display: "flex",
-    borderRadius: 20,
+    borderRadius: 8,
     flex: 1,
     position: "relative",
+    border: `1px solid ${theme.palette.divider}`,
   },
 
   messageInput: {
@@ -90,7 +91,7 @@ const useStyles = makeStyles(theme => ({
   },
 
   sendMessageIcons: {
-    color: "grey",
+    color: theme.palette.text.secondary,
   },
 
   uploadInput: {
@@ -103,8 +104,8 @@ const useStyles = makeStyles(theme => ({
     position: "relative",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#eee",
-    borderTop: "1px solid rgba(0, 0, 0, 0.12)",
+    backgroundColor: theme.palette.background.paper,
+    borderTop: `1px solid ${theme.palette.divider}`,
   },
 
   emojiBox: {
@@ -191,9 +192,9 @@ const useStyles = makeStyles(theme => ({
     margin: 0,
     position: "absolute",
     bottom: "50px",
-    background: "#ffffff",
+    background: theme.palette.background.paper,
     padding: "2px",
-    border: "1px solid #CCC",
+    border: `1px solid ${theme.palette.divider}`,
     left: 0,
     width: "100%",
     "& li": {

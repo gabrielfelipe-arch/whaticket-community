@@ -1,11 +1,18 @@
 require("../bootstrap");
 
+const dialect = process.env.DB_DIALECT || "mysql";
+
+const mysqlDefineOptions =
+  dialect === "mysql" || dialect === "mariadb"
+    ? {
+        charset: "utf8mb4",
+        collate: "utf8mb4_bin"
+      }
+    : {};
+
 module.exports = {
-  define: {
-    charset: "utf8mb4",
-    collate: "utf8mb4_bin"
-  },
-  dialect: process.env.DB_DIALECT || "mysql",
+  define: mysqlDefineOptions,
+  dialect,
   timezone: "-03:00",
   host: process.env.DB_HOST,
   port: process.env.DB_PORT,

@@ -1,4 +1,6 @@
 .docker/data/
+.docker/pgdata/
+.docker/backups/
 ssl/
 .env
 .wwebjs_auth

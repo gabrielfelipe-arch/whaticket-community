@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Op, fn, col, literal, where as sequelizeWhere } from "sequelize";
+import { Op, fn, col, where as sequelizeWhere } from "sequelize";
 import Ticket from "../models/Ticket";
 import Message from "../models/Message";
 import Contact from "../models/Contact";
@@ -52,6 +52,7 @@ const groupRows = async (column: string, alias: string, start: Date, end: Date) 
 export const dashboard = async (req: Request, res: Response): Promise<Response> => {
   const { start, end } = parseDateRange(req);
   const where = { createdAt: { [Op.between]: [+start, +end] } } as any;
+  const ticketCreatedDate = fn("DATE", col("Ticket.createdAt"));
 
   const [total, open, pending, closed, byCategory, byReason, byQueue, byUser, byDay] = await Promise.all([
     Ticket.count({ where }),
@@ -76,12 +77,12 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
     }),
     Ticket.findAll({
       attributes: [
-        [fn("DATE", col("Ticket.createdAt")), "date"],
+        [ticketCreatedDate, "date"],
         [fn("COUNT", col("Ticket.id")), "total"]
       ],
       where,
-      group: [literal("DATE(`Ticket`.`createdAt`)") as any],
-      order: [[literal("DATE(`Ticket`.`createdAt`)") as any, "ASC"]],
+      group: [ticketCreatedDate as any],
+      order: [[ticketCreatedDate as any, "ASC"]],
       raw: true
     })
   ]);

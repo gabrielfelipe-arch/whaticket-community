@@ -7,7 +7,6 @@ import {
   Toolbar,
   List,
   Typography,
-  Divider,
   MenuItem,
   IconButton,
   Menu,
@@ -27,25 +26,71 @@ import { i18n } from "../translate/i18n";
 import { useThemeContext } from "../context/DarkMode";
 import { useBranding } from "../context/Branding";
 
-const drawerWidth = 240;
+const drawerWidth = 272;
 
 const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     height: "100vh",
+    background: theme.palette.background.default,
     [theme.breakpoints.down("sm")]: {
       height: "calc(100vh - 56px)",
     },
   },
   toolbar: {
-    paddingRight: 24, // keep right padding when drawer closed
+    paddingRight: 24,
+    minHeight: 64,
+    gap: theme.spacing(1),
   },
   toolbarIcon: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "flex-end",
-    padding: "0 8px",
-    minHeight: "48px",
+    justifyContent: "space-between",
+    padding: theme.spacing(1.5, 1.5),
+    minHeight: 64,
+    background: "#08111F",
+  },
+  sidebarTitle: {
+    color: "#FFFFFF",
+    fontWeight: 800,
+    fontSize: 15,
+    letterSpacing: 0,
+  },
+  brandBox: {
+    display: "flex",
+    alignItems: "center",
+    minWidth: 0,
+    gap: theme.spacing(1),
+  },
+  brandLogo: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    objectFit: "contain",
+    background: "rgba(255,255,255,0.08)",
+    padding: 4,
+  },
+  brandFallback: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontWeight: 800,
+    color: "#FFFFFF",
+    background: "linear-gradient(135deg, #2563EB 0%, #38BDF8 100%)",
+  },
+  brandName: {
+    color: "#FFFFFF",
+    fontWeight: 800,
+    fontSize: 16,
+    lineHeight: 1.1,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+  collapseButton: {
+    color: "#94A3B8",
   },
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
@@ -53,7 +98,10 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    backgroundColor: theme.palette.background.default,
+    backgroundColor: "#0B1220",
+    color: "#FFFFFF",
+    borderBottom: "1px solid rgba(148, 163, 184, 0.16)",
+    boxShadow: "0 10px 28px rgba(2, 6, 23, 0.20)",
   },
   appBarShift: {
     marginLeft: drawerWidth,
@@ -64,15 +112,17 @@ const useStyles = makeStyles((theme) => ({
     }),
   },
   menuButton: {
-    marginRight: 36,
-    color: theme.palette.text.primary,
+    marginRight: theme.spacing(1),
+    color: "#FFFFFF",
   },
   menuButtonHidden: {
     display: "none",
   },
   title: {
     flexGrow: 1,
-    color: theme.palette.text.primary,
+    color: "#FFFFFF",
+    fontWeight: 800,
+    letterSpacing: 0,
   },
   drawerPaper: {
     position: "relative",
@@ -82,7 +132,9 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: "#08111F",
+    borderRight: "1px solid rgba(148, 163, 184, 0.14)",
+    color: "#E2E8F0",
   },
   drawerPaperClose: {
     overflowX: "hidden",
@@ -90,17 +142,18 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    width: theme.spacing(7),
+    width: theme.spacing(8),
     [theme.breakpoints.up("sm")]: {
       width: theme.spacing(9),
     },
   },
   appBarSpacer: {
-    minHeight: "48px",
+    minHeight: 64,
   },
   content: {
     flex: 1,
     overflow: "auto",
+    background: theme.palette.background.default,
   },
   container: {
     paddingTop: theme.spacing(4),
@@ -116,14 +169,40 @@ const useStyles = makeStyles((theme) => ({
     transform: "scale(0.8)",
   },
   iconButton: {
-    color: theme.palette.text.primary,
+    color: "#FFFFFF",
+  },
+  userPill: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    padding: theme.spacing(0.5, 1),
+    borderRadius: 8,
+    border: "1px solid rgba(148, 163, 184, 0.22)",
+    background: "rgba(255, 255, 255, 0.06)",
+    color: "#FFFFFF",
+  },
+  userText: {
+    display: "flex",
+    flexDirection: "column",
+    lineHeight: 1.1,
+    [theme.breakpoints.down("xs")]: {
+      display: "none",
+    },
+  },
+  userName: {
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  userProfile: {
+    fontSize: 11,
+    color: "#CBD5E1",
   },
   themeSwitchContainer: {
     display: "flex",
     alignItems: "center",
   },
   themeIcon: {
-    color: theme.palette.text.primary,
+    color: "#FFFFFF",
   },
 }));
 
@@ -197,15 +276,17 @@ const LoggedInLayout = ({ children }) => {
         open={drawerOpen}
       >
         <div className={classes.toolbarIcon}>
-          <IconButton onClick={() => setDrawerOpen(!drawerOpen)}>
+          {drawerOpen && <Typography className={classes.sidebarTitle}>Menu</Typography>}
+          <IconButton
+            onClick={() => setDrawerOpen(!drawerOpen)}
+            className={classes.collapseButton}
+          >
             <ChevronLeftIcon />
           </IconButton>
         </div>
-        <Divider />
         <List>
           <MainListItems drawerClose={drawerClose} />
         </List>
-        <Divider />
       </Drawer>
       <UserModal
         open={userModalOpen}
@@ -229,19 +310,27 @@ const LoggedInLayout = ({ children }) => {
             <MenuIcon />
           </IconButton>
           <Typography
-            component="h1"
+            component="div"
             variant="h6"
             noWrap
             className={classes.title}
           >
-            {branding.brandLogo && (
-              <img
-                src={`http://localhost:8085${branding.brandLogo}`}
-                alt={branding.brandName}
-                style={{ height: 28, verticalAlign: "middle", marginRight: 8 }}
-              />
-            )}
-            {branding.brandName || "WhaTicket"}
+            <div className={classes.brandBox}>
+              {branding.brandLogo ? (
+                <img
+                  src={`http://localhost:8085${branding.brandLogo}`}
+                  alt={branding.brandName}
+                  className={classes.brandLogo}
+                />
+              ) : (
+                <div className={classes.brandFallback}>
+                  {(branding.brandName || "A").charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className={classes.brandName}>
+                {branding.brandName || "Atendimento"}
+              </div>
+            </div>
           </Typography>
 
           <div className={classes.themeSwitchContainer}>
@@ -259,6 +348,11 @@ const LoggedInLayout = ({ children }) => {
           )}
 
           <div>
+            <div className={classes.userPill}>
+              <div className={classes.userText}>
+                <span className={classes.userName}>{user?.name || "Usuario"}</span>
+                <span className={classes.userProfile}>{user?.profile || ""}</span>
+              </div>
             <IconButton
               aria-label="account of current user"
               aria-controls="menu-appbar"
@@ -268,6 +362,7 @@ const LoggedInLayout = ({ children }) => {
             >
               <AccountCircle />
             </IconButton>
+            </div>
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}

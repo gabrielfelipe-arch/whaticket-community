@@ -42,11 +42,15 @@ const useStyles = makeStyles((theme) => ({
   },
 
   messagesList: {
-    backgroundImage: `url(${whatsBackground})`,
+    backgroundImage:
+      theme.palette.type === "dark"
+        ? "none"
+        : `linear-gradient(rgba(245, 247, 251, 0.82), rgba(245, 247, 251, 0.82)), url(${whatsBackground})`,
+    backgroundColor: theme.palette.type === "dark" ? "#0B1220" : "#F5F7FB",
     display: "flex",
     flexDirection: "column",
     flexGrow: 1,
-    padding: "20px 20px 20px 20px",
+    padding: "24px",
     overflowY: "scroll",
     [theme.breakpoints.down("sm")]: {
       paddingBottom: "90px",
@@ -82,15 +86,18 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "#ffffff",
     color: "#303030",
     alignSelf: "flex-start",
-    borderTopLeftRadius: 0,
+    borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
-    paddingLeft: 5,
-    paddingRight: 5,
-    paddingTop: 5,
-    paddingBottom: 0,
-    boxShadow: "0 1px 1px #b3b3b3",
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingTop: 7,
+    paddingBottom: 2,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.palette.type === "dark"
+      ? "0 10px 24px rgba(0,0,0,0.18)"
+      : "0 8px 20px rgba(15,23,42,0.06)",
   },
 
   quotedContainerLeft: {
@@ -133,18 +140,21 @@ const useStyles = makeStyles((theme) => ({
     },
 
     whiteSpace: "pre-wrap",
-    backgroundColor: "#dcf8c6",
-    color: "#303030",
+    backgroundColor: theme.palette.type === "dark" ? "#0F2A24" : "#DCFCE7",
+    color: theme.palette.type === "dark" ? "#E2E8F0" : "#0F172A",
     alignSelf: "flex-end",
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
     borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 0,
-    paddingLeft: 5,
-    paddingRight: 5,
-    paddingTop: 5,
-    paddingBottom: 0,
-    boxShadow: "0 1px 1px #b3b3b3",
+    borderBottomRightRadius: 8,
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingTop: 7,
+    paddingBottom: 2,
+    border: "1px solid rgba(34, 197, 94, 0.24)",
+    boxShadow: theme.palette.type === "dark"
+      ? "0 10px 24px rgba(0,0,0,0.18)"
+      : "0 8px 20px rgba(15,23,42,0.06)",
   },
 
   quotedContainerRight: {
@@ -212,7 +222,7 @@ const useStyles = makeStyles((theme) => ({
     position: "absolute",
     bottom: 0,
     right: 5,
-    color: "#999",
+    color: theme.palette.text.secondary,
   },
 
   dailyTimestamp: {
@@ -220,14 +230,16 @@ const useStyles = makeStyles((theme) => ({
     textAlign: "center",
     alignSelf: "center",
     width: "110px",
-    backgroundColor: "#e1f3fb",
+    backgroundColor: theme.palette.type === "dark" ? "#111A2E" : "#E0F2FE",
     margin: "10px",
     borderRadius: "10px",
-    boxShadow: "0 1px 1px #b3b3b3",
+    boxShadow: theme.palette.type === "dark"
+      ? "0 8px 18px rgba(0,0,0,0.18)"
+      : "0 8px 18px rgba(15,23,42,0.06)",
   },
 
   dailyTimestampText: {
-    color: "#808888",
+    color: theme.palette.type === "dark" ? "#BAE6FD" : "#0369A1",
     padding: 8,
     alignSelf: "center",
     marginLeft: "0px",

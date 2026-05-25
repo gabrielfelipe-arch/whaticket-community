@@ -60,7 +60,12 @@ const useStyles = makeStyles(theme => ({
   metric: {
     padding: theme.spacing(2),
     minHeight: 118,
-    borderLeft: "4px solid transparent"
+    borderLeft: "4px solid transparent",
+    borderRadius: 8,
+    borderTop: `1px solid ${theme.palette.divider}`,
+    borderRight: `1px solid ${theme.palette.divider}`,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
   },
   metricLabel: {
     color: theme.palette.text.secondary,
@@ -74,7 +79,10 @@ const useStyles = makeStyles(theme => ({
   },
   panel: {
     padding: theme.spacing(2),
-    minHeight: 330
+    minHeight: 330,
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
   },
   panelHeader: {
     display: "flex",
@@ -83,22 +91,27 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1)
   },
   tablePanel: {
-    padding: theme.spacing(2)
+    padding: theme.spacing(2),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
   },
   history: {
     maxHeight: 460,
     overflowY: "auto",
-    borderTop: "1px solid rgba(0, 0, 0, 0.08)"
+    borderTop: `1px solid ${theme.palette.divider}`,
+    ...theme.scrollbarStyles,
   },
   conversation: {
     padding: theme.spacing(1.5),
-    borderBottom: "1px solid rgba(0, 0, 0, 0.08)"
+    borderBottom: `1px solid ${theme.palette.divider}`
   },
   message: {
     marginTop: theme.spacing(0.75),
     padding: theme.spacing(1),
-    borderRadius: 6,
-    background: theme.palette.background.default
+    borderRadius: 8,
+    background: theme.palette.background.default,
+    border: `1px solid ${theme.palette.divider}`,
   },
   "@media print": {
     noPrint: {

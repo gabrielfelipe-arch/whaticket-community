@@ -25,6 +25,7 @@ const useStyles = makeStyles((theme) => ({
     height: "100%",
     position: "relative",
     overflow: "hidden",
+    background: theme.palette.background.paper,
   },
 
   ticketInfo: {
@@ -55,6 +56,8 @@ const useStyles = makeStyles((theme) => ({
     borderTopLeftRadius: 0,
     borderBottomLeftRadius: 0,
     borderLeft: "0",
+    background: theme.palette.background.paper,
+    border: 0,
     marginRight: -drawerWidth,
     transition: theme.transitions.create("margin", {
       easing: theme.transitions.easing.sharp,

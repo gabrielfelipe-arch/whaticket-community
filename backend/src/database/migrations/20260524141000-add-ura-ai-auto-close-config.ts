@@ -12,33 +12,53 @@ async function addColumnIfMissing(
   }
 }
 
-async function addTicketColumnInstantIfMissing(
-  queryInterface: QueryInterface,
-  table: string,
-  column: string,
-  definition: string
-) {
-  const description = await queryInterface.describeTable(table) as Record<string, unknown>;
-  if (!description[column]) {
-    await queryInterface.sequelize.query(
-      `ALTER TABLE ${table} ADD COLUMN ${column} ${definition}, ALGORITHM=INSTANT`
-    );
-  }
-}
-
 module.exports = {
   up: async (queryInterface: QueryInterface) => {
-    await addTicketColumnInstantIfMissing(queryInterface, "UraOptions", "aiAutoCloseEnabled", "BOOLEAN NOT NULL DEFAULT false");
-    await addTicketColumnInstantIfMissing(queryInterface, "UraOptions", "aiAutoCloseMinutes", "INTEGER NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "UraOptions", "aiAutoCloseMessage", "TEXT NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "UraOptions", "aiAutoCloseReasonId", "INTEGER NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "UraOptions", "aiAutoCloseOnlyIfNotHandedOff", "BOOLEAN NOT NULL DEFAULT true");
+    await addColumnIfMissing(queryInterface, "UraOptions", "aiAutoCloseEnabled", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
+    await addColumnIfMissing(queryInterface, "UraOptions", "aiAutoCloseMinutes", {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "UraOptions", "aiAutoCloseMessage", {
+      type: DataTypes.TEXT,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "UraOptions", "aiAutoCloseReasonId", {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "UraOptions", "aiAutoCloseOnlyIfNotHandedOff", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
 
-    await addTicketColumnInstantIfMissing(queryInterface, "Tickets", "aiAutoCloseEnabled", "BOOLEAN NOT NULL DEFAULT false");
-    await addTicketColumnInstantIfMissing(queryInterface, "Tickets", "aiAutoCloseMinutes", "INTEGER NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "Tickets", "aiAutoCloseMessage", "TEXT NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "Tickets", "aiAutoCloseReasonId", "INTEGER NULL");
-    await addTicketColumnInstantIfMissing(queryInterface, "Tickets", "aiAutoCloseOnlyIfNotHandedOff", "BOOLEAN NOT NULL DEFAULT true");
+    await addColumnIfMissing(queryInterface, "Tickets", "aiAutoCloseEnabled", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false
+    });
+    await addColumnIfMissing(queryInterface, "Tickets", "aiAutoCloseMinutes", {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "Tickets", "aiAutoCloseMessage", {
+      type: DataTypes.TEXT,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "Tickets", "aiAutoCloseReasonId", {
+      type: DataTypes.INTEGER,
+      allowNull: true
+    });
+    await addColumnIfMissing(queryInterface, "Tickets", "aiAutoCloseOnlyIfNotHandedOff", {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true
+    });
   },
 
   down: async (queryInterface: QueryInterface) => {

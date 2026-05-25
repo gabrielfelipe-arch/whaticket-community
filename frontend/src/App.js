@@ -5,6 +5,7 @@ import "react-toastify/dist/ReactToastify.css";
 
 import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import { ptBR } from "@material-ui/core/locale";
+import { CssBaseline } from "@material-ui/core";
 import { BrandingProvider } from "./context/Branding";
 
 const App = () => {
@@ -29,8 +30,8 @@ const App = () => {
         },
       },
       palette: {
-        primary: { main: branding.primaryColor || "#2576d2" },
-        secondary: { main: branding.secondaryColor || "#f50057" },
+        primary: { main: branding.primaryColor || "#2563EB" },
+        secondary: { main: branding.secondaryColor || "#38BDF8" },
       },
     },
     locale
@@ -66,6 +67,7 @@ const App = () => {
 
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <BrandingProvider value={branding}>
         <Routes />
       </BrandingProvider>

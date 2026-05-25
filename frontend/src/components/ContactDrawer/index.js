@@ -28,16 +28,15 @@ const useStyles = makeStyles(theme => ({
 	drawerPaper: {
 		width: drawerWidth,
 		display: "flex",
-		borderTop: "1px solid rgba(0, 0, 0, 0.12)",
-		borderRight: "1px solid rgba(0, 0, 0, 0.12)",
-		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-		borderTopRightRadius: 4,
-		borderBottomRightRadius: 4,
+		border: `1px solid ${theme.palette.divider}`,
+		borderTopRightRadius: 8,
+		borderBottomRightRadius: 8,
+		background: theme.palette.background.paper,
 	},
 	header: {
 		display: "flex",
-		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
-		backgroundColor: "#eee",
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		backgroundColor: theme.palette.background.paper,
 		alignItems: "center",
 		padding: theme.spacing(0, 1),
 		minHeight: "73px",
@@ -45,7 +44,7 @@ const useStyles = makeStyles(theme => ({
 	},
 	content: {
 		display: "flex",
-		backgroundColor: "#eee",
+		backgroundColor: theme.palette.type === "dark" ? "#0B1220" : "#F5F7FB",
 		flexDirection: "column",
 		padding: "8px 0px 8px 8px",
 		height: "100%",
@@ -55,8 +54,9 @@ const useStyles = makeStyles(theme => ({
 
 	contactAvatar: {
 		margin: 15,
-		width: 160,
-		height: 160,
+		width: 112,
+		height: 112,
+		border: "4px solid #E0F2FE",
 	},
 
 	contactHeader: {
@@ -72,13 +72,15 @@ const useStyles = makeStyles(theme => ({
 
 	contactDetails: {
 		marginTop: 8,
-		padding: 8,
+		padding: 12,
 		display: "flex",
 		flexDirection: "column",
+		borderRadius: 8,
 	},
 	contactExtraInfo: {
-		marginTop: 4,
-		padding: 6,
+		marginTop: 8,
+		padding: 10,
+		borderRadius: 8,
 	},
 	tagChips: {
 		display: "flex",

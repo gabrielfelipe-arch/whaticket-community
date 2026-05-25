@@ -34,6 +34,7 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
     padding: theme.spacing(2),
     overflowY: "auto",
+    background: theme.palette.background.default,
     ...theme.scrollbarStyles
   },
   header: {
@@ -43,11 +44,16 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(2)
   },
   tabs: {
-    marginBottom: theme.spacing(2)
+    marginBottom: theme.spacing(2),
+    minHeight: 44,
+    borderBottom: `1px solid ${theme.palette.divider}`,
   },
   paper: {
-    padding: theme.spacing(1),
-    overflowX: "auto"
+    padding: theme.spacing(1.5),
+    overflowX: "auto",
+    borderRadius: 8,
+    boxShadow: theme.custom?.cardShadow,
+    borderColor: theme.palette.divider,
   },
   helper: {
     marginBottom: theme.spacing(2)
@@ -58,9 +64,10 @@ const useStyles = makeStyles(theme => ({
     gap: theme.spacing(0.5)
   },
   contactPicker: {
-    border: "1px solid rgba(0, 0, 0, 0.23)",
-    borderRadius: 4,
-    padding: theme.spacing(1)
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    padding: theme.spacing(1.25),
+    background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
   },
   contactPickerHeader: {
     display: "flex",
@@ -72,14 +79,20 @@ const useStyles = makeStyles(theme => ({
   contactList: {
     maxHeight: 220,
     overflowY: "auto",
-    borderTop: "1px solid rgba(0, 0, 0, 0.08)"
+    borderTop: `1px solid ${theme.palette.divider}`,
+    marginTop: theme.spacing(1),
+    ...theme.scrollbarStyles,
   },
   contactRow: {
     display: "flex",
     alignItems: "center",
     minHeight: 42,
-    borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
-    cursor: "pointer"
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    cursor: "pointer",
+    borderRadius: 8,
+    "&:hover": {
+      background: theme.palette.type === "dark" ? "rgba(56,189,248,0.08)" : "#EFF6FF",
+    },
   },
   contactInfo: {
     display: "flex",

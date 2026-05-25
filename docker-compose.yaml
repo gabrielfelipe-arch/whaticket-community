@@ -9,12 +9,15 @@ services:
     build:
       context: ./backend
       dockerfile: ./Dockerfile
+    depends_on:
+      - postgres
     environment:
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASS=${MYSQL_ROOT_PASSWORD:-strongpassword}
-      - DB_NAME=${MYSQL_DATABASE:-whaticket}
+      - DB_DIALECT=${DB_DIALECT:-postgres}
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-${POSTGRES_USER:-whaticket}}
+      - DB_PASS=${DB_PASS:-${POSTGRES_PASSWORD:-strongpassword}}
+      - DB_NAME=${DB_NAME:-${POSTGRES_DB:-whaticket_pg}}
       - JWT_SECRET=${JWT_SECRET:-3123123213123}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-75756756756}
       - BACKEND_URL=${BACKEND_URL:-http://localhost}
@@ -48,17 +51,17 @@ services:
     networks:
       - whaticket
 
-  mysql:
-    image: ${MYSQL_ENGINE:-mariadb}:${MYSQL_VERSION:-10.6}
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_bin    
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16}
     volumes:
-      - ./.docker/data/:/var/lib/mysql
+      - ./.docker/pgdata/:/var/lib/postgresql/data
     environment:
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-whaticket}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-strongpassword}
-      - TZ=${TZ:-America/Fortaleza}
+      - POSTGRES_DB=${POSTGRES_DB:-whaticket_pg}
+      - POSTGRES_USER=${POSTGRES_USER:-whaticket}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-strongpassword}
+      - TZ=${TZ:-America/Sao_Paulo}
     ports:
-      - ${MYSQL_PORT:-3306}:3306
+      - ${POSTGRES_PORT:-5432}:5432
     restart: always
     networks:
       - whaticket

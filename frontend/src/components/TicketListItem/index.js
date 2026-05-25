@@ -5,7 +5,6 @@ import { parseISO, format, isSameDay } from "date-fns";
 import clsx from "clsx";
 
 import { makeStyles } from "@material-ui/core/styles";
-import { green } from "@material-ui/core/colors";
 import ListItem from "@material-ui/core/ListItem";
 import ListItemText from "@material-ui/core/ListItemText";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
@@ -27,6 +26,25 @@ import toastError from "../../errors/toastError";
 const useStyles = makeStyles(theme => ({
 	ticket: {
 		position: "relative",
+		marginBottom: theme.spacing(1),
+		borderRadius: 8,
+		background: theme.palette.background.paper,
+		border: `1px solid ${theme.palette.divider}`,
+		boxShadow: theme.palette.type === "dark"
+			? "0 10px 24px rgba(0,0,0,0.18)"
+			: "0 10px 24px rgba(15,23,42,0.05)",
+		overflow: "hidden",
+		transition: "all 160ms ease",
+		"&:hover": {
+			transform: "translateY(-1px)",
+			boxShadow: theme.palette.type === "dark"
+				? "0 14px 30px rgba(0,0,0,0.22)"
+				: "0 14px 30px rgba(15,23,42,0.08)",
+		},
+		"&.Mui-selected": {
+			background: theme.palette.type === "dark" ? "#102040" : "#EFF6FF",
+			borderColor: "#60A5FA",
+		},
 	},
 
 	pendingTicket: {
@@ -65,19 +83,15 @@ const useStyles = makeStyles(theme => ({
 
 	lastMessageTime: {
 		justifySelf: "flex-end",
-	},
-
-	closedBadge: {
-		alignSelf: "center",
-		justifySelf: "flex-end",
-		marginRight: 32,
-		marginLeft: "auto",
+		fontSize: 12,
+		color: theme.palette.text.secondary,
 	},
 
 	contactLastMessage: {
 		paddingRight: 8,
 		minWidth: 0,
 		flex: 1,
+		color: theme.palette.text.secondary,
 	},
 
 	newMessagesCount: {
@@ -88,7 +102,8 @@ const useStyles = makeStyles(theme => ({
 
 	badgeStyle: {
 		color: "white",
-		backgroundColor: green[500],
+		backgroundColor: "#22C55E",
+		fontWeight: 800,
 	},
 
 	acceptButton: {
@@ -111,21 +126,39 @@ const useStyles = makeStyles(theme => ({
 		marginRight: 5,
 		right: 5,
 		bottom: 5,
-		background: "#2576D2",
-		color: "#ffffff",
-		border: "1px solid #CCC",
-		padding: 1,
-		paddingLeft: 5,
-		paddingRight: 5,
-		borderRadius: 10,
-		fontSize: "0.9em"
+		background: "#DBEAFE",
+		color: "#1D4ED8",
+		border: "1px solid #BFDBFE",
+		fontWeight: 800,
+		maxWidth: 120,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+	},
+	statusChip: {
+		height: 22,
+		fontSize: 11,
+		fontWeight: 800,
+	},
+	closedChip: {
+		background: theme.custom?.status?.closed?.bg || "#E2E8F0",
+		color: theme.custom?.status?.closed?.color || "#334155",
+	},
+	pendingChip: {
+		background: theme.custom?.status?.waiting?.bg || "#FEF3C7",
+		color: theme.custom?.status?.waiting?.color || "#92400E",
+	},
+	openChip: {
+		background: theme.custom?.status?.open?.bg || "#DCFCE7",
+		color: theme.custom?.status?.open?.color || "#166534",
 	},
 	aiTag: {
 		marginLeft: 8,
-		height: 20,
+		height: 22,
 		fontSize: 11,
-		background: "#263238",
-		color: "#fff",
+		background: theme.custom?.status?.ai?.bg || "#E0F2FE",
+		color: theme.custom?.status?.ai?.color || "#0369A1",
+		fontWeight: 800,
 	},
 }));
 
@@ -214,11 +247,13 @@ const TicketListItem = ({ ticket }) => {
 								<Chip size="small" className={classes.aiTag} label="IA atendendo" />
 							)}
 							{ticket.status === "closed" && (
-								<Badge
-									className={classes.closedBadge}
-									badgeContent={"closed"}
-									color="primary"
-								/>
+								<Chip size="small" className={clsx(classes.statusChip, classes.closedChip)} label="Finalizado" />
+							)}
+							{ticket.status === "pending" && !ticket.aiActive && (
+								<Chip size="small" className={clsx(classes.statusChip, classes.pendingChip)} label="Aguardando" />
+							)}
+							{ticket.status === "open" && !ticket.aiActive && (
+								<Chip size="small" className={clsx(classes.statusChip, classes.openChip)} label="Em atendimento" />
 							)}
 							{ticket.lastMessage && (
 								<Typography

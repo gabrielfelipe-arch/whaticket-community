@@ -59,13 +59,19 @@ const useStyles = makeStyles(theme => ({
 		gap: theme.spacing(1)
 	},
 	tabs: {
-		marginBottom: theme.spacing(2)
+		marginBottom: theme.spacing(2),
+		minHeight: 44,
+		borderBottom: `1px solid ${theme.palette.divider}`
 	},
 	generalPaper: {
 		padding: theme.spacing(2),
 		display: "flex",
 		alignItems: "center",
-		marginBottom: theme.spacing(2)
+		marginBottom: theme.spacing(2),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		boxShadow: theme.custom?.cardShadow,
+		background: theme.palette.background.paper
 	},
 	settingOption: {
 		marginLeft: "auto"
@@ -75,7 +81,9 @@ const useStyles = makeStyles(theme => ({
 	},
 	contentPaper: {
 		padding: theme.spacing(2),
-		borderRadius: 6
+		borderRadius: 8,
+		boxShadow: theme.custom?.cardShadow,
+		borderColor: theme.palette.divider
 	},
 	sectionSubtitle: {
 		color: theme.palette.text.secondary,

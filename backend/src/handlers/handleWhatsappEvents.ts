@@ -31,6 +31,7 @@ import { MessageType, MessageAck } from "../providers/WhatsApp/types";
 
 const writeFileAsync = promisify(writeFile);
 const uraMenuLocks = new Set<number>();
+const AI_CLOSE_TAG = "[FECHAR TICKET]";
 
 export interface ContactPayload {
   name: string;
@@ -343,6 +344,28 @@ const createTicketHistoryMessage = async (
   });
 };
 
+const normalizeSimpleText = (value = ""): string =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isSimpleGreeting = (message: string): boolean =>
+  /^(oi|ola|olá|bom dia|boa tarde|boa noite|e ai|e aí|opa|hello|hi)$/.test(
+    normalizeSimpleText(message)
+  );
+
+const stripAiCloseTag = (message: string): { body: string; shouldClose: boolean } => {
+  const shouldClose = message.includes(AI_CLOSE_TAG);
+  return {
+    body: message.replace(AI_CLOSE_TAG, "").trim(),
+    shouldClose
+  };
+};
+
 const handleAiReply = async (
   whatsappId: number,
   messageBody: string,
@@ -350,6 +373,20 @@ const handleAiReply = async (
   contactPayload: ContactPayload,
   aiSettingId?: number | null
 ): Promise<boolean> => {
+  if (isSimpleGreeting(messageBody)) {
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      `Ola${contactPayload.name ? `, ${contactPayload.name}` : ""}! Como posso ajudar?`,
+      ticket
+    );
+    await ticket.update({
+      aiHandled: true,
+      lastAiInteractionAt: new Date()
+    });
+    return true;
+  }
+
   const aiDecision = await DecideAiTicketActionService({
     ticket,
     aiSettingId,
@@ -443,9 +480,10 @@ const handleAiReply = async (
         return handedOff;
       }
 
-      const closingMessage =
+      const rawClosingMessage =
         aiDecision.resposta ||
-        "Que bom que pude ajudar. Vou finalizar seu atendimento. Se precisar novamente, e so chamar.";
+        "Que bom que pude ajudar. Vou finalizar seu atendimento. Se precisar novamente, e so chamar. [FECHAR TICKET]";
+      const { body: closingMessage } = stripAiCloseTag(rawClosingMessage);
 
       await sendTextMessage(whatsappId, contactPayload, closingMessage, ticket);
 
@@ -458,8 +496,8 @@ const handleAiReply = async (
           closingNote: "Atendimento encerrado pela IA conforme contexto da conversa.",
           aiActive: false,
           aiHandled: true,
-          aiAutoClosed: false,
-          aiAutoClosedAt: null,
+          aiAutoClosed: true,
+          aiAutoClosedAt: new Date(),
           aiFinishedAt: new Date(),
           aiSettingId: ticket.aiSettingId
         }
@@ -505,7 +543,33 @@ const handleAiReply = async (
     }
 
     if (aiDecision.acao === "responder_com_base" && aiDecision.resposta) {
-      await sendTextMessage(whatsappId, contactPayload, aiDecision.resposta, ticket);
+      const { body, shouldClose } = stripAiCloseTag(aiDecision.resposta);
+      await sendTextMessage(whatsappId, contactPayload, body, ticket);
+
+      if (shouldClose) {
+        if (!ticket.aiAutoCloseReasonId) {
+          await handoffToHuman(whatsappId, messageBody, ticket, contactPayload, aiSettingId);
+          return true;
+        }
+
+        await UpdateTicketService({
+          ticketId: ticket.id,
+          ticketData: {
+            status: "closed",
+            categoryId: ticket.categoryId,
+            closingReasonId: ticket.aiAutoCloseReasonId,
+            closingNote: "Atendimento encerrado pela IA conforme tag de contexto.",
+            aiActive: false,
+            aiHandled: true,
+            aiAutoClosed: true,
+            aiAutoClosedAt: new Date(),
+            aiFinishedAt: new Date(),
+            aiSettingId: ticket.aiSettingId
+          }
+        });
+        return true;
+      }
+
       await ticket.update({
         aiHandled: true,
         lastAiQuestionType: null,

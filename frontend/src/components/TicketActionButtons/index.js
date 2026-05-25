@@ -29,7 +29,7 @@ const useStyles = makeStyles(theme => ({
 		alignSelf: "center",
 		marginLeft: "auto",
 		"& > *": {
-			margin: theme.spacing(1),
+			margin: theme.spacing(0.5),
 		},
 	},
 }));
