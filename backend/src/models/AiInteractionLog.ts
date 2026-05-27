@@ -55,6 +55,33 @@ class AiInteractionLog extends Model<AiInteractionLog> {
   @Column(DataType.TEXT)
   errorMessage: string;
 
+  @Column
+  intent: string;
+
+  @Column
+  action: string;
+
+  @Column(DataType.TEXT)
+  decisionReason: string;
+
+  @Column(DataType.TEXT)
+  userMessage: string;
+
+  @Column(DataType.TEXT)
+  aiResponse: string;
+
+  @Column(DataType.TEXT)
+  knowledgeIds: string;
+
+  @Column(DataType.TEXT)
+  knowledgeTitles: string;
+
+  @Column(DataType.TEXT)
+  knowledgeScores: string;
+
+  @Column
+  contextMessageCount: number;
+
   @CreatedAt
   createdAt: Date;
 

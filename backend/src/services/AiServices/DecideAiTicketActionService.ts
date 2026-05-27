@@ -103,23 +103,47 @@ const getRecentHistory = async (ticket: Ticket): Promise<string> => {
   const messages = await Message.findAll({
     where,
     order: [["createdAt", "DESC"]],
-    limit: 12
+    limit: 24
   });
 
   return messages
     .reverse()
     .map(message => {
       const body = message.body || "";
-      const sender = !message.fromMe
-        ? "Cliente"
-        : String(message.id || "").startsWith("ticket-history-") ||
-            /atendimento encerrado|atendimento assumido|transferido|fila|ura|menu/i.test(body)
-          ? "Sistema"
-          : "IA";
+      const senderType = message.senderType || "";
+      const sender =
+        senderType === "customer" || !message.fromMe
+          ? "CLIENTE"
+          : senderType === "ai"
+            ? "IA"
+            : senderType === "human"
+              ? "ATENDENTE HUMANO"
+              : senderType === "system" || senderType === "ura" || String(message.id || "").startsWith("ticket-history-") ||
+                  /atendimento encerrado|atendimento assumido|transferido|\bfila\b|\bura\b|\bmenu\b|seja bem-vindo|mensagem de opcao invalida|mensagem de opção inválida/i.test(body)
+                ? "SISTEMA"
+                : "IA";
 
-      return `${sender}: ${body}`;
+      return `[${sender} - ${new Date(message.createdAt).toISOString()}]\n${body}`;
     })
     .join("\n");
+};
+
+const hasHumanMessageInCurrentAiSession = async (ticket: Ticket): Promise<boolean> => {
+  const where: any = {
+    ticketId: ticket.id,
+    senderType: "human"
+  };
+
+  if (ticket.aiStartedAt) {
+    where.createdAt = { [Op.gte]: ticket.aiStartedAt };
+  }
+
+  const message = await Message.findOne({
+    where,
+    order: [["createdAt", "DESC"]]
+  });
+
+  return !!message;
 };
 
 const buildKnowledgeText = (fragments: KnowledgeFragment[]): string =>
@@ -147,6 +171,23 @@ const cleanKnowledgeFragment = (value = ""): string =>
     .replace(/\s+([,.!?;:])/g, "$1")
     .trim();
 
+const limitCustomerText = (value = "", maxLength = 1800): string => {
+  const text = value.trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trim()}...`;
+};
+
+const getCustomerFallbackFragment = (article?: KnowledgeFragment): string => {
+  if (!article) return "";
+
+  const formattedHtml = article.contentHtml ? htmlToWhatsAppText(article.contentHtml) : "";
+  const preferred = formattedHtml && formattedHtml.length <= 2200
+    ? formattedHtml
+    : cleanKnowledgeFragment(article.fragment || "");
+
+  return limitCustomerText(preferred || formattedHtml || "", 1800);
+};
+
 const cleanCustomerAiAnswer = (value = ""): string => {
   let answer = value
     .replace(/\r\n/g, "\n")
@@ -158,7 +199,8 @@ const cleanCustomerAiAnswer = (value = ""): string => {
 
   answer = answer
     .replace(/^\s*(?:de acordo com|conforme|segundo)\s+a\s+(?:base\s+de\s+conhecimento|base|manual|documento\s+interno)\s*:?\s*/i, "")
-    .replace(/\b(?:base\s+de\s+conhecimento|RAG|prompt|documento\s+interno|artigo\s+encontrado)\b\s*:?\s*/gi, "")
+    .replace(/^\s*(?:base\s+de\s+conhecimento|conhecimento\s+encontrado|manual|documento\s+interno|artigo\s+encontrado)\s*:?\s*/gim, "")
+    .replace(/\b(?:base\s+de\s+conhecimento|RAG|prompt|documento\s+interno|artigo\s+encontrado|manual cadastrado)\b\s*:?\s*/gi, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
@@ -171,9 +213,7 @@ const buildKnowledgeFallbackDecision = (
   reason: string
 ): AiDecision => {
   const mainArticle = articles[0];
-  const fragment = mainArticle?.contentHtml
-    ? htmlToWhatsAppText(mainArticle.contentHtml)
-    : cleanKnowledgeFragment(mainArticle?.fragment || "");
+  const fragment = getCustomerFallbackFragment(mainArticle);
 
   return {
     intencao: "pergunta_sobre_produto_ou_servico",
@@ -206,9 +246,7 @@ const buildProviderErrorKnowledgeFallbackDecision = (
   reason: string
 ): AiDecision => {
   const mainArticle = articles[0];
-  const fragment = mainArticle?.contentHtml
-    ? htmlToWhatsAppText(mainArticle.contentHtml)
-    : cleanKnowledgeFragment(mainArticle?.fragment || "");
+  const fragment = getCustomerFallbackFragment(mainArticle);
 
   return {
     intencao: "pergunta_sobre_produto_ou_servico",
@@ -283,7 +321,7 @@ const buildAnswerPrompt = ({
   "Use linguagem natural, educada, objetiva e humana.",
   "O atendimento pode ser de qualquer ramo: vendas, suporte, clinica, escola, loja, oficina, servicos, delivery, imobiliaria, financeiro, cobranca, agendamento, promocao ou relacionamento.",
   "Adapte a resposta ao tipo de atendimento configurado, a mensagem do cliente e a base encontrada.",
-  "Use somente as informacoes da BASE DE CONHECIMENTO ENCONTRADA.",
+  "Use somente as INFORMACOES INTERNAS ENCONTRADAS.",
   "Nao copie a base literalmente quando puder explicar melhor. Reescreva de forma clara, humana e especifica para a pergunta do cliente.",
   "Nao invente valores, prazos, links, telefones, regras, procedimentos ou nomes que nao estejam na base.",
   "Pode explicar opcoes, sugerir proximos passos, listar possiveis causas, orientar uma triagem inicial, informar promocoes ou conduzir uma venda somente quando isso estiver sustentado pela base.",
@@ -301,7 +339,7 @@ const buildAnswerPrompt = ({
   aiSetting.name ? `Nome da IA, se precisar se apresentar: ${aiSetting.name}.` : "",
   aiSetting.companyName ? `Empresa ou servico: ${aiSetting.companyName}.` : "",
   `Historico recente:\n${history || "Sem historico."}`,
-  `BASE DE CONHECIMENTO ENCONTRADA:\n${knowledge}`,
+  `INFORMACOES INTERNAS ENCONTRADAS:\n${knowledge}`,
   `Mensagem atual do cliente: ${message}`,
   "Resposta final ao cliente:"
 ].filter(Boolean).join("\n\n");
@@ -337,7 +375,13 @@ const generateAnswerFromKnowledge = async ({
       message: answerPrompt,
       contactName,
       ticketId: ticket.id,
-      skipKnowledgeSearch: true
+      skipKnowledgeSearch: true,
+      includeRecentMessages: false,
+      logMetadata: {
+        action: "gerar_resposta_final",
+        knowledgeIds: ticket.lastAiKnowledgeIds ? parseKnowledgeIds(ticket.lastAiKnowledgeIds) : undefined,
+        contextMessageCount: history.split("\n").filter(Boolean).length
+      }
     });
 
     return cleanCustomerAiAnswer(answer || "") || null;
@@ -455,7 +499,7 @@ const historyHasRecentAiAnswer = (history: string): boolean => {
     .filter(Boolean);
 
   const relevantAiLines = lines.filter(line =>
-    (line.startsWith("IA:") || line.startsWith("IA/Sistema:")) &&
+    (line.startsWith("IA:") || line.startsWith("IA/Sistema:") || line.startsWith("[IA")) &&
     !/menu|opcao|opção|ola como posso ajudar|seja bem-vindo/i.test(line)
   );
 
@@ -468,7 +512,7 @@ const lastAiAskedToFinish = (history: string): boolean => {
     .map(line => line.trim())
     .filter(Boolean);
   const lastAiLine =
-    [...lines].reverse().find(line => line.startsWith("IA:") || line.startsWith("IA/Sistema:")) || "";
+    [...lines].reverse().find(line => line.startsWith("IA:") || line.startsWith("IA/Sistema:") || line.startsWith("[IA")) || "";
 
   return /posso finalizar|pode finalizar|finalizar seu atendimento|posso encerrar|pode encerrar|ajudo em algo mais|ajuda em algo mais|algo mais|mais alguma coisa|posso ajudar em mais alguma coisa|consegui te ajudar|consegui ajudar|te ajudei|essa informacao te ajudou|essa informação te ajudou/i.test(lastAiLine);
 };
@@ -598,6 +642,8 @@ const buildDecisionPrompt = ({
     aiSetting.behaviorPrompt ? `Comportamento configurado:\n${aiSetting.behaviorPrompt}` : "",
     aiSetting.systemPrompt ? `Instrucoes adicionais:\n${aiSetting.systemPrompt}` : "",
     "Analise contexto, erros de digitacao, abreviacoes, historico recente, estado atual do ticket e a base de conhecimento.",
+    "Use somente o historico mostrado deste ticket atual. Nunca suponha mensagens de atendimentos anteriores do mesmo contato.",
+    "Diferencie CLIENTE, IA, ATENDENTE HUMANO e SISTEMA. Mensagens de SISTEMA/URA servem como estado, nao como pedido do cliente.",
     "Use o estado do atendimento para interpretar respostas curtas. Se a ultima pergunta foi 'Consegui te ajudar?' ou uma checagem de satisfacao e o cliente respondeu 'sim', 'certo', 'obrigado' ou 'deu certo', a intencao e encerramento. Se respondeu 'nao' ou 'nao resolveu', a intencao e encaminhar_atendente.",
     "Se a ultima pergunta foi 'Posso ajudar em algo mais?' e o cliente respondeu 'nao', 'nao obrigado' ou 'era so isso', a intencao e encerramento. Se respondeu 'sim', a intencao e continuar pedindo mais detalhes.",
     "Se a ultima pergunta foi diagnostica, como 'o erro acontece ao finalizar?', respostas como 'sim' ou 'nao' nao significam encerramento; continue o diagnostico.",
@@ -700,6 +746,19 @@ const DecideAiTicketActionService = async ({
       respostaSegura: false,
       acao: "nao_responder",
       motivo: "Ticket saiu da fila da IA, foi assumido, encaminhado ou encerrado"
+    };
+  }
+
+  if (await hasHumanMessageInCurrentAiSession(ticket)) {
+    return {
+      intencao: "atendimento_humano_em_andamento",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Uma mensagem humana foi enviada neste atendimento depois que a IA iniciou.",
+      baseEncontrada: false,
+      respostaSegura: false,
+      acao: "nao_responder",
+      motivo: "IA bloqueada para nao responder por cima de atendente humano"
     };
   }
 
@@ -811,7 +870,15 @@ const DecideAiTicketActionService = async ({
       contactName,
       ticketId: ticket.id,
       skipKnowledgeSearch: true,
-      jsonMode: true
+      jsonMode: true,
+      includeRecentMessages: false,
+      logMetadata: {
+        action: "decidir_acao",
+        knowledgeIds: articles.map(article => article.id),
+        knowledgeTitles: articles.map(article => article.title),
+        knowledgeScores: articles.map(article => Number(article.rank || 0)),
+        contextMessageCount: history.split("\n").filter(Boolean).length
+      }
     });
   } catch (error) {
     if (error instanceof AiProviderError) {

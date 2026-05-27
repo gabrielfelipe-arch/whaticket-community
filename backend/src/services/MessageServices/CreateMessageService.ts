@@ -14,6 +14,8 @@ interface MessageData {
   mediaUrl?: string;
   ack?: number;
   quotedMsgId?: string;
+  senderType?: "customer" | "ai" | "human" | "system" | "ura";
+  aiSessionStartedAt?: Date | null;
 }
 interface Request {
   messageData: MessageData;
@@ -22,7 +24,18 @@ interface Request {
 const CreateMessageService = async ({
   messageData
 }: Request): Promise<Message> => {
-  await Message.upsert(messageData);
+  const inferredSenderType =
+    messageData.senderType ||
+    (!messageData.fromMe
+      ? "customer"
+      : String(messageData.id || "").startsWith("ticket-history-")
+        ? "system"
+        : "human");
+
+  await Message.upsert({
+    ...messageData,
+    senderType: inferredSenderType
+  });
 
   const message = await Message.findByPk(messageData.id, {
     include: [

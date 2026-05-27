@@ -31,6 +31,8 @@ const sendAutoCloseMessage = async (
       ticketId: ticket.id,
       body: sentMessage.body || body,
       fromMe: true,
+      senderType: "system",
+      aiSessionStartedAt: ticket.aiStartedAt,
       read: true,
       mediaType: sentMessage.type,
       ack: sentMessage.ack !== undefined ? sentMessage.ack : 1

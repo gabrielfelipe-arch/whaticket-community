@@ -310,7 +310,8 @@ const sendTextMessage = async (
   whatsappId: number,
   contactPayload: ContactPayload,
   body: string,
-  ticket?: Ticket
+  ticket?: Ticket,
+  senderType: "ai" | "system" | "ura" = "ai"
 ): Promise<void> => {
   const renderedBody = await RenderMessageVariables(`\u200e${body}`, contactPayload as any);
   const sentMessage = await whatsappProvider.sendMessage(
@@ -326,6 +327,8 @@ const sendTextMessage = async (
         ticketId: ticket.id,
         body: sentMessage.body || renderedBody || body,
         fromMe: true,
+        senderType,
+        aiSessionStartedAt: senderType === "ai" ? ticket.aiStartedAt : null,
         read: true,
         mediaType: sentMessage.type,
         ack: sentMessage.ack !== undefined ? sentMessage.ack : 1
@@ -353,7 +356,7 @@ const sendConfiguredMessage = async ({
   mediaName?: string | null;
 }): Promise<void> => {
   if (!mediaUrl) {
-    if (body) await sendTextMessage(whatsappId, contactPayload, body, ticket);
+    if (body) await sendTextMessage(whatsappId, contactPayload, body, ticket, "ura");
     return;
   }
 
@@ -380,6 +383,8 @@ const sendConfiguredMessage = async ({
         ticketId: ticket.id,
         body: sentMessage.body || renderedBody || body || mediaName || mediaUrl,
         fromMe: true,
+        senderType: "ura",
+        aiSessionStartedAt: null,
         read: true,
         mediaType: sentMessage.type || mediaType || "document",
         mediaUrl,
@@ -400,6 +405,8 @@ const createTicketHistoryMessage = async (
       ticketId: ticket.id,
       body,
       fromMe: true,
+      senderType: "system",
+      aiSessionStartedAt: ticket.aiStartedAt,
       read: true,
       mediaType: "chat",
       ack: 1
@@ -926,7 +933,7 @@ const handleUraLogic = async (
     }
 
     if (menuAlreadySentForFlow && flow.invalidOptionMessage) {
-      await sendTextMessage(whatsappId, contactPayload, flow.invalidOptionMessage, ticket);
+      await sendTextMessage(whatsappId, contactPayload, flow.invalidOptionMessage, ticket, "ura");
       return true;
     }
 
@@ -1273,6 +1280,8 @@ export const handleMessage = async (
       contactId: processedMessage.fromMe ? undefined : contact.id,
       body: processedMessage.body,
       fromMe: processedMessage.fromMe,
+      senderType: processedMessage.fromMe ? "human" : "customer",
+      aiSessionStartedAt: ticket.aiActive ? ticket.aiStartedAt : null,
       read: processedMessage.fromMe,
       mediaType: processedMessage.type,
       quotedMsgId: processedMessage.quotedMsgId,

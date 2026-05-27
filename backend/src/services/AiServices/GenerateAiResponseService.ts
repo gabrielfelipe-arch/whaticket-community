@@ -42,6 +42,16 @@ interface Request {
   systemPromptOverride?: string;
   skipKnowledgeSearch?: boolean;
   jsonMode?: boolean;
+  includeRecentMessages?: boolean;
+  logMetadata?: {
+    intent?: string;
+    action?: string;
+    decisionReason?: string;
+    knowledgeIds?: number[];
+    knowledgeTitles?: string[];
+    knowledgeScores?: number[];
+    contextMessageCount?: number;
+  };
 }
 
 const DEFAULT_MODELS: Record<string, string> = {
@@ -103,15 +113,16 @@ const getConfiguredModel = (provider: string, model?: string): string => {
   return model;
 };
 
-const getProviderTemperature = (provider: string, value: number | string): number => {
+const getProviderTemperature = (provider: string, value: number | string, jsonMode?: boolean): number => {
   const parsed = Number(value || 0.2);
   const fallback = Number.isNaN(parsed) ? 0.2 : parsed;
+  const stableFallback = jsonMode ? Math.min(fallback, 0.3) : Math.min(fallback, 0.7);
 
   if (provider === "groq") {
-    return Math.min(Math.max(fallback, 0), 1);
+    return Math.min(Math.max(stableFallback, 0), 1);
   }
 
-  return Math.min(Math.max(fallback, 0), 2);
+  return Math.min(Math.max(stableFallback, 0), 2);
 };
 
 const getProviderMaxTokens = (provider: string, value: number | string): number => {
@@ -134,13 +145,18 @@ const getRecentMessages = async (ticketId?: number | null): Promise<Array<{ role
   const messages = await Message.findAll({
     where: { ticketId },
     order: [["createdAt", "DESC"]],
-    limit: 3
+    limit: 8
   });
 
-  return messages.reverse().map(message => ({
-    role: message.fromMe ? "assistant" : "user",
-    content: message.body || ""
-  }));
+  return messages
+    .reverse()
+    .filter(message => !["system", "ura"].includes(String(message.senderType || "")))
+    .slice(-3)
+    .map(message => ({
+      role: message.senderType === "human" || message.fromMe ? "assistant" : "user",
+      content: message.body || ""
+    }))
+    .filter(message => message.content.trim());
 };
 
 const buildKnowledgeContext = async (
@@ -167,7 +183,10 @@ const createAiLog = async ({
   promptTokens,
   completionTokens,
   status,
-  errorMessage
+  errorMessage,
+  userMessage,
+  aiResponse,
+  metadata
 }: {
   aiSettingId: number;
   ticketId?: number | null;
@@ -177,6 +196,9 @@ const createAiLog = async ({
   completionTokens: number;
   status: string;
   errorMessage?: string;
+  userMessage?: string;
+  aiResponse?: string | null;
+  metadata?: Request["logMetadata"];
 }) => {
   await AiInteractionLog.create({
     aiSettingId,
@@ -187,7 +209,16 @@ const createAiLog = async ({
     completionTokens,
     totalTokens: promptTokens + completionTokens,
     status,
-    errorMessage: errorMessage || null
+    errorMessage: errorMessage || null,
+    userMessage: userMessage || null,
+    aiResponse: aiResponse || null,
+    intent: metadata?.intent || null,
+    action: metadata?.action || null,
+    decisionReason: metadata?.decisionReason || null,
+    knowledgeIds: metadata?.knowledgeIds?.length ? JSON.stringify(metadata.knowledgeIds) : null,
+    knowledgeTitles: metadata?.knowledgeTitles?.length ? JSON.stringify(metadata.knowledgeTitles) : null,
+    knowledgeScores: metadata?.knowledgeScores?.length ? JSON.stringify(metadata.knowledgeScores) : null,
+    contextMessageCount: metadata?.contextMessageCount ?? null
   });
 };
 
@@ -263,7 +294,9 @@ const GenerateAiResponseService = async ({
   ticketId,
   systemPromptOverride,
   skipKnowledgeSearch,
-  jsonMode
+  jsonMode,
+  includeRecentMessages = true,
+  logMetadata
 }: Request): Promise<string | null> => {
   const aiSetting = aiSettingId
     ? await AiSetting.findByPk(aiSettingId)
@@ -274,7 +307,7 @@ const GenerateAiResponseService = async ({
   }
 
   const knowledgeContext = await buildKnowledgeContext(message, skipKnowledgeSearch);
-  const recentMessages = await getRecentMessages(ticketId);
+  const recentMessages = includeRecentMessages ? await getRecentMessages(ticketId) : [];
   const systemPrompt = [
     "Voce e um assistente de atendimento configuravel para qualquer ramo de negocio.",
     `Nome da IA: ${aiSetting.name || "Assistente Virtual"}.`,
@@ -285,6 +318,7 @@ const GenerateAiResponseService = async ({
       : "",
     systemPromptOverride || aiSetting.systemPrompt || "",
     "Responda sempre considerando a mensagem atual do usuario.",
+    "Use somente o historico do ticket atual que foi enviado nesta chamada. Nunca use nem suponha atendimentos anteriores do mesmo contato.",
     "Considere obrigatoriamente as 3 ultimas mensagens enviadas no historico para entender respostas curtas como 'nao', 'sim', 'so isso' ou 'pode fechar'.",
     "Use as informacoes internas recebidas quando elas tiverem relacao com a pergunta. Se nao houver informacao suficiente, diga isso de forma objetiva e peca os dados necessarios ou encaminhe para atendimento humano.",
     "Nao mencione base de conhecimento, manual, documento interno, RAG, banco de dados ou prompt para o cliente.",
@@ -300,7 +334,7 @@ const GenerateAiResponseService = async ({
 
   const provider = (aiSetting.provider || "openai").toLowerCase();
   const model = getConfiguredModel(provider, aiSetting.model);
-  const temperature = getProviderTemperature(provider, aiSetting.temperature);
+  const temperature = getProviderTemperature(provider, aiSetting.temperature, jsonMode);
   const maxTokens = getProviderMaxTokens(provider, aiSetting.maxTokens);
   const userMessage = truncateByApproxTokens(message, 700);
   const safeSystemPrompt = truncateByApproxTokens(systemPrompt, 1400);
@@ -347,7 +381,13 @@ const GenerateAiResponseService = async ({
       model,
       promptTokens: Number(result.inputTokens || promptTokensEstimate),
       completionTokens: Number(result.outputTokens || estimateTokens(result.text || "")),
-      status: "success"
+      status: "success",
+      userMessage: truncateByApproxTokens(message, 700),
+      aiResponse: truncateByApproxTokens(result.text || "", 1000),
+      metadata: {
+        ...logMetadata,
+        contextMessageCount: logMetadata?.contextMessageCount ?? recentMessages.length
+      }
     });
     return result.text;
   } catch (error) {
@@ -377,7 +417,13 @@ const GenerateAiResponseService = async ({
         promptTokens: promptTokensEstimate,
         completionTokens: 0,
         status: "error",
-        errorMessage: providerMessage
+        errorMessage: providerMessage,
+        userMessage: truncateByApproxTokens(message, 700),
+        aiResponse: null,
+        metadata: {
+          ...logMetadata,
+          contextMessageCount: logMetadata?.contextMessageCount ?? recentMessages.length
+        }
       }).catch(() => {});
 
       throw new AiProviderError({

@@ -31,6 +31,12 @@ class Message extends Model<Message> {
   @Column
   fromMe: boolean;
 
+  @Column
+  senderType: string;
+
+  @Column
+  aiSessionStartedAt: Date;
+
   @Column(DataType.TEXT)
   body: string;
 
