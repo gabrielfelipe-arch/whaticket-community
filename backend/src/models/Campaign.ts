@@ -71,6 +71,18 @@ class Campaign extends Model<Campaign> {
   @HasMany(() => CampaignContact)
   recipients: CampaignContact[];
 
+  @Column
+  startedAt: Date;
+
+  @Column
+  pausedAt: Date;
+
+  @Column
+  canceledAt: Date;
+
+  @Column
+  completedAt: Date;
+
   @CreatedAt
   createdAt: Date;
 

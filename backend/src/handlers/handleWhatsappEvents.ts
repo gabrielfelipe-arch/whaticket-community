@@ -16,6 +16,7 @@ import Queue from "../models/Queue";
 import AiSetting from "../models/AiSetting";
 import Setting from "../models/Setting";
 import ClosingReason from "../models/ClosingReason";
+import UraOption from "../models/UraOption";
 
 import CreateMessageService from "../services/MessageServices/CreateMessageService";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
@@ -875,16 +876,41 @@ const handleAiReply = async (
   }
 };
 
-const buildUraMenu = (flow: any): string => {
-  const options = [...(flow.options || [])].sort(
+const sortUraOptions = (options: any[]): any[] =>
+  [...options].sort(
     (a, b) => Number(a.order || 0) - Number(b.order || 0)
   );
+
+const getUraOptionsByParent = (flow: any, parentOptionId: number | null): any[] =>
+  sortUraOptions(flow.options || []).filter(option => {
+    const optionParentId = option.parentOptionId ? Number(option.parentOptionId) : null;
+    return optionParentId === parentOptionId;
+  });
+
+const getCurrentUraParentOption = async (ticket: Ticket): Promise<UraOption | null> => {
+  if (!ticket.currentUraOptionId) return null;
+  return UraOption.findByPk(ticket.currentUraOptionId);
+};
+
+const buildUraMenu = (flow: any, parentOption?: any | null): string => {
+  const options = getUraOptionsByParent(flow, parentOption?.id ? Number(parentOption.id) : null);
 
   const optionLines = options
     .map(option => `*${option.optionKey}* - ${option.title}`)
     .join("\n");
 
-  return [flow.welcomeMessage, optionLines].filter(Boolean).join("\n");
+  const menuMessage = parentOption?.responseMessage || flow.welcomeMessage;
+
+  return [menuMessage, optionLines].filter(Boolean).join("\n");
+};
+
+const findUraOption = (options: any[], messageBody: string): any | undefined => {
+  const normalizedMessage = (messageBody || "").trim().toLowerCase();
+  return options.find(
+    option =>
+      String(option.optionKey).trim().toLowerCase() === normalizedMessage ||
+      normalizeText(option.title) === normalizeText(normalizedMessage)
+  );
 };
 
 const handleUraLogic = async (
@@ -898,18 +924,15 @@ const handleUraLogic = async (
 
   if (!flow || !flow.active) return false;
 
-  const options = [...(flow.options || [])].sort(
-    (a, b) => Number(a.order || 0) - Number(b.order || 0)
+  const currentParentOption = await getCurrentUraParentOption(ticket);
+  const currentOptions = getUraOptionsByParent(
+    flow,
+    currentParentOption?.id ? Number(currentParentOption.id) : null
   );
-  const normalizedMessage = (messageBody || "").trim().toLowerCase();
-  const selectedOption = options.find(
-    option =>
-      String(option.optionKey).trim().toLowerCase() === normalizedMessage ||
-      normalizeText(option.title) === normalizeText(normalizedMessage)
-  ) ||
+  const selectedOption = findUraOption(currentOptions, messageBody) ||
     (
       isHumanRequest(messageBody)
-        ? options.find(option =>
+        ? currentOptions.find(option =>
             ["HUMAN", "TRANSFER_QUEUE"].includes(option.action) &&
             /atendente|humano|pessoa/.test(normalizeText(`${option.title} ${option.responseMessage || ""}`))
           )
@@ -932,12 +955,35 @@ const handleUraLogic = async (
       return true;
     }
 
-    if (menuAlreadySentForFlow && flow.invalidOptionMessage) {
-      await sendTextMessage(whatsappId, contactPayload, flow.invalidOptionMessage, ticket, "ura");
+    const invalidAttempts = Number(ticket.uraInvalidAttempts || 0) + (ticket.uraActive ? 1 : 0);
+    if (ticket.uraActive && flow.maxInvalidAttempts && invalidAttempts >= Number(flow.maxInvalidAttempts)) {
+      if (flow.fallbackQueueId) {
+        await UpdateTicketService({
+          ticketData: {
+            queueId: flow.fallbackQueueId,
+            aiActive: false,
+            aiSettingId: null,
+            uraInvalidAttempts: invalidAttempts,
+            uraActive: false,
+            currentUraOptionId: null,
+            lastUraInteractionAt: new Date()
+          },
+          ticketId: ticket.id
+        });
+      }
       return true;
     }
 
-    const menu = buildUraMenu(flow);
+    if (menuAlreadySentForFlow && flow.invalidOptionMessage) {
+      await sendTextMessage(whatsappId, contactPayload, flow.invalidOptionMessage, ticket, "ura");
+      await ticket.update({
+        uraInvalidAttempts: invalidAttempts,
+        lastUraInteractionAt: new Date()
+      });
+      return true;
+    }
+
+    const menu = buildUraMenu(flow, currentParentOption);
     if (menu) {
       uraMenuLocks.add(ticket.id);
       try {
@@ -954,6 +1000,9 @@ const handleUraLogic = async (
           queueId: null,
           uraFlowId: flow.id,
           uraMenuSentAt: new Date(),
+          uraActive: true,
+          uraInvalidAttempts: 0,
+          lastUraInteractionAt: new Date(),
           aiActive: false,
           aiSettingId: null
         });
@@ -961,6 +1010,84 @@ const handleUraLogic = async (
         setTimeout(() => uraMenuLocks.delete(ticket.id), 15000);
       }
     }
+    return true;
+  }
+
+  await ticket.update({
+    uraFlowId: flow.id,
+    uraActive: true,
+    uraInvalidAttempts: 0,
+    lastUraInteractionAt: new Date()
+  });
+
+  if (selectedOption.action === "OPEN_SUBMENU") {
+    const submenuOptions = getUraOptionsByParent(flow, Number(selectedOption.id));
+    const submenu = buildUraMenu(flow, selectedOption);
+
+    if (submenuOptions.length && submenu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: submenu,
+        ticket,
+        mediaUrl: selectedOption.responseMediaUrl,
+        mediaType: selectedOption.responseMediaType,
+        mediaName: selectedOption.responseMediaName
+      });
+      await ticket.update({
+        currentUraOptionId: selectedOption.id,
+        uraMenuSentAt: new Date(),
+        uraInvalidAttempts: 0,
+        lastUraInteractionAt: new Date()
+      });
+      return true;
+    }
+  }
+
+  if (selectedOption.action === "BACK_ROOT") {
+    const menu = buildUraMenu(flow, null);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: flow.welcomeMediaUrl,
+        mediaType: flow.welcomeMediaType,
+        mediaName: flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      lastUraInteractionAt: new Date()
+    });
+    return true;
+  }
+
+  if (selectedOption.action === "BACK_PREVIOUS") {
+    const parent = currentParentOption?.parentOptionId
+      ? await UraOption.findByPk(currentParentOption.parentOptionId)
+      : null;
+    const menu = buildUraMenu(flow, parent);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: parent?.responseMediaUrl || flow.welcomeMediaUrl,
+        mediaType: parent?.responseMediaType || flow.welcomeMediaType,
+        mediaName: parent?.responseMediaName || flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: parent?.id || null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      lastUraInteractionAt: new Date()
+    });
     return true;
   }
 
@@ -981,7 +1108,9 @@ const handleUraLogic = async (
       ticketData: {
         queueId: selectedOption.targetQueueId,
         aiActive: false,
-        aiSettingId: null
+        aiSettingId: null,
+        uraActive: false,
+        currentUraOptionId: null
       },
       ticketId: ticket.id
     });
@@ -1039,7 +1168,9 @@ const handleUraLogic = async (
           aiHandoffAlertEnabled: selectedOption.aiHandoffAlertEnabled ? true : false,
           aiHandoffAlertTo: selectedOption.aiHandoffAlertTo || null,
           aiHandoffAlertMessage: selectedOption.aiHandoffAlertMessage || null,
-          aiSettingId
+          aiSettingId,
+          uraActive: false,
+          currentUraOptionId: null
         },
         ticketId: ticket.id
       });
@@ -1080,7 +1211,9 @@ const handleUraLogic = async (
       aiHandoffAlertEnabled: false,
       aiHandoffAlertTo: null,
       aiHandoffAlertMessage: null,
-      aiSettingId: null
+      aiSettingId: null,
+      uraActive: false,
+      currentUraOptionId: null
     });
     return true;
   }
@@ -1090,7 +1223,9 @@ const handleUraLogic = async (
       ticketData: {
         queueId: flow.fallbackQueueId,
         aiActive: false,
-        aiSettingId: null
+        aiSettingId: null,
+        uraActive: false,
+        currentUraOptionId: null
       },
       ticketId: ticket.id
     });

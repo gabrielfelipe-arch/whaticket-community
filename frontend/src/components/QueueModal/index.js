@@ -21,9 +21,9 @@ import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
-import ColorPicker from "../ColorPicker";
-import { IconButton, InputAdornment } from "@material-ui/core";
+import { IconButton, InputAdornment, Popover } from "@material-ui/core";
 import { Colorize } from "@material-ui/icons";
+import { GithubPicker } from "react-color";
 import MessageTemplateField from "../MessageTemplateField";
 
 const useStyles = makeStyles(theme => ({
@@ -56,6 +56,9 @@ const useStyles = makeStyles(theme => ({
 		width: 20,
 		height: 20,
 	},
+	colorPicker: {
+		padding: theme.spacing(1),
+	},
 }));
 
 const QueueSchema = Yup.object().shape({
@@ -79,10 +82,21 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		unavailableMessage: "",
 	};
 
-	const [colorPickerModalOpen, setColorPickerModalOpen] = useState(false);
 	const [queue, setQueue] = useState(initialState);
 	const [mediaFile, setMediaFile] = useState(null);
 	const [aiSettings, setAiSettings] = useState([]);
+	const [colorPickerAnchor, setColorPickerAnchor] = useState(null);
+	const colors = [
+		"#B80000", "#DB3E00", "#FCCB00", "#008B02", "#006B76", "#1273DE",
+		"#004DCF", "#5300EB", "#EB9694", "#FAD0C3", "#FEF3BD", "#C1E1C5",
+		"#BEDADC", "#C4DEF6", "#BED3F3", "#D4C4FB", "#4D4D4D", "#999999",
+		"#FFFFFF", "#F44E3B", "#FE9200", "#FCDC00", "#DBDF00", "#A4DD00",
+		"#68CCCA", "#73D8FF", "#AEA1FF", "#FDA1FF", "#333333", "#808080",
+		"#cccccc", "#D33115", "#E27300", "#FCC400", "#B0BC00", "#68BC00",
+		"#16A5A5", "#009CE0", "#7B64FF", "#FA28FF", "#666666", "#B3B3B3",
+		"#9F0500", "#C45100", "#FB9E00", "#808900", "#194D33", "#0C797D",
+		"#0062B1", "#653294", "#AB149E"
+	];
 
 	useEffect(() => {
 		const fetchAiSettings = async () => {
@@ -123,6 +137,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 	const handleClose = () => {
 		onClose();
 		setQueue(initialState);
+		setColorPickerAnchor(null);
 	};
 
 	const handleSaveQueue = async values => {
@@ -168,7 +183,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 						}, 400);
 					}}
 				>
-					{({ touched, errors, isSubmitting, values }) => (
+					{({ touched, errors, isSubmitting, values, setFieldValue }) => (
 						<Form>
 							<DialogContent dividers>
 								<Field
@@ -187,11 +202,11 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									label={i18n.t("queueModal.form.color")}
 									name="color"
 									id="color"
-									onFocus={() => {
-										setColorPickerModalOpen(true);
-									}}
+									onClick={event => setColorPickerAnchor(event.currentTarget)}
+									inputProps={{ readOnly: true }}
 									error={touched.color && Boolean(errors.color)}
 									helperText={touched.color && errors.color}
+									InputLabelProps={{ shrink: true }}
 									InputProps={{
 										startAdornment: (
 											<InputAdornment position="start">
@@ -205,25 +220,45 @@ const QueueModal = ({ open, onClose, queueId }) => {
 											<IconButton
 												size="small"
 												color="default"
-												onClick={() => setColorPickerModalOpen(true)}
+												onClick={event => {
+													event.stopPropagation();
+													setColorPickerAnchor(event.currentTarget);
+												}}
 											>
 												<Colorize />
 											</IconButton>
-										),
+										)
 									}}
 									variant="outlined"
 									margin="dense"
 								/>
-								<ColorPicker
-									open={colorPickerModalOpen}
-									handleClose={() => setColorPickerModalOpen(false)}
-									onChange={color => {
-										values.color = color;
-										setQueue(() => {
-											return { ...values, color };
-										});
+								<Popover
+									open={Boolean(colorPickerAnchor)}
+									anchorEl={colorPickerAnchor}
+									onClose={() => setColorPickerAnchor(null)}
+									anchorOrigin={{
+										vertical: "bottom",
+										horizontal: "left",
 									}}
-								/>
+									transformOrigin={{
+										vertical: "top",
+										horizontal: "left",
+									}}
+								>
+									<div className={classes.colorPicker}>
+										<GithubPicker
+											width="250px"
+											triangle="hide"
+											color={values.color || "#607d8b"}
+											colors={colors}
+											onChange={color => {
+												setFieldValue("color", color.hex);
+												setQueue(prev => ({ ...prev, ...values, color: color.hex }));
+												setColorPickerAnchor(null);
+											}}
+										/>
+									</div>
+								</Popover>
 								<FormControlLabel
 									control={
 										<Field

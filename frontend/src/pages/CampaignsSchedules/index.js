@@ -132,6 +132,11 @@ const initialSchedule = {
   audience: "all",
   message: "",
   scheduledAt: "",
+  recurrenceType: "once",
+  weekdays: [],
+  times: [],
+  startsAt: "",
+  endsAt: "",
   intervalPattern: "30",
   pauseAfter: 20,
   pauseMinutes: 5,
@@ -280,6 +285,9 @@ const CampaignsSchedules = () => {
   const [campaignMedia, setCampaignMedia] = useState(null);
   const [scheduleMedia, setScheduleMedia] = useState(null);
   const [editingScheduleId, setEditingScheduleId] = useState(null);
+  const [logsModalOpen, setLogsModalOpen] = useState(false);
+  const [logsTitle, setLogsTitle] = useState("");
+  const [logs, setLogs] = useState([]);
 
   const loadData = async () => {
     try {
@@ -410,12 +418,57 @@ const CampaignsSchedules = () => {
     }
   };
 
+  const retryCampaignErrors = async campaign => {
+    try {
+      await api.post(`/campaigns/${campaign.id}/retry-failed`);
+      toast.success("Reenvio iniciado apenas para os contatos que falharam.");
+      loadData();
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  const duplicateCampaign = async campaign => {
+    try {
+      await api.post(`/campaigns/${campaign.id}/duplicate`);
+      toast.success("Campanha duplicada como novo envio.");
+      loadData();
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  const openCampaignLogs = async campaign => {
+    try {
+      const { data } = await api.get(`/campaigns/${campaign.id}/logs`);
+      setLogsTitle(`Logs da campanha: ${campaign.name}`);
+      setLogs(data || []);
+      setLogsModalOpen(true);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  const openScheduleLogs = async schedule => {
+    try {
+      const { data } = await api.get(`/scheduled-messages/${schedule.id}/executions`);
+      setLogsTitle(`Execucoes do agendamento: ${schedule.contact?.name || schedule.id}`);
+      setLogs(data || []);
+      setLogsModalOpen(true);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const getCampaignStatusLabel = status => ({
     scheduled: "Agendado",
     running: "Em execucao",
     paused: "Parado",
     canceled: "Cancelado",
     completed: "Concluido",
+    completed_with_errors: "Concluido com erros",
+    failed: "Erro",
+    error: "Erro",
     finished: "Concluido"
   }[status] || status);
 
@@ -426,8 +479,17 @@ const CampaignsSchedules = () => {
     canceled: "Cancelado",
     completed: "Concluido",
     sent: "Concluido",
+    failed: "Erro",
     error: "Erro"
   }[status] || status);
+
+  const getCampaignProgress = campaign => {
+    const recipients = campaign.recipients || [];
+    const sent = recipients.filter(item => item.status === "sent").length;
+    const failed = recipients.filter(item => ["failed", "error"].includes(item.status)).length;
+    const pending = recipients.filter(item => ["pending", "sending"].includes(item.status)).length;
+    return { sent, failed, pending, total: recipients.length };
+  };
 
   const openNewScheduleModal = () => {
     setEditingScheduleId(null);
@@ -444,6 +506,11 @@ const CampaignsSchedules = () => {
       audience: "all",
       message: schedule.message || "",
       scheduledAt: toDateTimeLocalValue(schedule.scheduledAt),
+      recurrenceType: schedule.recurrenceType || "once",
+      weekdays: schedule.weekdays || [],
+      times: schedule.times || [],
+      startsAt: toDateTimeLocalValue(schedule.startsAt),
+      endsAt: toDateTimeLocalValue(schedule.endsAt),
       intervalPattern: schedule.intervalPattern || String(schedule.intervalSeconds || 30),
       pauseAfter: schedule.pauseAfter || 20,
       pauseMinutes: Math.max(1, Math.round((schedule.pauseSeconds || 300) / 60)),
@@ -502,28 +569,40 @@ const CampaignsSchedules = () => {
   };
 
   const renderCampaignActions = campaign => {
-    if (campaign.status === "scheduled" || campaign.status === "running") {
-      return (
-        <>
-          <Button size="small" onClick={() => updateCampaignStatus(campaign, "paused")}>
-            Stop
-          </Button>
-          <Button size="small" onClick={() => updateCampaignStatus(campaign, "canceled")}>
-            Cancelar
-          </Button>
-        </>
-      );
-    }
+    const progress = getCampaignProgress(campaign);
 
-    if (campaign.status === "paused") {
-      return (
-        <Button size="small" onClick={() => updateCampaignStatus(campaign, "running")}>
-          Play
+    return (
+      <>
+        {(campaign.status === "scheduled" || campaign.status === "running") && (
+          <>
+            <Button size="small" onClick={() => updateCampaignStatus(campaign, "paused")}>
+              Pause
+            </Button>
+            <Button size="small" onClick={() => updateCampaignStatus(campaign, "canceled")}>
+              Stop
+            </Button>
+          </>
+        )}
+        {campaign.status === "paused" && (
+          <Button size="small" onClick={() => updateCampaignStatus(campaign, "running")}>
+            Play
+          </Button>
+        )}
+        {progress.failed > 0 && (
+          <Button size="small" onClick={() => retryCampaignErrors(campaign)}>
+            Reenviar erros
+          </Button>
+        )}
+        {["completed", "completed_with_errors", "canceled", "failed", "error"].includes(campaign.status) && (
+          <Button size="small" onClick={() => duplicateCampaign(campaign)}>
+            Reenviar tudo
+          </Button>
+        )}
+        <Button size="small" onClick={() => openCampaignLogs(campaign)}>
+          Logs
         </Button>
-      );
-    }
-
-    return null;
+      </>
+    );
   };
 
   return (
@@ -561,24 +640,29 @@ const CampaignsSchedules = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Nome</TableCell>
-                  <TableCell>Público</TableCell>
+                  <TableCell>Publico</TableCell>
                   <TableCell>Status</TableCell>
-                  <TableCell>Destinatários</TableCell>
+                  <TableCell>Destinatarios</TableCell>
+                  <TableCell>Progresso</TableCell>
                   <TableCell>Intervalo</TableCell>
-                  <TableCell align="right">Ações</TableCell>
+                  <TableCell align="right">Acoes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {campaigns.map(campaign => (
-                  <TableRow key={campaign.id}>
-                    <TableCell>{campaign.name}</TableCell>
-                    <TableCell>{campaign.audience}</TableCell>
-                    <TableCell>{getCampaignStatusLabel(campaign.status)}</TableCell>
-                    <TableCell>{campaign.recipients?.length || 0}</TableCell>
-                    <TableCell>{campaign.intervalPattern || `${campaign.intervalSeconds}s`}</TableCell>
-                    <TableCell align="right">{renderCampaignActions(campaign)}</TableCell>
-                  </TableRow>
-                ))}
+                {campaigns.map(campaign => {
+                  const progress = getCampaignProgress(campaign);
+                  return (
+                    <TableRow key={campaign.id}>
+                      <TableCell>{campaign.name}</TableCell>
+                      <TableCell>{campaign.audience}</TableCell>
+                      <TableCell><Chip size="small" label={getCampaignStatusLabel(campaign.status)} /></TableCell>
+                      <TableCell>{progress.total}</TableCell>
+                      <TableCell>{progress.sent} enviados / {progress.failed} erros / {progress.pending} pendentes</TableCell>
+                      <TableCell>{campaign.intervalPattern || `${campaign.intervalSeconds}s`}</TableCell>
+                      <TableCell align="right">{renderCampaignActions(campaign)}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </Paper>
@@ -603,17 +687,19 @@ const CampaignsSchedules = () => {
                 <TableRow>
                   <TableCell>Contato/grupo</TableCell>
                   <TableCell>Data</TableCell>
+                  <TableCell>Recorrencia</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Mensagem</TableCell>
-                  <TableCell align="right">Ações</TableCell>
+                  <TableCell align="right">Acoes</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {schedules.map(schedule => (
                   <TableRow key={schedule.id}>
                     <TableCell>{schedule.contact?.name}</TableCell>
-                    <TableCell>{new Date(schedule.scheduledAt).toLocaleString()}</TableCell>
-                    <TableCell>{getScheduleStatusLabel(schedule.status)}</TableCell>
+                    <TableCell>{new Date(schedule.nextRunAt || schedule.scheduledAt).toLocaleString()}</TableCell>
+                    <TableCell>{schedule.recurrenceType === "weekly" ? "Recorrente" : "Unico"}</TableCell>
+                    <TableCell><Chip size="small" label={getScheduleStatusLabel(schedule.status)} /></TableCell>
                     <TableCell>{schedule.message}</TableCell>
                     <TableCell align="right">
                       {!["sent", "completed", "canceled"].includes(schedule.status) && (
@@ -631,6 +717,9 @@ const CampaignsSchedules = () => {
                           Play
                         </Button>
                       )}
+                      <Button size="small" onClick={() => openScheduleLogs(schedule)}>
+                        Logs
+                      </Button>
                       <Button size="small" onClick={() => deleteSchedule(schedule)}>
                         Excluir
                       </Button>
@@ -809,8 +898,50 @@ const CampaignsSchedules = () => {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField fullWidth required type="datetime-local" margin="dense" variant="outlined" label="Data e hora" name="scheduledAt" value={scheduleForm.scheduledAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+              <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de agendamento" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>
+                <MenuItem value="once">Data unica</MenuItem>
+                <MenuItem value="weekly">Recorrente semanal</MenuItem>
+              </TextField>
             </Grid>
+            {scheduleForm.recurrenceType === "once" && (
+              <Grid item xs={12} sm={6}>
+                <TextField fullWidth required type="datetime-local" margin="dense" variant="outlined" label="Data e hora" name="scheduledAt" value={scheduleForm.scheduledAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+              </Grid>
+            )}
+            {scheduleForm.recurrenceType === "weekly" && (
+              <>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    margin="dense"
+                    variant="outlined"
+                    label="Dias da semana"
+                    name="weekdays"
+                    value={scheduleForm.weekdays}
+                    onChange={handleScheduleChange}
+                    SelectProps={{ multiple: true }}
+                  >
+                    <MenuItem value={1}>Segunda</MenuItem>
+                    <MenuItem value={2}>Terca</MenuItem>
+                    <MenuItem value={3}>Quarta</MenuItem>
+                    <MenuItem value={4}>Quinta</MenuItem>
+                    <MenuItem value={5}>Sexta</MenuItem>
+                    <MenuItem value={6}>Sabado</MenuItem>
+                    <MenuItem value={0}>Domingo</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth margin="dense" variant="outlined" label="Horarios" name="times" value={Array.isArray(scheduleForm.times) ? scheduleForm.times.join(", ") : scheduleForm.times} onChange={event => setScheduleForm(prev => ({ ...prev, times: event.target.value.split(",").map(item => item.trim()).filter(Boolean) }))} placeholder="08:00, 12:00, 18:00" />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Inicio" name="startsAt" value={scheduleForm.startsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Fim opcional" name="endsAt" value={scheduleForm.endsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                </Grid>
+              </>
+            )}
             <Grid item xs={12} sm={4}>
               <TextField fullWidth type="number" margin="dense" variant="outlined" label="Pausar apos envios" name="pauseAfter" value={scheduleForm.pauseAfter} onChange={handleScheduleChange} />
             </Grid>
@@ -847,6 +978,41 @@ const CampaignsSchedules = () => {
           <Button color="primary" variant="contained" onClick={saveSchedule}>
             {editingScheduleId ? "Salvar" : "Agendar"}
           </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={logsModalOpen} onClose={() => setLogsModalOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>{logsTitle}</DialogTitle>
+        <DialogContent>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Contato</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Tentativa</TableCell>
+                <TableCell>Data</TableCell>
+                <TableCell>Erro</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {logs.map(log => (
+                <TableRow key={log.id}>
+                  <TableCell>{log.contact?.name || log.phoneNumber || log.contactId}</TableCell>
+                  <TableCell>{log.status}</TableCell>
+                  <TableCell>{log.attemptNumber || log.attempts || 0}</TableCell>
+                  <TableCell>{new Date(log.attemptedAt || log.executedAt || log.createdAt).toLocaleString()}</TableCell>
+                  <TableCell>{log.errorMessage || "-"}</TableCell>
+                </TableRow>
+              ))}
+              {!logs.length && (
+                <TableRow>
+                  <TableCell colSpan={5}>Nenhum log registrado ainda.</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLogsModalOpen(false)}>Fechar</Button>
         </DialogActions>
       </Dialog>
     </Container>

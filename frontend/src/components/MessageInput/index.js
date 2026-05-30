@@ -621,7 +621,9 @@ const MessageInput = ({ ticketStatus }) => {
               placeholder={
                 ticketStatus === "open"
                   ? i18n.t("messagesInput.placeholderOpen")
-                  : i18n.t("messagesInput.placeholderClosed")
+                  : ticketStatus === "pending"
+                    ? "Aceite o atendimento para responder."
+                    : i18n.t("messagesInput.placeholderClosed")
               }
               multiline
               maxRows={5}

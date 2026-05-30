@@ -227,6 +227,7 @@ function normalizeBody(resource: string, body: any): any {
 
     return {
       flowId: Number(data.flowId),
+      parentOptionId: nullableNumber(data.parentOptionId),
       optionKey: data.optionKey,
       title: data.title,
       responseMessage: data.responseMessage || null,

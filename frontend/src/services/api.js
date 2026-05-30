@@ -2,7 +2,7 @@
 import { getBackendUrl } from "../config";
 
 const api = axios.create({
-	baseURL: "http://localhost:8085",
+	baseURL: getBackendUrl() || "http://localhost:8085",
 	withCredentials: true,
 });
 

@@ -5,7 +5,6 @@ import { logger } from "./utils/logger";
 import { initRedis } from "./libs/redisStore";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 import { StartCampaignDispatcher } from "./services/CampaignServices/DispatchCampaignsService";
-import { StartAiTagger } from "./services/AiServices/AiTaggerService";
 import { StartAiAutoClose } from "./services/AiServices/AiAutoCloseService";
 
 const server = app.listen(process.env.PORT, () => {
@@ -17,7 +16,6 @@ initRedis();
 StartAllWhatsAppsSessions();
 StartCampaignDispatcher();
 StartAiAutoClose();
-StartAiTagger();
 gracefulShutdown(server);
 
 process.on("uncaughtException", err => {

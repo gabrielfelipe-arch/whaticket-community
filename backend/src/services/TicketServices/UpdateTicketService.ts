@@ -50,6 +50,10 @@ interface TicketData {
   aiConversationSummary?: string | null;
   uraFlowId?: number | null;
   uraMenuSentAt?: Date | null;
+  currentUraOptionId?: number | null;
+  uraInvalidAttempts?: number;
+  uraActive?: boolean;
+  lastUraInteractionAt?: Date | null;
 }
 
 interface Request {
@@ -111,7 +115,11 @@ const UpdateTicketService = async ({
     aiInteractionCount,
     aiConversationSummary,
     uraFlowId,
-    uraMenuSentAt
+    uraMenuSentAt,
+    currentUraOptionId,
+    uraInvalidAttempts,
+    uraActive,
+    lastUraInteractionAt
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId);
@@ -184,7 +192,11 @@ const UpdateTicketService = async ({
     aiInteractionCount,
     aiConversationSummary,
     uraFlowId,
-    uraMenuSentAt
+    uraMenuSentAt,
+    currentUraOptionId,
+    uraInvalidAttempts,
+    uraActive,
+    lastUraInteractionAt
   });
 
   if (whatsappId) {

@@ -73,6 +73,10 @@ const FindOrCreateTicketService = async (
         aiConversationSummary: null,
         uraFlowId: null,
         uraMenuSentAt: null,
+        currentUraOptionId: null,
+        uraInvalidAttempts: 0,
+        uraActive: false,
+        lastUraInteractionAt: null,
         queueId: null,
         unreadMessages
       });
@@ -132,6 +136,10 @@ const FindOrCreateTicketService = async (
         aiConversationSummary: null,
         uraFlowId: null,
         uraMenuSentAt: null,
+        currentUraOptionId: null,
+        uraInvalidAttempts: 0,
+        uraActive: false,
+        lastUraInteractionAt: null,
         unreadMessages
       });
     }

@@ -101,6 +101,20 @@ class Ticket extends Model<Ticket> {
   @Column
   uraMenuSentAt: Date;
 
+  @Column
+  currentUraOptionId: number;
+
+  @Default(0)
+  @Column
+  uraInvalidAttempts: number;
+
+  @Default(false)
+  @Column
+  uraActive: boolean;
+
+  @Column
+  lastUraInteractionAt: Date;
+
   @Default(false)
   @Column
   aiActive: boolean;

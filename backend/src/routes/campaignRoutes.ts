@@ -14,10 +14,14 @@ routes.post("/campaigns", isAuth, upload.single("media"), CampaignController.sto
 routes.put("/campaigns/:campaignId", isAuth, CampaignController.update);
 routes.delete("/campaigns/:campaignId", isAuth, CampaignController.remove);
 routes.get("/campaigns/:campaignId/summary", isAuth, CampaignController.summary);
+routes.get("/campaigns/:campaignId/logs", isAuth, CampaignController.logs);
+routes.post("/campaigns/:campaignId/retry-failed", isAuth, CampaignController.retryFailed);
+routes.post("/campaigns/:campaignId/duplicate", isAuth, CampaignController.duplicate);
 
 routes.get("/scheduled-messages", isAuth, ScheduledMessageController.index);
 routes.post("/scheduled-messages", isAuth, upload.single("media"), ScheduledMessageController.store);
 routes.put("/scheduled-messages/:scheduleId", isAuth, upload.single("media"), ScheduledMessageController.update);
 routes.delete("/scheduled-messages/:scheduleId", isAuth, ScheduledMessageController.remove);
+routes.get("/scheduled-messages/:scheduleId/executions", isAuth, ScheduledMessageController.executions);
 
 export default routes;

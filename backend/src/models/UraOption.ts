@@ -19,6 +19,13 @@ class UraOption extends Model<UraOption> {
   @BelongsTo(() => UraFlow)
   flow: UraFlow;
 
+  @ForeignKey(() => UraOption)
+  @Column
+  parentOptionId: number;
+
+  @BelongsTo(() => UraOption)
+  parentOption: UraOption;
+
   @AllowNull(false)
   @Column
   optionKey: string;

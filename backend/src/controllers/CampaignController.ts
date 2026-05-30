@@ -8,6 +8,7 @@ import AppError from "../errors/AppError";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
+import CampaignRecipientLog from "../models/CampaignRecipientLog";
 
 const include = [
   { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] },
@@ -214,7 +215,12 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     throw new AppError("ERR_INVALID_CAMPAIGN_STATUS", 400);
   }
 
-  await campaign.update({ status });
+  const statusData: any = { status };
+  if (status === "running") statusData.startedAt = campaign.startedAt || new Date();
+  if (status === "paused") statusData.pausedAt = new Date();
+  if (status === "canceled") statusData.canceledAt = new Date();
+
+  await campaign.update(statusData);
 
   if (status === "running") {
     const pendingWithDate = await CampaignContact.count({
@@ -233,8 +239,103 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       await pending?.update({ nextRunAt: new Date() });
     }
   }
+
+  if (status === "canceled") {
+    await CampaignContact.update(
+      { status: "canceled", nextRunAt: null },
+      { where: { campaignId: campaign.id, status: { [Op.in]: ["pending", "sending"] } } }
+    );
+  }
   const updated = await Campaign.findByPk(campaign.id, { include });
   return res.status(200).json(updated);
+};
+
+export const logs = async (req: Request, res: Response): Promise<Response> => {
+  const { campaignId } = req.params;
+  const logs = await CampaignRecipientLog.findAll({
+    where: { campaignId },
+    include: [
+      { model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] },
+      { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] }
+    ],
+    order: [["id", "DESC"]]
+  });
+
+  return res.json(logs);
+};
+
+export const retryFailed = async (req: Request, res: Response): Promise<Response> => {
+  const { campaignId } = req.params;
+  const campaign = await Campaign.findByPk(campaignId);
+
+  if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+
+  const failedRecipients = await CampaignContact.findAll({
+    where: { campaignId: campaign.id, status: { [Op.in]: ["failed", "error"] } },
+    order: [["id", "ASC"]]
+  });
+
+  if (!failedRecipients.length) {
+    throw new AppError("Nenhum erro encontrado para reenviar.", 400);
+  }
+
+  await Promise.all(
+    failedRecipients.map((recipient, index) =>
+      recipient.update({
+        status: "pending",
+        nextRunAt: index === 0 ? new Date() : null,
+        errorMessage: null,
+        errorAt: null,
+        lockedAt: null
+      })
+    )
+  );
+
+  await campaign.update({
+    status: "running",
+    startedAt: campaign.startedAt || new Date(),
+    completedAt: null
+  });
+
+  const updated = await Campaign.findByPk(campaign.id, { include });
+  return res.status(200).json(updated);
+};
+
+export const duplicate = async (req: Request, res: Response): Promise<Response> => {
+  const { campaignId } = req.params;
+  const campaign = await Campaign.findByPk(campaignId, {
+    include: [{ model: CampaignContact, as: "recipients" }]
+  });
+
+  if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+
+  const newCampaign = await Campaign.create({
+    name: `${campaign.name} - reenvio`,
+    message: campaign.message,
+    mediaUrl: campaign.mediaUrl,
+    mediaType: campaign.mediaType,
+    mediaName: campaign.mediaName,
+    audience: campaign.audience,
+    intervalSeconds: campaign.intervalSeconds,
+    intervalPattern: campaign.intervalPattern,
+    pauseAfter: campaign.pauseAfter,
+    pauseSeconds: campaign.pauseSeconds,
+    whatsappId: campaign.whatsappId,
+    status: "scheduled"
+  });
+
+  const now = new Date();
+  await CampaignContact.bulkCreate(
+    (campaign.recipients || []).map((recipient, index) => ({
+      campaignId: newCampaign.id,
+      contactId: recipient.contactId,
+      status: "pending",
+      nextRunAt: index === 0 ? now : null
+    }))
+  );
+
+  const created = await Campaign.findByPk(newCampaign.id, { include });
+  return res.status(200).json(created);
 };
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {

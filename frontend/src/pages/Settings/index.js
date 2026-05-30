@@ -133,18 +133,6 @@ const resources = [
 		fields: [
 			{ name: "name", label: "Nome", required: true },
 			{ name: "description", label: "Descricao", multiline: true },
-			{
-				name: "confirmationMaxAttempts",
-				label: "Maximo de tentativas de confirmacao",
-				type: "number",
-				helperText: "Informe quantas vezes a IA pode tentar confirmar uma duvida antes de chamar um atendente. Ex: 2."
-			},
-			{
-				name: "confirmationFailureMessage",
-				label: "Mensagem quando nao conseguir confirmar",
-				multiline: true,
-				helperText: "Mensagem enviada quando o cliente nao escolhe uma opcao valida e o atendimento sera encaminhado para humano."
-			},
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
 		columns: ["id", "name", "description", "active"]
@@ -243,6 +231,14 @@ const resources = [
 		title: "Opcao de URA",
 		fields: [
 			{ name: "flowId", label: "Fluxo URA", type: "relation", relation: "uraFlows", required: true },
+			{
+				name: "parentOptionId",
+				label: "Opcao pai / camada anterior",
+				type: "relation",
+				relation: "uraOptions",
+				nullable: true,
+				helperText: "Deixe em branco para aparecer no menu principal. Se escolher uma opcao pai, esta opcao aparece dentro desse submenu."
+			},
 			{ name: "optionKey", label: "Opcao digitada. Ex: 1", required: true },
 			{ name: "title", label: "Titulo", required: true },
 			{ name: "responseMessage", label: "Mensagem de resposta", multiline: true, template: true, media: true },
@@ -253,9 +249,12 @@ const resources = [
 				type: "select",
 				options: [
 					{ value: "SEND_MESSAGE", label: "Enviar mensagem" },
+					{ value: "OPEN_SUBMENU", label: "Abrir submenu" },
 					{ value: "TRANSFER_QUEUE", label: "Transferir para fila" },
 					{ value: "START_AI", label: "Acionar IA" },
-					{ value: "HUMAN", label: "Encaminhar para humano" }
+					{ value: "HUMAN", label: "Encaminhar para humano" },
+					{ value: "BACK_PREVIOUS", label: "Voltar ao menu anterior" },
+					{ value: "BACK_ROOT", label: "Voltar ao menu inicial" }
 				]
 			},
 			{ name: "targetQueueId", label: "Fila destino", type: "relation", relation: "queues", nullable: true, showWhen: form => ["TRANSFER_QUEUE", "HUMAN", "START_AI"].includes(form.action) },
@@ -334,7 +333,7 @@ const resources = [
 			{ name: "order", label: "Ordem", type: "number" },
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
-		columns: ["id", "flowId", "optionKey", "title", "action", "targetQueueId", "active"]
+		columns: ["id", "flowId", "parentOptionId", "optionKey", "title", "action", "targetQueueId", "active"]
 	},
 	{
 		label: "IA",
@@ -487,6 +486,10 @@ const relationConfigs = {
 	uraFlows: {
 		endpoint: "/ura-flows",
 		getLabel: item => item.name
+	},
+	uraOptions: {
+		endpoint: "/ura-options",
+		getLabel: item => `${item.optionKey} - ${item.title}`
 	},
 	tags: {
 		endpoint: "/tags",
@@ -684,7 +687,7 @@ const GeneralSettings = ({
 		</Paper>
 
 		<Typography variant="subtitle1" gutterBottom>
-			Personalizacao
+			Identidade do sistema
 		</Typography>
 		<Paper className={classes.generalPaper}>
 			<Grid container spacing={2}>
@@ -697,32 +700,6 @@ const GeneralSettings = ({
 						onChangeSetting={onChangeSetting}
 						margin="dense"
 						variant="outlined"
-					/>
-				</Grid>
-				<Grid item xs={12} sm={3}>
-					<SettingTextField
-						fullWidth
-						type="color"
-						label="Cor principal"
-						name="primaryColor"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-						InputLabelProps={{ shrink: true }}
-					/>
-				</Grid>
-				<Grid item xs={12} sm={3}>
-					<SettingTextField
-						fullWidth
-						type="color"
-						label="Cor secundaria"
-						name="secondaryColor"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-						InputLabelProps={{ shrink: true }}
 					/>
 				</Grid>
 				<Grid item xs={12}>
@@ -1296,171 +1273,6 @@ const ResourcePanel = ({ resource, classes }) => {
 	);
 };
 
-const AiTaggerPanel = ({ classes }) => {
-	const [form, setForm] = useState({
-		aiTaggerEnabled: "disabled",
-		aiTaggerName: "",
-		aiTaggerScheduleType: "daily_once",
-		aiTaggerTime1: "12:00",
-		aiTaggerTime2: "18:00",
-		aiTaggerPeriod: "today",
-		aiTaggerOnlyAiClosed: "enabled",
-		aiTaggerOnlyUnclassified: "enabled",
-		aiTaggerQueueId: "",
-		aiTaggerAllowedTagIds: [],
-		aiTaggerInstructions: ""
-	});
-	const [tags, setTags] = useState([]);
-	const [queues, setQueues] = useState([]);
-
-	useEffect(() => {
-		const load = async () => {
-			try {
-				const [{ data: settings }, { data: tagData }, { data: queueData }] = await Promise.all([
-					api.get("/settings"),
-					api.get("/tags"),
-					api.get("/queue")
-				]);
-				const getValue = key => settings.find(item => item.key === key)?.value || form[key];
-				setForm(prev => ({
-					...prev,
-					aiTaggerEnabled: getValue("aiTaggerEnabled") || "disabled",
-					aiTaggerName: getValue("aiTaggerName") || "",
-					aiTaggerScheduleType: getValue("aiTaggerScheduleType") || "daily_once",
-					aiTaggerTime1: getValue("aiTaggerTime1") || "12:00",
-					aiTaggerTime2: getValue("aiTaggerTime2") || "18:00",
-					aiTaggerPeriod: getValue("aiTaggerPeriod") || "today",
-					aiTaggerOnlyAiClosed: getValue("aiTaggerOnlyAiClosed") || "enabled",
-					aiTaggerOnlyUnclassified: getValue("aiTaggerOnlyUnclassified") || "enabled",
-					aiTaggerQueueId: getValue("aiTaggerQueueId") || "",
-					aiTaggerAllowedTagIds: String(getValue("aiTaggerAllowedTagIds") || "")
-						.split(",")
-						.filter(Boolean)
-						.map(Number),
-					aiTaggerInstructions: getValue("aiTaggerInstructions") || ""
-				}));
-				setTags(tagData || []);
-				setQueues(queueData || []);
-			} catch (err) {
-				toastError(err);
-			}
-		};
-
-		load();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
-
-	const save = async () => {
-		try {
-			const payload = {
-				...form,
-				aiTaggerAllowedTagIds: form.aiTaggerAllowedTagIds.join(",")
-			};
-			await Promise.all(
-				Object.entries(payload).map(([key, value]) =>
-					api.put(`/settings/${key}`, { value })
-				)
-			);
-			toast.success("Configuração da etiquetadora salva.");
-		} catch (err) {
-			toastError(err);
-		}
-	};
-
-	const handleChange = event => {
-		const { name, value } = event.target;
-		setForm(prev => ({ ...prev, [name]: value }));
-	};
-
-	const renderTagValue = selected => (
-		<div>
-			{selected.map(tagId => {
-				const tag = tags.find(item => Number(item.id) === Number(tagId));
-				return <Chip key={tagId} size="small" label={tag?.name || tagId} style={{ margin: 2 }} />;
-			})}
-		</div>
-	);
-
-	return (
-		<Grid container spacing={2}>
-			<Grid item xs={12}>
-				<Typography variant="h6">Etiquetadora com IA</Typography>
-				<Typography variant="body2" color="textSecondary">
-					A Etiquetadora com IA analisa atendimentos finalizados pela inteligência artificial e aplica uma etiqueta principal no contato.
-				</Typography>
-				<Typography variant="body2" color="textSecondary">
-					Ela não analisa atendimentos feitos diretamente por atendentes humanos.
-				</Typography>
-			</Grid>
-			<Grid item xs={12} sm={6}>
-				<TextField select fullWidth variant="outlined" margin="dense" label="Ativar Etiquetadora com IA" name="aiTaggerEnabled" value={form.aiTaggerEnabled} onChange={handleChange}>
-					<MenuItem value="disabled">Nao</MenuItem>
-					<MenuItem value="enabled">Sim</MenuItem>
-				</TextField>
-				<Typography variant="caption" color="textSecondary">Quando ativado, o sistema analisará atendimentos finalizados pela IA e aplicará uma etiqueta no contato.</Typography>
-			</Grid>
-			<Grid item xs={12} sm={6}>
-				<TextField fullWidth variant="outlined" margin="dense" label="Nome da configuração" name="aiTaggerName" value={form.aiTaggerName} onChange={handleChange} placeholder="Ex: Classificação diária de atendimentos da IA" />
-			</Grid>
-			<Grid item xs={12} sm={6}>
-				<TextField select fullWidth variant="outlined" margin="dense" label="Quando executar" name="aiTaggerScheduleType" value={form.aiTaggerScheduleType} onChange={handleChange}>
-					<MenuItem value="daily_once">Uma vez por dia</MenuItem>
-					<MenuItem value="daily_twice">Duas vezes por dia</MenuItem>
-					<MenuItem value="every_x_hours">A cada X horas</MenuItem>
-					<MenuItem value="custom_time">Horário personalizado</MenuItem>
-				</TextField>
-			</Grid>
-			<Grid item xs={12} sm={3}>
-				<TextField fullWidth variant="outlined" margin="dense" label="Horário 1" name="aiTaggerTime1" value={form.aiTaggerTime1} onChange={handleChange} placeholder="12:00" />
-			</Grid>
-			{["daily_twice", "custom_time"].includes(form.aiTaggerScheduleType) && (
-				<Grid item xs={12} sm={3}>
-					<TextField fullWidth variant="outlined" margin="dense" label="Horário 2" name="aiTaggerTime2" value={form.aiTaggerTime2} onChange={handleChange} placeholder="18:00" />
-				</Grid>
-			)}
-			<Grid item xs={12} sm={6}>
-				<TextField select fullWidth variant="outlined" margin="dense" label="Período analisado" name="aiTaggerPeriod" value={form.aiTaggerPeriod} onChange={handleChange}>
-					<MenuItem value="today">Atendimentos de hoje</MenuItem>
-					<MenuItem value="last_24h">Atendimentos das últimas 24 horas</MenuItem>
-					<MenuItem value="since_last_run">Atendimentos desde a última execução</MenuItem>
-				</TextField>
-			</Grid>
-			<Grid item xs={12} sm={6}>
-				<TextField select fullWidth variant="outlined" margin="dense" label="Filtrar por fila" name="aiTaggerQueueId" value={form.aiTaggerQueueId} onChange={handleChange}>
-					<MenuItem value="">Todas</MenuItem>
-					{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>)}
-				</TextField>
-			</Grid>
-			<Grid item xs={12}>
-				<TextField select fullWidth variant="outlined" margin="dense" label="Etiquetas permitidas" name="aiTaggerAllowedTagIds" value={form.aiTaggerAllowedTagIds} onChange={handleChange} SelectProps={{ multiple: true, renderValue: renderTagValue }}>
-					{tags.map(tag => <MenuItem key={tag.id} value={tag.id}>{tag.name}</MenuItem>)}
-				</TextField>
-				<Typography variant="caption" color="textSecondary">Marque quais etiquetas a IA pode aplicar automaticamente. Não cria etiquetas novas por esta tela.</Typography>
-			</Grid>
-			<Grid item xs={12}>
-				<TextField fullWidth multiline rows={8} variant="outlined" margin="dense" label="Como escolher a etiqueta" name="aiTaggerInstructions" value={form.aiTaggerInstructions} onChange={handleChange} placeholder="Ex: Se o cliente perguntou preço e recebeu resposta, aplicar Orçamento enviado." />
-			</Grid>
-			<Grid item xs={12}>
-				<Button color="primary" variant="contained" onClick={save}>Salvar Etiquetadora</Button>
-			</Grid>
-		</Grid>
-	);
-};
-
-const TagsPanel = ({ resource, classes }) => {
-	const [tab, setTab] = useState(0);
-
-	return (
-		<>
-			<Tabs value={tab} onChange={(event, value) => setTab(value)} indicatorColor="primary" textColor="primary" className={classes.tabs}>
-				<Tab label="Etiquetas cadastradas" />
-				<Tab label="Etiquetadora com IA" />
-			</Tabs>
-			{tab === 0 ? <ResourcePanel resource={resource} classes={classes} /> : <AiTaggerPanel classes={classes} />}
-		</>
-	);
-};
-
 const Settings = () => {
 	const classes = useStyles();
 
@@ -1574,11 +1386,7 @@ const Settings = () => {
 						classes={classes}
 					/>
 				) : (
-					resources[tab - 1]?.endpoint === "/tags" ? (
-						<TagsPanel resource={resources[tab - 1]} classes={classes} />
-					) : (
-						<ResourcePanel resource={resources[tab - 1]} classes={classes} />
-					)
+					<ResourcePanel resource={resources[tab - 1]} classes={classes} />
 				)}
 			</Paper>
 		</Container>

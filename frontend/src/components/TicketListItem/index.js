@@ -196,7 +196,6 @@ const TicketListItem = ({ ticket }) => {
 				dense
 				button
 				onClick={e => {
-					if (ticket.status === "pending" && !ticket.aiActive) return;
 					handleSelectTicket(ticket.id);
 				}}
 				selected={ticketId && +ticketId === ticket.id}
@@ -290,7 +289,10 @@ const TicketListItem = ({ ticket }) => {
 						className={classes.acceptButton}
 						size="small"
 						loading={loading}
-						onClick={e => handleAcepptTicket(ticket.id)}
+						onClick={e => {
+							e.stopPropagation();
+							handleAcepptTicket(ticket.id);
+						}}
 					>
 						{ticket.aiActive ? "Assumir atendimento" : i18n.t("ticketsList.buttons.accept")}
 					</ButtonWithSpinner>

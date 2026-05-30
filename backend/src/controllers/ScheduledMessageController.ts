@@ -7,6 +7,7 @@ import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
 import Tag from "../models/Tag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
+import ScheduledMessageExecution from "../models/ScheduledMessageExecution";
 
 const include = [
   { model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] },
@@ -28,6 +29,32 @@ const parseNumberArray = (value: any): number[] => {
     .split(",")
     .map(item => Number(item.trim()))
     .filter(Number.isFinite);
+};
+
+const parseStringArray = (value: any): string[] => {
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (value === null || value === undefined || value === "") return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (Array.isArray(parsed)) return parsed.map(String).filter(Boolean);
+  } catch (error) {
+    // falls back to comma separated values
+  }
+
+  return String(value)
+    .split(",")
+    .map(item => item.trim())
+    .filter(Boolean);
+};
+
+const parseDateOptional = (value: any): Date | null => {
+  if (!value) return null;
+  const rawValue = String(value);
+  const hasTimezone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(rawValue);
+  const date = new Date(hasTimezone ? rawValue : `${rawValue}-03:00`);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
 };
 
 const mediaDataFromRequest = (req: Request) => {
@@ -61,6 +88,41 @@ const parseScheduledAt = (value: string | Date): Date => {
   return date;
 };
 
+const dateAtTime = (base: Date, time: string): Date => {
+  const [hours, minutes] = String(time).split(":").map(Number);
+  const date = new Date(base);
+  date.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  return date;
+};
+
+const calculateFirstRecurringRun = ({
+  weekdays,
+  times,
+  startsAt
+}: {
+  weekdays: number[];
+  times: string[];
+  startsAt?: Date | null;
+}): Date | null => {
+  if (!weekdays.length || !times.length) return null;
+  const start = startsAt || new Date();
+  const candidates: Date[] = [];
+
+  for (let offset = 0; offset <= 14; offset += 1) {
+    const day = new Date(start);
+    day.setDate(day.getDate() + offset);
+    if (!weekdays.includes(day.getDay())) continue;
+    times.forEach(time => {
+      const candidate = dateAtTime(day, time);
+      if (candidate.getTime() > Date.now() && candidate.getTime() >= start.getTime()) {
+        candidates.push(candidate);
+      }
+    });
+  }
+
+  return candidates.sort((a, b) => a.getTime() - b.getTime())[0] || null;
+};
+
 const validateIntervalPattern = (value: any): void => {
   const pattern = String(value || "").trim();
   if (!pattern) {
@@ -91,19 +153,35 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     whatsappId,
     message,
     scheduledAt,
+    recurrenceType,
+    weekdays = [],
+    times = [],
+    startsAt,
+    endsAt,
     intervalPattern = "30",
     pauseAfter = 20,
     pauseSeconds = 300,
     pauseMinutes
   } = req.body;
 
-  if (!message || !scheduledAt) {
+  if (!message || (!scheduledAt && recurrenceType !== "weekly")) {
     throw new AppError("ERR_SCHEDULE_REQUIRED_FIELDS", 400);
   }
 
   validateIntervalPattern(intervalPattern);
 
-  const parsedScheduledAt = parseScheduledAt(scheduledAt);
+  const parsedWeekdays = parseNumberArray(weekdays);
+  const parsedTimes = parseStringArray(times);
+  const parsedStartsAt = parseDateOptional(startsAt);
+  const parsedEndsAt = parseDateOptional(endsAt);
+  const firstRecurringRun = recurrenceType === "weekly"
+    ? calculateFirstRecurringRun({ weekdays: parsedWeekdays, times: parsedTimes, startsAt: parsedStartsAt })
+    : null;
+  const parsedScheduledAt = firstRecurringRun || parseScheduledAt(scheduledAt);
+
+  if (recurrenceType === "weekly" && !firstRecurringRun) {
+    throw new AppError("Informe dias e horarios futuros para o agendamento recorrente.", 400);
+  }
 
   const selectedContactIds = [
     ...(contactId ? [Number(contactId)] : []),
@@ -165,6 +243,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       ...mediaDataFromRequest(req),
       scheduledAt: parsedScheduledAt,
       nextRunAt: index === 0 ? parsedScheduledAt : null,
+      recurrenceType: recurrenceType || "once",
+      weekdays: parsedWeekdays,
+      times: parsedTimes,
+      startsAt: parsedStartsAt,
+      endsAt: parsedEndsAt,
       intervalSeconds: Number(parseInt(String(intervalPattern).split(":")[0], 10) || 30),
       intervalPattern: intervalPattern || "30",
       pauseAfter: Number(pauseAfter || 20),
@@ -200,6 +283,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     pauseSeconds,
     pauseMinutes,
     status
+    , recurrenceType, weekdays, times, startsAt, endsAt
   } = req.body;
 
   if (message !== undefined) allowedData.message = message;
@@ -221,14 +305,28 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       allowedData.nextRunAt = parsedScheduledAt;
     }
   }
-  if (schedule.status === "error") allowedData.status = "scheduled";
+  if (recurrenceType !== undefined) allowedData.recurrenceType = recurrenceType || "once";
+  if (weekdays !== undefined) allowedData.weekdays = parseNumberArray(weekdays);
+  if (times !== undefined) allowedData.times = parseStringArray(times);
+  if (startsAt !== undefined) allowedData.startsAt = parseDateOptional(startsAt);
+  if (endsAt !== undefined) allowedData.endsAt = parseDateOptional(endsAt);
+
+  if (schedule.status === "error" || schedule.status === "failed") allowedData.status = "scheduled";
   if (status !== undefined) {
     if (!["scheduled", "paused", "canceled"].includes(status)) {
       throw new AppError("ERR_INVALID_SCHEDULE_STATUS", 400);
     }
     allowedData.status = status;
+    if (status === "canceled") allowedData.canceledAt = new Date();
     if (status === "scheduled" && !schedule.nextRunAt) {
-      allowedData.nextRunAt = new Date();
+      allowedData.nextRunAt =
+        schedule.recurrenceType === "weekly"
+          ? calculateFirstRecurringRun({
+              weekdays: schedule.weekdays || [],
+              times: schedule.times || [],
+              startsAt: schedule.startsAt || new Date()
+            }) || new Date()
+          : new Date();
     }
   }
 
@@ -240,7 +338,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       {
         where: {
           batchId: schedule.batchId,
-          status: { [Op.in]: ["scheduled", "paused", "running", "error"] }
+          status: { [Op.in]: ["scheduled", "paused", "running", "error", "failed"] }
         }
       }
     );
@@ -248,6 +346,20 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
 
   const updated = await ScheduledMessage.findByPk(schedule.id, { include });
   return res.status(200).json(updated);
+};
+
+export const executions = async (req: Request, res: Response): Promise<Response> => {
+  const { scheduleId } = req.params;
+  const logs = await ScheduledMessageExecution.findAll({
+    where: { scheduleId },
+    include: [
+      { model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] },
+      { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] }
+    ],
+    order: [["id", "DESC"]]
+  });
+
+  return res.json(logs);
 };
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {

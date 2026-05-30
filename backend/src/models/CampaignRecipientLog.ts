@@ -6,17 +6,19 @@ import {
   Model,
   PrimaryKey,
   AutoIncrement,
-  Default,
   ForeignKey,
   BelongsTo,
-  DataType
+  DataType,
+  Default
 } from "sequelize-typescript";
 
 import Campaign from "./Campaign";
+import CampaignContact from "./CampaignContact";
 import Contact from "./Contact";
+import Whatsapp from "./Whatsapp";
 
-@Table({ tableName: "CampaignContacts" })
-class CampaignContact extends Model<CampaignContact> {
+@Table({ tableName: "CampaignRecipientLogs" })
+class CampaignRecipientLog extends Model<CampaignRecipientLog> {
   @PrimaryKey
   @AutoIncrement
   @Column
@@ -29,6 +31,13 @@ class CampaignContact extends Model<CampaignContact> {
   @BelongsTo(() => Campaign)
   campaign: Campaign;
 
+  @ForeignKey(() => CampaignContact)
+  @Column
+  campaignContactId: number;
+
+  @BelongsTo(() => CampaignContact)
+  campaignContact: CampaignContact;
+
   @ForeignKey(() => Contact)
   @Column
   contactId: number;
@@ -36,37 +45,44 @@ class CampaignContact extends Model<CampaignContact> {
   @BelongsTo(() => Contact)
   contact: Contact;
 
+  @ForeignKey(() => Whatsapp)
+  @Column
+  whatsappId: number;
+
+  @BelongsTo(() => Whatsapp)
+  whatsapp: Whatsapp;
+
+  @Column
+  phoneNumber: string;
+
+  @Column(DataType.TEXT)
+  message: string;
+
   @Default("pending")
   @Column
   status: string;
 
   @Default(0)
   @Column
-  attempts: number;
+  attemptNumber: number;
+
+  @Column
+  attemptedAt: Date;
 
   @Column
   sentAt: Date;
 
   @Column
-  nextRunAt: Date;
+  errorAt: Date;
 
   @Column(DataType.TEXT)
   errorMessage: string;
-
-  @Column
-  lastAttemptAt: Date;
-
-  @Column
-  errorAt: Date;
 
   @Column(DataType.TEXT)
   providerResponse: string;
 
   @Column
   messageId: string;
-
-  @Column
-  lockedAt: Date;
 
   @CreatedAt
   createdAt: Date;
@@ -75,4 +91,4 @@ class CampaignContact extends Model<CampaignContact> {
   updatedAt: Date;
 }
 
-export default CampaignContact;
+export default CampaignRecipientLog;

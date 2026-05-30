@@ -86,6 +86,27 @@ class ScheduledMessage extends Model<ScheduledMessage> {
   @Column(DataType.TEXT)
   errorMessage: string;
 
+  @Column
+  recurrenceType: string;
+
+  @Column(DataType.JSONB)
+  weekdays: number[];
+
+  @Column(DataType.JSONB)
+  times: string[];
+
+  @Column
+  startsAt: Date;
+
+  @Column
+  endsAt: Date;
+
+  @Column
+  lastRunAt: Date;
+
+  @Column
+  canceledAt: Date;
+
   @CreatedAt
   createdAt: Date;
 

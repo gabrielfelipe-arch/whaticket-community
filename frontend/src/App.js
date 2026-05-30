@@ -12,9 +12,7 @@ const App = () => {
   const [locale, setLocale] = useState();
   const [branding, setBranding] = useState({
     brandName: "WhaTicket",
-    brandLogo: "",
-    primaryColor: "#2576d2",
-    secondaryColor: "#f50057"
+    brandLogo: ""
   });
 
   const theme = createTheme(
@@ -30,8 +28,8 @@ const App = () => {
         },
       },
       palette: {
-        primary: { main: branding.primaryColor || "#2563EB" },
-        secondary: { main: branding.secondaryColor || "#38BDF8" },
+        primary: { main: "#2563EB" },
+        secondary: { main: "#38BDF8" },
       },
     },
     locale
