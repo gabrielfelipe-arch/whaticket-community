@@ -33,7 +33,16 @@ const ShowTicketService = async (id: string | number): Promise<Ticket> => {
       {
         model: Queue,
         as: "queue",
-        attributes: ["id", "name", "color", "greetingMessage", "useAI", "aiSettingId"]
+        attributes: [
+          "id",
+          "name",
+          "color",
+          "greetingMessage",
+          "useAI",
+          "aiSettingId",
+          "distributionMode",
+          "maxActiveTicketsPerUser"
+        ]
       },
       {
         model: Whatsapp,

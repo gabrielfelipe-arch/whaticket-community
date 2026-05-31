@@ -155,7 +155,8 @@ const emptyDashboard = {
   byReason: [],
   byQueue: [],
   byUser: [],
-  byDay: []
+  byDay: [],
+  attendants: []
 };
 
 const escapeHtml = value =>
@@ -325,6 +326,18 @@ const Dashboard = () => {
     { label: "Resolvidos", value: dashboard.summary.closed, color: "#7c3aed" }
   ];
 
+  const attendantStatusLabels = {
+    online: "Online",
+    away: "Inativo",
+    offline: "Deslogado",
+  };
+
+  const attendantStatusColors = {
+    online: "#22C55E",
+    away: "#F59E0B",
+    offline: "#94A3B8",
+  };
+
   const renderBarChart = data => (
     <ResponsiveContainer width="100%" height={260}>
       <BarChart data={data} margin={{ top: 10, right: 20, left: -18, bottom: 30 }}>
@@ -464,6 +477,84 @@ const Dashboard = () => {
             </Table>
           </Paper>
         </Grid>
+
+        {user?.profile === "admin" && (
+          <Grid item xs={12}>
+            <Paper className={classes.tablePanel}>
+              <div className={classes.panelHeader}>
+                <div>
+                  <Typography variant="h6">Auditoria dos atendentes</Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Status operacional, ultima atividade e atendimentos ativos por usuario.
+                  </Typography>
+                </div>
+                <Chip size="small" label={`${dashboard.attendants?.length || 0} usuarios`} />
+              </div>
+              <div className={classes.history}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Usuario</TableCell>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Ultima atividade</TableCell>
+                      <TableCell>Filas</TableCell>
+                      <TableCell align="right">Atendimentos ativos</TableCell>
+                      <TableCell>Atendimentos em andamento</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(dashboard.attendants || []).map(attendant => (
+                      <TableRow key={attendant.id}>
+                        <TableCell>
+                          <Typography variant="body2">{attendant.name}</Typography>
+                          <Typography variant="caption" color="textSecondary">{attendant.email}</Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            label={attendantStatusLabels[attendant.operationalStatus] || "Deslogado"}
+                            style={{
+                              backgroundColor: attendantStatusColors[attendant.operationalStatus] || attendantStatusColors.offline,
+                              color: "#fff",
+                              fontWeight: 700
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {attendant.lastActivityAt
+                            ? new Date(attendant.lastActivityAt).toLocaleString()
+                            : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {(attendant.queues || []).length
+                            ? attendant.queues.map(queue => queue.name).join(", ")
+                            : "Sem fila"}
+                        </TableCell>
+                        <TableCell align="right">{attendant.activeTicketsCount || 0}</TableCell>
+                        <TableCell>
+                          {(attendant.activeTickets || []).length ? (
+                            attendant.activeTickets.map(ticket => (
+                              <Typography key={ticket.id} variant="caption" display="block">
+                                #{ticket.id} - {ticket.contact?.name || "Contato"} / {ticket.queue?.name || "Sem fila"}
+                              </Typography>
+                            ))
+                          ) : (
+                            <Typography variant="caption" color="textSecondary">Nenhum atendimento ativo</Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {!(dashboard.attendants || []).length && (
+                      <TableRow>
+                        <TableCell colSpan={6}>Nenhum usuario encontrado.</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Paper>
+          </Grid>
+        )}
 
         {user?.profile === "admin" && (
           <Grid item xs={12}>

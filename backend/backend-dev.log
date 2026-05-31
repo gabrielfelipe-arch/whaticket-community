@@ -1,0 +1,1732 @@
+
+> backend@1.0.0 dev
+> ts-node-dev --respawn --transpile-only --ignore node_modules src/server.ts
+
+[INFO] 17:56:00 ts-node-dev ver. 1.1.8 (using ts-node ver. 9.1.1, typescript ver. 4.9.5)
+[2026-05-31 17:56:04.818 -0300] [32mINFO[39m: [36mServer started on port: 8085[39m
+[2026-05-31 17:56:32.000 -0300] [33mWARN[39m:
+    message: "Invalid token. We'll try to assign a new one on next request"
+    statusCode: 403
+[2026-05-31 17:56:32.075 -0300] [31mERROR[39m: [36m{"name":"TokenExpiredError","message":"jwt expired","expiredAt":"2026-05-31T20:49:12.000Z"}[39m
+[2026-05-31 17:56:32.082 -0300] [31mERROR[39m: [36m{"name":"TokenExpiredError","message":"jwt expired","expiredAt":"2026-05-31T20:49:12.000Z"}[39m
+[2026-05-31 17:56:32.239 -0300] [33mWARN[39m:
+    message: "Invalid token. We'll try to assign a new one on next request"
+    statusCode: 403
+[2026-05-31 17:56:32.243 -0300] [33mWARN[39m:
+    message: "Invalid token. We'll try to assign a new one on next request"
+    statusCode: 403
+[2026-05-31 17:56:32.278 -0300] [31mERROR[39m: [36m{"name":"TokenExpiredError","message":"jwt expired","expiredAt":"2026-05-31T20:49:12.000Z"}[39m
+[2026-05-31 17:56:32.281 -0300] [31mERROR[39m: [36m{"name":"TokenExpiredError","message":"jwt expired","expiredAt":"2026-05-31T20:49:12.000Z"}[39m
+[2026-05-31 17:56:32.284 -0300] [31mERROR[39m: [36m{"name":"TokenExpiredError","message":"jwt expired","expiredAt":"2026-05-31T20:49:12.000Z"}[39m
+[2026-05-31 17:56:35.402 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:56:37.143 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-05-31 17:56:37.168 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:56:38.715 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-05-31 17:56:38.733 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:56:38.745 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:56:41.245 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-05-31 17:56:41.246 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-05-31 17:56:41.256 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:56:43.271 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-05-31 17:56:43.282 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-05-31 17:57:22.058 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[INFO] 17:58:33 Restarting: C:\Projetoswpp\whaticket-community\backend\src\config\database.ts has been modified
+[INFO] 17:58:34 Restarting: C:\Projetoswpp\whaticket-community\backend\src\config\database.ts has been modified
+[ERROR] 17:58:35 Error: Cannot find module '../models/TicketCategory'
+Require stack:
+- C:\Projetoswpp\whaticket-community\backend\src\database\index.ts
+- C:\Projetoswpp\whaticket-community\backend\src\app.ts
+- C:\Projetoswpp\whaticket-community\backend\src\server.ts
+[INFO] 17:58:35 Restarting: C:\Projetoswpp\whaticket-community\backend\src\models\Contact.ts has been modified
+[INFO] 17:58:35 Restarting: C:\Projetoswpp\whaticket-community\backend\src\server.ts has been modified
+[ERROR] 17:58:42 Error: listen EADDRINUSE: address already in use :::8085
+[2026-05-31 17:58:42.538 -0300] [31mERROR[39m:
+    info: "Global uncaught exception"
+    err: {
+      "type": "Error",
+      "message": "listen EADDRINUSE: address already in use :::8085",
+      "stack":
+          Error: listen EADDRINUSE: address already in use :::8085
+              at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+              at listenInCluster (node:net:1997:12)
+              at Server.listen (node:net:2102:7)
+              at Function.listen (C:\Projetoswpp\whaticket-community\backend\node_modules\express\lib\application.js:635:24)
+              at Object.<anonymous> (C:\Projetoswpp\whaticket-community\backend\src\server.ts:11:20)
+              at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+              at Module._compile (C:\Projetoswpp\whaticket-community\backend\node_modules\source-map-support\source-map-support.js:568:25)
+              at Module.m._compile (C:\Users\00677914\AppData\Local\Temp\ts-node-dev-hook-11495323457315565.js:69:33)
+              at node:internal/modules/cjs/loader:1839:10
+              at require.extensions.<computed> (C:\Users\00677914\AppData\Local\Temp\ts-node-dev-hook-11495323457315565.js:71:20)
+              at Object.nodeDevHook [as .ts] (C:\Projetoswpp\whaticket-community\backend\node_modules\ts-node-dev\lib\hook.js:63:13)
+              at Module.load (node:internal/modules/cjs/loader:1441:32)
+              at Function._load (node:internal/modules/cjs/loader:1263:12)
+              at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+              at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+              at Module.require (node:internal/modules/cjs/loader:1463:12)
+              at require (node:internal/modules/helpers:147:16)
+              at Object.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\ts-node-dev\lib\wrap.js:104:1)
+              at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+              at Module._compile (C:\Projetoswpp\whaticket-community\backend\node_modules\source-map-support\source-map-support.js:568:25)
+              at Object.<anonymous> (node:i[2026-05-31 17:58:42.637 -0300] [31mERROR[39m:
+    info: "Global unhandled rejection"
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+      "[2026-05-31 17:58:42.640 -0300] [31mERROR[39m:
+    info: "Global unhandled rejection"
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+      "stack":
+          SequelizeConnectionError: could not open file "global/pg_filenode.map": No such file or directory
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:182:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:417:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:115:12
+              at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:106:9)
+              at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at addChunk (node:internal/streams/readable:561:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+              at Socket.Readable.push (node:internal/streams/readable:392:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\WhatsappService\ListWhatsAppsService.ts:6:36
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\WhatsappService\ListWhatsAppsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\WhatsappService\ListWhatsAppsService.ts:4:12)
+              at ListWhatsAppsService (C:\Projetoswpp\whaticket-community\backend\src\services\WhatsappService\ListWhatsAppsService.ts:5:62)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\WbotServices\StartAllWhatsAppsSessions.ts:5:47
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\WbotServices\StartAllWhatsAppsSessions.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\WbotServices\StartAllWhatsAppsSessions.ts:4:12)
+              at StartAllWhatsAppsSessions (C:\Projetoswpp\whaticket-community\backend\src\services\WbotServices\StartAllWhatsAppsSessions.ts:4:68)
+              at Object.<anonymous> (C:\Projetoswpp\whaticket-community\backend\src\server.ts:17:26)
+              at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+              at Module._compile (C:\Projetoswpp\whaticket-community\backend\node_modules\source-map-support\source-map-support.js:568:25)
+              at Module.m._compile (C:\Users\00677914\AppData\Local\Temp\ts-node-dev-hook-11495323457315565.js:69:33)
+              at node:internal/modules/cjs/loader:1839:10
+              at require.extensions.<computed> (C:\Users\00677914\AppData\Local\Temp\ts-node-dev-hook-11495323457315565.js:71:20)
+              at Object.nodeDevHook [as .ts] (C:\Projetoswpp\whaticket-community\backend\node_modules\ts-node-dev\lib\hook.js:63:13)
+              at Module.load (node:internal/modules/cjs/loader:1441:32)
+              at Function._load (node:internal/modules/cjs/loader:1263:12)
+              at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+      "name": "SequelizeConnectionError",
+      "parent": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        "length": 135,
+        "name": "error",
+        "severity": "FATAL",
+        "code": "58P01",
+        "file": "relmapper.c",
+        "line": "817",
+        "routine": "read_relmap_file"
+      },
+      "original": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/s[2026-05-31 17:58:57.605 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+    [2026-05-31 17:58:57.608 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+      "stack":
+          SequelizeConnectionError: could not open file "global/pg_filenode.map": No such file or directory
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:182:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:417:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:115:12
+              at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:106:9)
+              at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at addChunk (node:internal/streams/readable:561:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+              at Socket.Readable.push (node:internal/streams/readable:392:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionError",
+      "parent": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        "length": 135,
+        "name": "error",
+        "severity": "FATAL",
+        "code": "58P01",
+        "file": "relmapper.c",
+        "line": "817",
+        "routine": "read_relmap_file"
+      },
+      "original": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/s[2026-05-31 17:59:12.603 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+    [2026-05-31 17:59:12.607 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionError",
+      "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+      "stack":
+          SequelizeConnectionError: could not open file "global/pg_filenode.map": No such file or directory
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:182:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:417:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:115:12
+              at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:106:9)
+              at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at addChunk (node:internal/streams/readable:561:12)
+              at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+              at Socket.Readable.push (node:internal/streams/readable:392:5)
+              at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionError",
+      "parent": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/stream_base_commons:189:23)
+        "length": 135,
+        "name": "error",
+        "severity": "FATAL",
+        "code": "58P01",
+        "file": "relmapper.c",
+        "line": "817",
+        "routine": "read_relmap_file"
+      },
+      "original": {
+        "type": "DatabaseError",
+        "message": "could not open file \"global/pg_filenode.map\": No such file or directory",
+        "stack":
+            error: could not open file "global/pg_filenode.map": No such file or directory
+                at parseErrorMessage (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:394:9)
+                at Parser.handlePacket (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:212:19)
+                at Parser.parse (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\parser.ts:105:30)
+                at Socket.<anonymous> (C:\Projetoswpp\whaticket-community\backend\node_modules\pg-protocol\src\index.ts:7:48)
+                at Socket.emit (node:events:519:28)
+                at Socket.emit (node:domain:489:12)
+                at addChunk (node:internal/streams/readable:561:12)
+                at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+                at Socket.Readable.push (node:internal/streams/readable:392:5)
+                at TCP.onStreamRead (node:internal/s[2026-05-31 17:59:27.595 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 17:59:27.601 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 17:59:42.600 -0300] [31mERROR[39m: [36mError running AI auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnec[2026-05-31 17:59:42.606 -0300] [31mERROR[39m: [36mError running AI auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:4:12)
+              at RunAiAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:108:57)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      }
+    }
+[2026-05-31 17:59:42.607 -0300] [31mERROR[39m: [36mError running URA auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:4:12)
+              at RunAiAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:108:57)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      }
+    }
+[2026-05-31 17:59:42.608 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 17:59:57.581 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 17:59:57.584 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:00:12.612 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:00:12.637 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:00:27.612 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:00:27.619 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:00:42.601 -0300] [31mERROR[39m: [36mError running AI auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:4:12)
+              at RunAiAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:108:57)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      }
+    }
+[2026-05-31 18:00:42.602 -0300] [31mERROR[39m: [36mError running URA auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConne[2026-05-31 18:00:42.601 -0300] [31mERROR[39m: [36mError running URA auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:4:12)
+              at RunAiAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:108:57)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:00:42.603 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:00:42.609 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:00:57.632 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:00:57.648 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:01:12.641 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:01:12.645 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:01:27.829 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:01:27.834 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:01:42.679 -0300] [31mERROR[39m: [36mError running AI auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnec[2026-05-31 18:01:42.692 -0300] [31mERROR[39m: [36mError running AI auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:4:12)
+              at RunAiAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:108:57)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\AiServices\AiAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:01:42.692 -0300] [31mERROR[39m: [36mError running URA auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConne[2026-05-31 18:01:42.844 -0300] [31mERROR[39m: [36mError running URA auto close[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\UraServices\UraAutoCloseService.ts:113:34
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\UraServices\UraAutoCloseService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\UraServices\UraAutoCloseService.ts:4:12)
+              at RunUraAutoCloseService (C:\Projetoswpp\whaticket-community\backend\src\services\UraServices\UraAutoCloseService.ts:108:58)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\UraServices\UraAutoCloseService.ts:138:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      }
+    }
+[2026-05-31 18:01:42.978 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:01:57.712 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:01:57.713 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:02:12.749 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:02:12.761 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+ [2026-05-31 18:02:27.733 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          Sequelize[2026-05-31 18:02:27.734 -0300] [31mERROR[39m: [36mError running campaign dispatcher[39m
+    err: {
+      "type": "ConnectionRefusedError",
+      "message": "connect ECONNREFUSED 127.0.0.1:55432",
+      "stack":
+          SequelizeConnectionRefusedError: connect ECONNREFUSED 127.0.0.1:55432
+              at Client._connectionCallback (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:170:24)
+              at Client._handleErrorWhileConnecting (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:397:19)
+              at Client._handleErrorEvent (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\client.js:407:19)
+              at Connection.emit (node:events:519:28)
+              at Connection.emit (node:domain:489:12)
+              at Socket.reportStreamError (C:\Projetoswpp\whaticket-community\backend\node_modules\pg\lib\connection.js:56:12)
+              at Socket.emit (node:events:519:28)
+              at Socket.emit (node:domain:489:12)
+              at emitErrorNT (node:internal/streams/destroy:170:8)
+              at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+              at processTicksAndRejections (node:internal/process/task_queues:90:21)
+          From previous event:
+              at ConnectionManager.connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\postgres\connection-manager.js:121:12)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:50
+          From previous event:
+              at ConnectionManager._connect (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:318:8)
+              at ConnectionManager.getConnection (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\dialects\abstract\connection-manager.js:254:46)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:650:36
+          From previous event:
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:53
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:70:21
+              at new Promise (<anonymous>)
+              at retryAsPromised (C:\Projetoswpp\whaticket-community\backend\node_modules\retry-as-promised\index.js:60:10)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:641:30
+          From previous event:
+              at Sequelize.query (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\sequelize.js:590:23)
+              at QueryInterface.select (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\query-interface.js:1126:27)
+              at C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1759:34
+              at processImmediate (node:internal/timers:485:21)
+          From previous event:
+              at Function.findAll (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize\lib\model.js:1757:8)
+              at Function.Model.<computed> (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:117:28)
+              at Function.Model.<computed> [as findAll] (C:\Projetoswpp\whaticket-community\backend\node_modules\sequelize-typescript\dist\model\model\model.js:129:28)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:283:46
+              at Generator.next (<anonymous>)
+              at C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:8:71
+              at new Promise (<anonymous>)
+              at __awaiter (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:4:12)
+              at DispatchCampaignsService (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:276:60)
+              at Timeout._onTimeout (C:\Projetoswpp\whaticket-community\backend\src\services\CampaignServices\DispatchCampaignsService.ts:320:5)
+              at listOnTimeout (node:internal/timers:588:17)
+              at processTimers (node:internal/timers:523:7)
+      "name": "SequelizeConnectionRefusedError",
+      "parent": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      },
+      "original": {
+        "type": "Error",
+        "message": "connect ECONNREFUSED 127.0.0.1:55432",
+        "stack":
+            Error: connect ECONNREFUSED 127.0.0.1:55432
+                at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+        "errno": -4078,
+        "code": "ECONNREFUSED",
+        "syscall": "connect",
+        "address": "127.0.0.1",
+        "port": 55432
+      }
+    }

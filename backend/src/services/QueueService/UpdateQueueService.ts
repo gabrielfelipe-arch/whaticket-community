@@ -16,6 +16,15 @@ interface QueueData {
   unavailableMediaUrl?: string | null;
   unavailableMediaType?: string | null;
   unavailableMediaName?: string | null;
+  distributionMode?: string;
+  maxActiveTicketsPerUser?: number | null;
+  balanceAction?: string;
+  overflowAction?: string;
+  sendQueuePositionMessage?: boolean;
+  queuePositionMessage?: string | null;
+  blockIfUserHasStalledTicket?: boolean;
+  stalledTicketMinutes?: number | null;
+  stalledTicketAction?: string;
 }
 
 const UpdateQueueService = async (
@@ -95,6 +104,36 @@ const UpdateQueueService = async (
     if (!queueData.unavailableMessage && !queueData.unavailableMediaUrl) {
       throw new AppError("Informe a mensagem de indisponibilidade da fila.", 400);
     }
+  }
+
+  const distributionMode = queueData.distributionMode || queue.distributionMode || "manual_free";
+  if (![
+    "manual_free",
+    "manual_limit",
+    "manual_balanced",
+    "auto_least_load",
+    "round_robin",
+    "least_load_round_robin"
+  ].includes(distributionMode)) {
+    throw new AppError("Escolha um modo de distribuição válido.", 400);
+  }
+
+  queueData.distributionMode = distributionMode;
+  queueData.balanceAction = queueData.balanceAction || queue.balanceAction || "ignore";
+  queueData.overflowAction = queueData.overflowAction || queue.overflowAction || "keep_waiting";
+  queueData.stalledTicketAction = queueData.stalledTicketAction || queue.stalledTicketAction || "ignore";
+
+  if (queueData.maxActiveTicketsPerUser !== null && queueData.maxActiveTicketsPerUser !== undefined && Number(queueData.maxActiveTicketsPerUser) < 1) {
+    throw new AppError("O limite máximo por atendente deve ser maior que zero.", 400);
+  }
+
+  if (queueData.blockIfUserHasStalledTicket && !queueData.stalledTicketMinutes) {
+    throw new AppError("Informe o tempo para considerar atendimento parado.", 400);
+  }
+
+  if (queueData.sendQueuePositionMessage && !queueData.queuePositionMessage) {
+    queueData.queuePositionMessage =
+      "Atendimento nº {{ticketId}} criado com sucesso.\n\nVocê foi encaminhado para a fila {{queueName}}.\nSua posição atual é: {{position}}º.\n\nAguarde, em breve um atendente irá te chamar.";
   }
 
   await queue.update(queueData);

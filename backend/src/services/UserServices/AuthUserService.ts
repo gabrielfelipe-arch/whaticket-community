@@ -6,6 +6,7 @@ import {
 } from "../../helpers/CreateTokens";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import Queue from "../../models/Queue";
+import { updateUserOperationalStatus } from "../QueueService/QueueDistributionService";
 
 interface SerializedUser {
   id: number;
@@ -42,6 +43,13 @@ const AuthUserService = async ({
   if (!(await user.checkPassword(password))) {
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
   }
+
+  await updateUserOperationalStatus({
+    userId: user.id,
+    status: "online",
+    reason: "login"
+  });
+  await user.reload({ include: ["queues"] });
 
   const token = createAccessToken(user);
   const refreshToken = createRefreshToken(user);

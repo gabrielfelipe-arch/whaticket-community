@@ -1,0 +1,14 @@
+
+> frontend@0.1.0 dev
+> vite --host 0.0.0.0 --port 3005 --force
+
+Forced re-optimization of dependencies
+
+  [32m[1mVITE[22m v4.5.14[39m  [2mready in [0m[1m363[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m3005[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.80.9.106:[1m3005[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://172.24.144.1:[1m3005[22m/[39m
+[2m17:58:33[22m [36m[1m[vite][22m[39m [32mvite.config.js changed, restarting server...[39m
+Forced re-optimization of dependencies
+[2m17:58:34[22m [36m[1m[vite][22m[39m server restarted.

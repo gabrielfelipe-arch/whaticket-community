@@ -52,6 +52,19 @@ class User extends Model<User> {
   @Column(DataType.TEXT)
   attendanceGreeting: string;
 
+  @Default("offline")
+  @Column
+  operationalStatus: string;
+
+  @Column
+  lastActivityAt: Date;
+
+  @Column
+  lastStatusChangeAt: Date;
+
+  @Column
+  statusReason: string;
+
   @ForeignKey(() => Whatsapp)
   @Column
   whatsappId: number;

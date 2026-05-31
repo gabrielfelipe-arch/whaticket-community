@@ -16,6 +16,9 @@ import {
 } from "../services/SatisfactionSurveyServices/SatisfactionSurveyService";
 import formatBody from "../helpers/Mustache";
 import FormatTicketTemplate from "../helpers/FormatTicketTemplate";
+import {
+  validateManualTicketAcceptance
+} from "../services/QueueService/QueueDistributionService";
 
 type IndexQuery = {
   searchParam: string;
@@ -104,6 +107,14 @@ export const update = async (
 ): Promise<Response> => {
   const { ticketId } = req.params;
   const ticketData: TicketData = req.body;
+
+  if (ticketData.status === "open" && ticketData.userId) {
+    await validateManualTicketAcceptance({
+      ticketId,
+      userId: Number(ticketData.userId),
+      requesterProfile: req.user.profile
+    });
+  }
 
   const { ticket, oldStatus } = await UpdateTicketService({
     ticketData,

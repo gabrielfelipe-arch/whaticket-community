@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import clsx from "clsx";
 import {
   makeStyles,
@@ -11,6 +11,7 @@ import {
   IconButton,
   Menu,
   Switch,
+  Chip,
 } from "@material-ui/core";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
@@ -25,6 +26,8 @@ import BackdropLoading from "../components/BackdropLoading";
 import { i18n } from "../translate/i18n";
 import { useThemeContext } from "../context/DarkMode";
 import { useBranding } from "../context/Branding";
+import api from "../services/api";
+import toastError from "../errors/toastError";
 
 const drawerWidth = 268;
 
@@ -235,7 +238,24 @@ const useStyles = makeStyles((theme) => ({
   themeIcon: {
     color: "#FFFFFF",
   },
+  statusChip: {
+    height: 22,
+    color: "#FFFFFF",
+    fontWeight: 800,
+  },
 }));
+
+const statusLabels = {
+  online: "Online",
+  away: "Ausente",
+  offline: "Offline",
+};
+
+const statusColors = {
+  online: "#22C55E",
+  away: "#F59E0B",
+  offline: "#94A3B8",
+};
 
 const LoggedInLayout = ({ children }) => {
   const classes = useStyles();
@@ -248,12 +268,82 @@ const LoggedInLayout = ({ children }) => {
   const { user } = useContext(AuthContext);
   const { darkMode, toggleTheme } = useThemeContext();
   const branding = useBranding();
+  const lastActivityRef = useRef(Date.now());
+  const lastTouchRef = useRef(0);
+  const [inactivitySettings, setInactivitySettings] = useState({});
 
   useEffect(() => {
     if (document.body.offsetWidth > 600) {
       setDrawerOpen(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      try {
+        const { data } = await api.get("/users/inactivity-settings");
+        const mapped = {};
+        data.forEach(setting => {
+          mapped[setting.key] = setting.value;
+        });
+        setInactivitySettings(mapped);
+      } catch (err) {
+        // Se falhar, mantem a sessao normal.
+      }
+    })();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return undefined;
+
+    const recordActivity = async () => {
+      lastActivityRef.current = Date.now();
+      if (Date.now() - lastTouchRef.current > 60000) {
+        lastTouchRef.current = Date.now();
+        api.post("/users/activity").catch(() => {});
+      }
+      if (user.operationalStatus === "away" && user.statusReason === "auto_away") {
+        const shouldReturn = window.confirm("Você está Ausente por inatividade. Deseja voltar para Online?");
+        if (shouldReturn) {
+          handleChangeStatus("online");
+        }
+      }
+    };
+
+    const events = ["click", "keydown", "mousemove", "touchstart"];
+    events.forEach(event => window.addEventListener(event, recordActivity, { passive: true }));
+
+    const interval = setInterval(async () => {
+      const appliesToAdmins = inactivitySettings.inactivityAppliesToAdmins === "true";
+      if (user.profile === "admin" && !appliesToAdmins) return;
+
+      const inactiveMinutes = (Date.now() - lastActivityRef.current) / 60000;
+      const autoAwayEnabled = inactivitySettings.autoAwayEnabled === "true";
+      const autoLogoutEnabled = inactivitySettings.autoLogoutEnabled === "true";
+      const autoAwayMinutes = Number(inactivitySettings.autoAwayMinutes || 0);
+      const autoLogoutMinutes = Number(inactivitySettings.autoLogoutMinutes || 0);
+
+      if (
+        autoAwayEnabled &&
+        autoAwayMinutes > 0 &&
+        inactiveMinutes >= autoAwayMinutes &&
+        user.operationalStatus === "online"
+      ) {
+        await api.put(`/users/${user.id}/status`, { status: "away", reason: "auto_away" }).catch(() => {});
+      }
+
+      if (autoLogoutEnabled && autoLogoutMinutes > 0 && inactiveMinutes >= autoLogoutMinutes) {
+        await api.put(`/users/${user.id}/status`, { status: "offline", reason: "auto_logout" }).catch(() => {});
+        handleLogout();
+      }
+    }, 30000);
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, recordActivity));
+      clearInterval(interval);
+    };
+  }, [user?.id, user?.profile, user?.operationalStatus, inactivitySettings]);
 
   useEffect(() => {
     if (document.body.offsetWidth < 600) {
@@ -281,6 +371,15 @@ const LoggedInLayout = ({ children }) => {
   const handleClickLogout = () => {
     handleCloseMenu();
     handleLogout();
+  };
+
+  const handleChangeStatus = async status => {
+    try {
+      await api.put(`/users/${user.id}/status`, { status, reason: "manual" });
+      handleCloseMenu();
+    } catch (err) {
+      toastError(err);
+    }
   };
 
   const drawerClose = () => {
@@ -384,6 +483,12 @@ const LoggedInLayout = ({ children }) => {
                 <span className={classes.userName}>{user?.name || "Usuario"}</span>
                 <span className={classes.userProfile}>{user?.profile || ""}</span>
               </div>
+              <Chip
+                size="small"
+                className={classes.statusChip}
+                label={statusLabels[user?.operationalStatus] || "Offline"}
+                style={{ backgroundColor: statusColors[user?.operationalStatus] || statusColors.offline }}
+              />
             <IconButton
               aria-label="account of current user"
               aria-controls="menu-appbar"
@@ -411,6 +516,12 @@ const LoggedInLayout = ({ children }) => {
             >
               <MenuItem onClick={handleOpenUserModal}>
                 {i18n.t("mainDrawer.appBar.user.profile")}
+              </MenuItem>
+              <MenuItem onClick={() => handleChangeStatus("online")}>
+                Status: Online
+              </MenuItem>
+              <MenuItem onClick={() => handleChangeStatus("away")}>
+                Status: Ausente
               </MenuItem>
               <MenuItem onClick={handleClickLogout}>
                 {i18n.t("mainDrawer.appBar.user.logout")}

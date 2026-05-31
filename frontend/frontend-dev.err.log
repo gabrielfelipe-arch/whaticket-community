@@ -1,0 +1,586 @@
+Error: [31m  Failed to scan for dependencies from entries:
+  C:/Projetoswpp/whaticket-community/frontend/index.html
+C:/Projetoswpp/whaticket-community/frontend/public/index.html
+
+  [39m[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/App.js:41:4:
+[37m      41 │     [32m<[37mThemeProvider theme={theme}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/BackdropLoading/index.js:17:2:
+[37m      17 │     [32m<[37mBackdrop className={classes.backdrop} open={true}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ButtonWithSpinner/index.js:26:2:
+[37m      26 │     [32m<[37mButton className={classes.button} disabled={loading} {...rest}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ColorPicker/index.js:68:4:
+[37m      68 │     [32m<[37mDialog
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ConfirmationModal/index.js:13:2:
+[37m      13 │     [32m<[37mDialog
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ContactDrawer/index.js:90:2:
+[37m      90 │     [32m<[37mDrawer
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ContactDrawerSkeleton/index.js:9:2:
+[37m      9 │     [32m<[37mdiv className={classes.content}>
+        ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ContactModal/index.js:129:2:
+[37m      129 │     [32m<[37mdiv className={classes.root}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/LocationPreview/index.js:21:2:
+[37m      21 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MainContainer/index.js:27:4:
+[37m      27 │     [32m<[37mContainer className={classes.mainContainer} maxWidth={false}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MainHeader/index.js:16:8:
+[37m      16 │   return [32m<[37mdiv className={classes.contactsHeader}>{children}</div>;
+         ╵          [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MainHeaderButtonsWrapper/index.js:18:8:
+[37m      18 │   return [32m<[37mdiv className={classes.MainHeaderButtonsWrapper}>{childr...
+         ╵          [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MarkdownWrapper/index.js:147:1:
+[37m      147 │   [32m<[37ma {...props} target="_blank" rel="noopener noreferrer">
+          ╵   [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MessageInput/RecordingTimer.js:42:2:
+[37m      42 │     [32m<[37mdiv className={classes.timerBox}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MessageInput/index.js:413:6:
+[37m      413 │       [32m<[37mdiv className={classes.replyginMsgWrapper}>
+          ╵       [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MessageOptionsMenu/index.js:35:4:
+[37m      35 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/MessagesList/index.js:429:13:
+[37m      429 │       return [32m<[37mLocationPreview image={imageLocation} link={linkLoc...
+          ╵              [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/ModalImageCors/index.js:40:2:
+[37m      40 │     [32m<[37mModalImage
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/NewTicketModal/index.js:132:2:
+[37m      132 │     [32m<[37m>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/NotificationsPopOver/index.js:188:9:
+[37m      188 │     return [32m<[37mdiv onClick={handleClickAway}>{children}</div>;
+          ╵            [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/QrcodeModal/index.js:47:2:
+[37m      47 │     [32m<[37mDialog open={open} onClose={onClose} maxWidth="lg" scroll="pa...
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/QueueModal/index.js:121:2:
+[37m      121 │     [32m<[37mdiv className={classes.root}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/QueueSelect/index.js:42:2:
+[37m      42 │     [32m<[37mdiv style={{ marginTop: 6 }}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/QuickAnswersModal/index.js:130:4:
+[37m      130 │     [32m<[37mdiv className={classes.root}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TabPanel/index.js:6:3:
+[37m      6 │       [32m<[37mdiv
+        ╵       [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TableRowSkeleton/index.js:18:2:
+[37m      18 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/Ticket/index.js:147:4:
+[37m      147 │     [32m<[37mdiv className={classes.root} id="drawer-container">
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketActionButtons/index.js:64:2:
+[37m      64 │     [32m<[37mdiv className={classes.actionButtons}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketHeader/index.js:29:4:
+[37m      29 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketHeaderSkeleton/index.js:20:2:
+[37m      20 │     [32m<[37mCard square className={classes.ticketHeader}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketInfo/index.js:9:2:
+[37m      9 │     [32m<[37mCardHeader
+        ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketListItem/index.js:155:2:
+[37m      155 │     [32m<[37mReact.Fragment key={ticket.id}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketOptionsMenu/index.js:51:2:
+[37m      51 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketsList/index.js:272:4:
+[37m      272 │     [32m<[37mPaper className={classes.ticketsListWrapper} style={style}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketsListSkeleton/index.js:11:2:
+[37m      11 │     [32m<[37m>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketsManager/index.js:147:4:
+[37m      147 │     [32m<[37mPaper elevation={0} variant="outlined" className={classes.ti...
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TicketsQueueSelect/index.js:19:2:
+[37m      19 │     [32m<[37mdiv style={{ width: 120, marginTop: -4 }}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/Title/index.js:6:2:
+[37m      6 │     [32m<[37mTypography variant="h5" color="primary" gutterBottom>
+        ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/TransferTicketModal/index.js:132:2:
+[37m      132 │     [32m<[37mDialog open={modalOpen} onClose={handleClose} maxWidth="lg" ...
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/UserModal/index.js:134:2:
+[37m      134 │     [32m<[37mdiv className={classes.root}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/VcardPreview/index.js:61:8:
+[37m      61 │         [32m<[37m>
+         ╵         [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/components/WhatsAppModal/index.js:110:2:
+[37m      110 │     [32m<[37mdiv className={classes.root}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/context/Auth/AuthContext.js:11:2:
+[37m      11 │     [32m<[37mAuthContext.Provider
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/context/DarkMode/index.js:28:4:
+[37m      28 │     [32m<[37mThemeContext.Provider value={contextValue}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/context/ReplyingMessage/ReplyingMessageContext.js:9:2:
+[37m      9 │     [32m<[37mReplyMessageContext.Provider
+        ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/context/WhatsApp/WhatsAppsContext.js:11:2:
+[37m      11 │     [32m<[37mWhatsAppsContext.Provider value={{ whatsApps, loading }}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/index.js:8:1:
+[37m      8 │   [32m<[37mCssBaseline>
+        ╵   [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/layout/MainListItems.js:30:8:
+[37m      30 │         [32m<[37mRouterLink to={to} ref={ref} {...itemProps} />
+         ╵         [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/layout/index.js:181:11:
+[37m      181 │     return [32m<[37mBackdropLoading />;
+          ╵            [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Connections/index.js:75:2:
+[37m      75 │     [32m<[37mTooltip
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Contacts/index.js:219:4:
+[37m      219 │     [32m<[37mMainContainer className={classes.mainContainer}>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Dashboard/Chart.js:56:2:
+[37m      56 │     [32m<[37mReact.Fragment>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Dashboard/Title.js:6:2:
+[37m      6 │     [32m<[37mTypography component="h2" variant="h6" color="primary" gutterB...
+        ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Dashboard/index.js:67:2:
+[37m      67 │     [32m<[37mdiv>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Login/index.js:77:4:
+[37m      77 │     [32m<[37mContainer component="main" maxWidth="xs">
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Queues/index.js:162:4:
+[37m      162 │     [32m<[37mMainContainer>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/QuickAnswers/index.js:189:4:
+[37m      189 │     [32m<[37mMainContainer>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Settings/index.js:96:2:
+[37m      96 │     [32m<[37mdiv className={classes.root}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Signup/index.js:93:2:
+[37m      93 │     [32m<[37mContainer component="main" maxWidth="xs">
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Tickets/index.js:72:4:
+[37m      72 │     [32m<[37mdiv className={classes.chatContainer}>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/pages/Users/index.js:186:4:
+[37m      186 │     [32m<[37mMainContainer>
+          ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/routes/Route.js:12:6:
+[37m      12 │       [32m<[37m>
+         ╵       [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+[31mX [41;31m[[41;97mERROR[41;31m][0m [1mThe JSX syntax extension is not currently enabled[0m
+
+    src/routes/index.js:23:4:
+[37m      23 │     [32m<[37mBrowserRouter>
+         ╵     [32m^[0m
+
+  The esbuild loader for this file is currently set to "js" but it must be set to "jsx" to be able to parse JSX syntax. You can use "loader: { '.js': 'jsx' }" to do that.
+
+
+    at failureErrorWithLog (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1649:15)
+    at C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1058:25
+    at runOnEndCallbacks (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1484:45)
+    at buildResponseToResult (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1056:7)
+    at C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1068:9
+    at new Promise (<anonymous>)
+    at requestCallbacks.on-end (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:1067:54)
+    at handleRequest (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:729:19)
+    at handleIncomingPacket (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:755:7)
+    at Socket.readFromStdout (C:\Projetoswpp\whaticket-community\frontend\node_modules\esbuild\lib\main.js:679:7)
+    at Socket.emit (node:events:519:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

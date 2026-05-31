@@ -4,6 +4,7 @@ import openSocket from "../../services/socket-io";
 
 import {
   Button,
+  Chip,
   IconButton,
   makeStyles,
   Paper,
@@ -40,6 +41,15 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: "center",
   },
 }));
+
+const distributionLabels = {
+  manual_free: "Manual livre",
+  manual_limit: "Manual com limite",
+  manual_balanced: "Manual balanceado",
+  auto_least_load: "Menor carga",
+  round_robin: "Rodizio",
+  least_load_round_robin: "Menor carga + rodizio",
+};
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_QUEUES") {
@@ -200,6 +210,9 @@ const Queues = () => {
                 {i18n.t("queues.table.color")}
               </TableCell>
               <TableCell align="center">
+                Distribuicao
+              </TableCell>
+              <TableCell align="center">
                 {i18n.t("queues.table.actions")}
               </TableCell>
             </TableRow>
@@ -220,6 +233,12 @@ const Queues = () => {
                         }}
                       />
                     </div>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      size="small"
+                      label={distributionLabels[queue.distributionMode] || "Manual livre"}
+                    />
                   </TableCell>
                   <TableCell align="center">
                     <IconButton

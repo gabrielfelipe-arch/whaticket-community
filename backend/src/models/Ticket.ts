@@ -75,6 +75,12 @@ class Ticket extends Model<Ticket> {
   @BelongsTo(() => Queue)
   queue: Queue;
 
+  @Column
+  queuePositionMessageSentAt: Date;
+
+  @Column
+  queueEnteredAt: Date;
+
   @ForeignKey(() => TicketCategory)
   @Column
   categoryId: number;

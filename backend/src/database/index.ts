@@ -29,6 +29,7 @@ import AuditLog from "../models/AuditLog";
 import AiInteractionLog from "../models/AiInteractionLog";
 import CampaignRecipientLog from "../models/CampaignRecipientLog";
 import ScheduledMessageExecution from "../models/ScheduledMessageExecution";
+import QueueDistributionLog from "../models/QueueDistributionLog";
 
 
 // eslint-disable-next-line
@@ -67,7 +68,8 @@ const models = [
   AuditLog,
   AiInteractionLog,
   CampaignRecipientLog,
-  ScheduledMessageExecution
+  ScheduledMessageExecution,
+  QueueDistributionLog
 ];
 
 sequelize.addModels(models);

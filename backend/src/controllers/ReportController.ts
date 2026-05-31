@@ -53,12 +53,66 @@ const groupRows = async (column: string, alias: string, start: Date, end: Date) 
   }));
 };
 
+const buildAttendantAudit = async () => {
+  const users = await User.findAll({
+    attributes: [
+      "id",
+      "name",
+      "email",
+      "profile",
+      "operationalStatus",
+      "lastActivityAt",
+      "lastStatusChangeAt",
+      "statusReason"
+    ],
+    include: [{ model: Queue, as: "queues", attributes: ["id", "name", "color"] }],
+    order: [["name", "ASC"]]
+  });
+
+  return Promise.all(users.map(async user => {
+    const activeTickets = await Ticket.findAll({
+      attributes: ["id", "status", "updatedAt", "lastMessage", "queueId", "contactId"],
+      where: {
+        userId: user.id,
+        status: "open"
+      },
+      include: [
+        { model: Contact, as: "contact", attributes: ["id", "name", "number"] },
+        { model: Queue, as: "queue", attributes: ["id", "name", "color"] }
+      ],
+      order: [["updatedAt", "DESC"]],
+      limit: 8
+    });
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      profile: user.profile,
+      operationalStatus: user.operationalStatus,
+      lastActivityAt: user.lastActivityAt,
+      lastStatusChangeAt: user.lastStatusChangeAt,
+      statusReason: user.statusReason,
+      queues: user.queues || [],
+      activeTicketsCount: activeTickets.length,
+      activeTickets: activeTickets.map(ticket => ({
+        id: ticket.id,
+        status: ticket.status,
+        updatedAt: ticket.updatedAt,
+        lastMessage: ticket.lastMessage,
+        contact: ticket.contact,
+        queue: ticket.queue
+      }))
+    };
+  }));
+};
+
 export const dashboard = async (req: Request, res: Response): Promise<Response> => {
   const { start, end } = parseDateRange(req);
   const where = { createdAt: dateFilter(start, end) } as any;
   const ticketCreatedDate = fn("DATE", col("Ticket.createdAt"));
 
-  const [total, open, pending, closed, byCategory, byReason, byQueue, byUser, byDay] = await Promise.all([
+  const [total, open, pending, closed, byCategory, byReason, byQueue, byUser, byDay, attendants] = await Promise.all([
     Ticket.count({ where }),
     Ticket.count({ where: { ...where, status: "open" } }),
     Ticket.count({ where: { ...where, status: "pending" } }),
@@ -88,7 +142,8 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
       group: [ticketCreatedDate as any],
       order: [[ticketCreatedDate as any, "ASC"]],
       raw: true
-    })
+    }),
+    req.user.profile === "admin" ? buildAttendantAudit() : Promise.resolve([])
   ]);
 
   return res.json({
@@ -97,7 +152,8 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
     byReason,
     byQueue: byQueue.map((row: any) => ({ name: row.name || "Sem fila", total: Number(row.total) })),
     byUser: byUser.map((row: any) => ({ name: row.name || "Sem atendente", total: Number(row.total) })),
-    byDay: byDay.map((row: any) => ({ date: row.date, total: Number(row.total) }))
+    byDay: byDay.map((row: any) => ({ date: row.date, total: Number(row.total) })),
+    attendants
   });
 };
 

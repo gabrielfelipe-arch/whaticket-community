@@ -39,6 +39,39 @@ const businessWeekdayOptions = [
 	{ value: 0, label: "Dom" },
 ];
 
+const distributionModes = [
+	{
+		value: "manual_free",
+		label: "Manual livre",
+		help: "Os atendimentos ficam aguardando e qualquer atendente Online pode aceitar.",
+	},
+	{
+		value: "manual_limit",
+		label: "Manual com limite",
+		help: "Os atendentes aceitam manualmente, mas respeitam o limite maximo de atendimentos ativos.",
+	},
+	{
+		value: "manual_balanced",
+		label: "Manual balanceado",
+		help: "O sistema pode bloquear ou alertar se houver outro atendente Online com menos atendimentos.",
+	},
+	{
+		value: "auto_least_load",
+		label: "Automatico por menor carga",
+		help: "O sistema entrega automaticamente para quem tem menos atendimentos ativos.",
+	},
+	{
+		value: "round_robin",
+		label: "Rodizio",
+		help: "O sistema distribui automaticamente em sequencia entre atendentes Online.",
+	},
+	{
+		value: "least_load_round_robin",
+		label: "Menor carga + rodizio",
+		help: "Prioriza quem tem menos atendimentos. Em empate, usa rodizio.",
+	},
+];
+
 const defaultBusinessHoursRule = () => ({
 	days: [1, 2, 3, 4, 5],
 	start: "08:00",
@@ -126,6 +159,15 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		businessHours: "",
 		businessHoursRules: [defaultBusinessHoursRule()],
 		unavailableMessage: "",
+		distributionMode: "manual_free",
+		maxActiveTicketsPerUser: "",
+		balanceAction: "ignore",
+		overflowAction: "keep_waiting",
+		sendQueuePositionMessage: false,
+		queuePositionMessage: "Atendimento nº {{ticketId}} criado com sucesso.\n\nVocê foi encaminhado para a fila {{queueName}}.\nSua posição atual é: {{position}}º.\n\nAguarde, em breve um atendente irá te chamar.",
+		blockIfUserHasStalledTicket: false,
+		stalledTicketMinutes: "",
+		stalledTicketAction: "ignore",
 	};
 
 	const [queue, setQueue] = useState(initialState);
@@ -169,6 +211,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 						aiSettingId: data.aiSettingId || "",
 						businessHoursMode: data.businessHoursMode || (data.businessHoursEnabled ? "custom" : "always"),
 						businessHoursRules: parseBusinessHours(data.businessHours),
+						maxActiveTicketsPerUser: data.maxActiveTicketsPerUser || "",
+						stalledTicketMinutes: data.stalledTicketMinutes || "",
 					};
 				});
 			} catch (err) {
@@ -196,6 +240,9 @@ const QueueModal = ({ open, onClose, queueId }) => {
 				businessHoursMode: values.businessHoursMode || "always",
 				businessHoursEnabled: values.businessHoursMode !== "always",
 				businessHours: values.businessHoursMode === "custom" ? serializeBusinessHours(businessHoursRules) : "",
+				maxActiveTicketsPerUser: values.maxActiveTicketsPerUser || "",
+				stalledTicketMinutes: values.blockIfUserHasStalledTicket ? values.stalledTicketMinutes : "",
+				queuePositionMessage: values.sendQueuePositionMessage ? values.queuePositionMessage : "",
 			};
 			const payload = new FormData();
 			Object.entries(queueData).forEach(([key, value]) => {
@@ -464,6 +511,133 @@ const QueueModal = ({ open, onClose, queueId }) => {
 											mediaName={mediaFile?.name || values.unavailableMediaName}
 										/>
 									</>
+								)}
+								<Typography variant="subtitle2" style={{ marginTop: 16 }}>
+									Distribuicao e balanceamento
+								</Typography>
+								<Typography variant="caption" color="textSecondary">
+									Apenas atendentes com status Online entram na distribuicao. Ausentes e Offline nao recebem novos atendimentos.
+								</Typography>
+								<Field
+									as={TextField}
+									select
+									fullWidth
+									label="Modo de distribuicao"
+									name="distributionMode"
+									variant="outlined"
+									margin="dense"
+								>
+									{distributionModes.map(mode => (
+										<MenuItem key={mode.value} value={mode.value}>
+											{mode.label}
+										</MenuItem>
+									))}
+								</Field>
+								<Typography variant="caption" color="textSecondary">
+									{distributionModes.find(mode => mode.value === values.distributionMode)?.help}
+								</Typography>
+								<Grid container spacing={1}>
+									<Grid item xs={12} sm={6}>
+										<Field
+											as={TextField}
+											fullWidth
+											type="number"
+											label="Maximo de atendimentos por atendente"
+											name="maxActiveTicketsPerUser"
+											variant="outlined"
+											margin="dense"
+											helperText="Deixe vazio para nao limitar."
+										/>
+									</Grid>
+									<Grid item xs={12} sm={6}>
+										<Field
+											as={TextField}
+											select
+											fullWidth
+											label="Se todos atingirem o limite"
+											name="overflowAction"
+											variant="outlined"
+											margin="dense"
+										>
+											<MenuItem value="keep_waiting">Manter aguardando</MenuItem>
+											<MenuItem value="allow_overflow">Permitir exceder limite</MenuItem>
+										</Field>
+									</Grid>
+								</Grid>
+								{values.distributionMode === "manual_balanced" && (
+									<Field
+										as={TextField}
+										select
+										fullWidth
+										label="Quando houver atendente Online com menos carga"
+										name="balanceAction"
+										variant="outlined"
+										margin="dense"
+									>
+										<MenuItem value="block">Bloquear aceite</MenuItem>
+										<MenuItem value="warn">Apenas alertar</MenuItem>
+										<MenuItem value="ignore">Ignorar regra</MenuItem>
+									</Field>
+								)}
+								<FormControlLabel
+									control={
+										<Field
+											as={Switch}
+											color="primary"
+											name="sendQueuePositionMessage"
+											checked={values.sendQueuePositionMessage}
+										/>
+									}
+									label="Enviar posicao inicial na fila"
+								/>
+								{values.sendQueuePositionMessage && (
+									<MessageTemplateField
+										formik
+										label="Mensagem de posicao inicial"
+										name="queuePositionMessage"
+										rows={5}
+									/>
+								)}
+								<FormControlLabel
+									control={
+										<Field
+											as={Switch}
+											color="primary"
+											name="blockIfUserHasStalledTicket"
+											checked={values.blockIfUserHasStalledTicket}
+										/>
+									}
+									label="Controlar atendimento parado antes de novo aceite"
+								/>
+								{values.blockIfUserHasStalledTicket && (
+									<Grid container spacing={1}>
+										<Grid item xs={12} sm={6}>
+											<Field
+												as={TextField}
+												fullWidth
+												type="number"
+												label="Minutos para considerar parado"
+												name="stalledTicketMinutes"
+												variant="outlined"
+												margin="dense"
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6}>
+											<Field
+												as={TextField}
+												select
+												fullWidth
+												label="Acao para atendimento parado"
+												name="stalledTicketAction"
+												variant="outlined"
+												margin="dense"
+											>
+												<MenuItem value="ignore">Ignorar</MenuItem>
+												<MenuItem value="block">Bloquear novo aceite</MenuItem>
+												<MenuItem value="warn">Apenas alertar</MenuItem>
+											</Field>
+										</Grid>
+									</Grid>
 								)}
 							</DialogContent>
 							<DialogActions>

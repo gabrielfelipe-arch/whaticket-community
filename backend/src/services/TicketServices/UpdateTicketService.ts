@@ -4,6 +4,10 @@ import { getIO } from "../../libs/socket";
 import AppError from "../../errors/AppError";
 import Ticket from "../../models/Ticket";
 import ShowTicketService from "./ShowTicketService";
+import {
+  distributeTicketIfNeeded,
+  logQueueEntry
+} from "../QueueService/QueueDistributionService";
 
 interface TicketData {
   status?: string;
@@ -144,6 +148,7 @@ const UpdateTicketService = async ({
 
   const oldStatus = ticket.status;
   const oldUserId = ticket.user?.id;
+  const oldQueueId = ticket.queueId;
 
   if (oldStatus === "closed") {
     await CheckContactOpenTickets(ticket.contact.id, ticket.whatsappId);
@@ -209,7 +214,17 @@ const UpdateTicketService = async ({
     });
   }
 
-  const updatedTicket = await ShowTicketService(ticket.id);
+  let updatedTicket = await ShowTicketService(ticket.id);
+
+  if (
+    queueId &&
+    queueId !== oldQueueId &&
+    !updatedTicket.userId &&
+    updatedTicket.status !== "closed"
+  ) {
+    await logQueueEntry(updatedTicket.id);
+    updatedTicket = await distributeTicketIfNeeded(updatedTicket.id);
+  }
 
   const io = getIO();
 

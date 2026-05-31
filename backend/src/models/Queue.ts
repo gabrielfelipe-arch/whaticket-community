@@ -64,6 +64,46 @@ class Queue extends Model<Queue> {
   @Column
   unavailableMediaName: string;
 
+  @Default("manual_free")
+  @Column
+  distributionMode: string;
+
+  @Column
+  maxActiveTicketsPerUser: number;
+
+  @Default("ignore")
+  @Column
+  balanceAction: string;
+
+  @Default("keep_waiting")
+  @Column
+  overflowAction: string;
+
+  @ForeignKey(() => User)
+  @Column
+  lastAssignedUserId: number;
+
+  @BelongsTo(() => User, "lastAssignedUserId")
+  lastAssignedUser: User;
+
+  @Default(false)
+  @Column
+  sendQueuePositionMessage: boolean;
+
+  @Column(DataType.TEXT)
+  queuePositionMessage: string;
+
+  @Default(false)
+  @Column
+  blockIfUserHasStalledTicket: boolean;
+
+  @Column
+  stalledTicketMinutes: number;
+
+  @Default("ignore")
+  @Column
+  stalledTicketAction: string;
+
   @Default(false)
   @Column
   useAI: boolean;

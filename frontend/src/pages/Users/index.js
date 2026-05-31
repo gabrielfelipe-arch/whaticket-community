@@ -5,6 +5,7 @@ import openSocket from "../../services/socket-io";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
 import Button from "@material-ui/core/Button";
+import Chip from "@material-ui/core/Chip";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -29,6 +30,18 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
+
+const statusLabels = {
+  online: "Online",
+  away: "Ausente",
+  offline: "Offline",
+};
+
+const statusColors = {
+  online: "#22C55E",
+  away: "#F59E0B",
+  offline: "#94A3B8",
+};
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_USERS") {
@@ -244,6 +257,9 @@ const Users = () => {
                 {i18n.t("users.table.profile")}
               </TableCell>
               <TableCell align="center">
+                Status
+              </TableCell>
+              <TableCell align="center">
                 {i18n.t("users.table.whatsapp")}
               </TableCell>              
               <TableCell align="center">
@@ -258,6 +274,17 @@ const Users = () => {
                   <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
                   <TableCell align="center">{user.profile}</TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      size="small"
+                      label={statusLabels[user.operationalStatus] || "Offline"}
+                      style={{
+                        backgroundColor: statusColors[user.operationalStatus] || statusColors.offline,
+                        color: "#fff",
+                        fontWeight: 700,
+                      }}
+                    />
+                  </TableCell>
                   <TableCell align="center">{user.whatsapp?.name}</TableCell>
                   <TableCell align="center">
                     <IconButton

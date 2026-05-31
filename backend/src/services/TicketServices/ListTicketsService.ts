@@ -54,7 +54,15 @@ const ListTicketsService = async ({
     {
       model: Queue,
       as: "queue",
-      attributes: ["id", "name", "color", "useAI", "aiSettingId"]
+      attributes: [
+        "id",
+        "name",
+        "color",
+        "useAI",
+        "aiSettingId",
+        "distributionMode",
+        "maxActiveTicketsPerUser"
+      ]
     },
     {
       model: Whatsapp,
@@ -92,6 +100,12 @@ const ListTicketsService = async ({
         { uraActive: true },
         { aiActive: true }
       ]
+    };
+  } else if (status === "pending") {
+    whereCondition = {
+      ...whereCondition,
+      uraActive: false,
+      aiActive: false
     };
   }
 

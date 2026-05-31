@@ -82,7 +82,8 @@ const UserModal = ({ open, onClose, userId }) => {
 		email: "",
 		password: "",
 		profile: "user",
-		attendanceGreeting: ""
+		attendanceGreeting: "",
+		operationalStatus: "offline",
 	};
 
 	const { user: loggedInUser } = useContext(AuthContext);
@@ -272,6 +273,23 @@ const UserModal = ({ open, onClose, userId }) => {
 									label="Saudacao de atendimento"
 									name="attendanceGreeting"
 									rows={3}
+								/>
+								<Can
+									role={loggedInUser.profile}
+									perform="user-modal:editProfile"
+									yes={() => (
+										<FormControl variant="outlined" margin="dense" fullWidth>
+											<InputLabel>Status operacional</InputLabel>
+											<Field
+												as={Select}
+												label="Status operacional"
+												name="operationalStatus"
+											>
+												<MenuItem value="online">Online</MenuItem>
+												<MenuItem value="away">Ausente</MenuItem>
+											</Field>
+										</FormControl>
+									)}
 								/>
 							</DialogContent>
 							<DialogActions>

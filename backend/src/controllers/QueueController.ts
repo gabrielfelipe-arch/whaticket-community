@@ -33,7 +33,25 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   requireAdmin(req);
-  const { name, color, useAI, aiSettingId, businessHoursEnabled, businessHoursMode, businessHours, unavailableMessage } = req.body;
+  const {
+    name,
+    color,
+    useAI,
+    aiSettingId,
+    businessHoursEnabled,
+    businessHoursMode,
+    businessHours,
+    unavailableMessage,
+    distributionMode,
+    maxActiveTicketsPerUser,
+    balanceAction,
+    overflowAction,
+    sendQueuePositionMessage,
+    queuePositionMessage,
+    blockIfUserHasStalledTicket,
+    stalledTicketMinutes,
+    stalledTicketAction
+  } = req.body;
 
   const queue = await CreateQueueService({
     name,
@@ -44,6 +62,15 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     businessHoursMode: businessHoursMode || (businessHoursEnabled === true || businessHoursEnabled === "true" ? "custom" : "always"),
     businessHours,
     unavailableMessage,
+    distributionMode,
+    maxActiveTicketsPerUser: maxActiveTicketsPerUser ? Number(maxActiveTicketsPerUser) : null,
+    balanceAction,
+    overflowAction,
+    sendQueuePositionMessage: sendQueuePositionMessage === true || sendQueuePositionMessage === "true",
+    queuePositionMessage,
+    blockIfUserHasStalledTicket: blockIfUserHasStalledTicket === true || blockIfUserHasStalledTicket === "true",
+    stalledTicketMinutes: stalledTicketMinutes ? Number(stalledTicketMinutes) : null,
+    stalledTicketAction,
     ...mediaDataFromRequest(req)
   });
   await CreateAuditLogService({
@@ -85,6 +112,10 @@ export const update = async (
     useAI: req.body.useAI === true || req.body.useAI === "true",
     businessHoursEnabled: req.body.businessHoursEnabled === true || req.body.businessHoursEnabled === "true",
     businessHoursMode: req.body.businessHoursMode || (req.body.businessHoursEnabled === true || req.body.businessHoursEnabled === "true" ? "custom" : "always"),
+    maxActiveTicketsPerUser: req.body.maxActiveTicketsPerUser ? Number(req.body.maxActiveTicketsPerUser) : null,
+    sendQueuePositionMessage: req.body.sendQueuePositionMessage === true || req.body.sendQueuePositionMessage === "true",
+    blockIfUserHasStalledTicket: req.body.blockIfUserHasStalledTicket === true || req.body.blockIfUserHasStalledTicket === "true",
+    stalledTicketMinutes: req.body.stalledTicketMinutes ? Number(req.body.stalledTicketMinutes) : null,
     ...mediaDataFromRequest(req)
   });
   await CreateAuditLogService({

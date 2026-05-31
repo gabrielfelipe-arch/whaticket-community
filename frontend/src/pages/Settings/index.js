@@ -1528,6 +1528,92 @@ const GeneralSettings = ({
 		</Paper>
 
 		<Typography variant="subtitle1" gutterBottom>
+			Status e inatividade dos atendentes
+		</Typography>
+		<Paper className={classes.generalPaper}>
+			<Grid container spacing={2}>
+				<Grid item xs={12} sm={6}>
+					<Typography variant="body2">Ausencia automatica</Typography>
+					<Select
+						margin="dense"
+						variant="outlined"
+						native
+						name="autoAwayEnabled"
+						value={getSettingValue("autoAwayEnabled") || "false"}
+						className={classes.settingOption}
+						onChange={onChangeSetting}
+					>
+						<option value="false">Desativada</option>
+						<option value="true">Ativada</option>
+					</Select>
+				</Grid>
+				{getSettingValue("autoAwayEnabled") === "true" && (
+					<Grid item xs={12} sm={6}>
+						<SettingTextField
+							fullWidth
+							type="number"
+							label="Marcar Ausente apos X minutos"
+							name="autoAwayMinutes"
+							getSettingValue={getSettingValue}
+							onChangeSetting={onChangeSetting}
+							margin="dense"
+							variant="outlined"
+						/>
+					</Grid>
+				)}
+				<Grid item xs={12} sm={6}>
+					<Typography variant="body2">Logoff automatico</Typography>
+					<Select
+						margin="dense"
+						variant="outlined"
+						native
+						name="autoLogoutEnabled"
+						value={getSettingValue("autoLogoutEnabled") || "false"}
+						className={classes.settingOption}
+						onChange={onChangeSetting}
+					>
+						<option value="false">Desativado</option>
+						<option value="true">Ativado</option>
+					</Select>
+				</Grid>
+				{getSettingValue("autoLogoutEnabled") === "true" && (
+					<Grid item xs={12} sm={6}>
+						<SettingTextField
+							fullWidth
+							type="number"
+							label="Fazer logoff apos X minutos"
+							name="autoLogoutMinutes"
+							getSettingValue={getSettingValue}
+							onChangeSetting={onChangeSetting}
+							margin="dense"
+							variant="outlined"
+						/>
+					</Grid>
+				)}
+				<Grid item xs={12} sm={6}>
+					<Typography variant="body2">Aplicar para administradores</Typography>
+					<Select
+						margin="dense"
+						variant="outlined"
+						native
+						name="inactivityAppliesToAdmins"
+						value={getSettingValue("inactivityAppliesToAdmins") || "false"}
+						className={classes.settingOption}
+						onChange={onChangeSetting}
+					>
+						<option value="false">Nao</option>
+						<option value="true">Sim</option>
+					</Select>
+				</Grid>
+				<Grid item xs={12}>
+					<Typography variant="caption" color="textSecondary">
+						Online recebe novos atendimentos. Ausente e Offline ficam fora do balanceamento e do rodizio.
+					</Typography>
+				</Grid>
+			</Grid>
+		</Paper>
+
+		<Typography variant="subtitle1" gutterBottom>
 			GLPI
 		</Typography>
 		<Paper className={classes.generalPaper}>

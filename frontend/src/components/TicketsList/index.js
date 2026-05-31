@@ -188,7 +188,20 @@ const reducer = (state, action) => {
 	useEffect(() => {
 		const socket = openSocket();
 
+		const belongsToThisPanel = ticket => {
+			if (triageOnly === "true") {
+				return ticket.status === "pending" && !ticket.queueId && (ticket.uraActive || ticket.aiActive);
+			}
+
+			if (status === "pending") {
+				return ticket.status === "pending" && !ticket.uraActive && !ticket.aiActive;
+			}
+
+			return !status || ticket.status === status;
+		};
+
 		const shouldUpdateTicket = ticket => !searchParam &&
+			belongsToThisPanel(ticket) &&
 			(!ticket.userId || ticket.userId === user?.id || showAll) &&
 			(!ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1);
 
@@ -216,6 +229,10 @@ const reducer = (state, action) => {
 					type: "UPDATE_TICKET",
 					payload: data.ticket,
 				});
+			}
+
+			if (data.action === "update" && !shouldUpdateTicket(data.ticket)) {
+				dispatch({ type: "DELETE_TICKET", payload: data.ticket.id });
 			}
 
 			if (data.action === "update" && notBelongsToUserQueues(data.ticket)) {
@@ -248,7 +265,7 @@ const reducer = (state, action) => {
 		return () => {
 			socket.disconnect();
 		};
-	}, [status, searchParam, showAll, user, selectedQueueIds]);
+	}, [status, searchParam, showAll, user, selectedQueueIds, triageOnly]);
 
 	useEffect(() => {
     if (typeof updateCount === "function") {
