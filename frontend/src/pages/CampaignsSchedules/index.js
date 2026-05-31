@@ -205,6 +205,7 @@ const initialCampaign = {
   message: "",
   audience: "contacts",
   recipientType: "contacts",
+  scheduledAt: "",
   intervalPattern: "30",
   pauseAfter: 20,
   pauseMinutes: 5,
@@ -216,8 +217,11 @@ const initialCampaign = {
 };
 
 const initialSchedule = {
+  sendType: "scheduled",
   contactIds: [],
   tagIds: [],
+  excludeTagIds: [],
+  tagAppliedLastDays: "",
   audience: "all",
   message: "",
   scheduledAt: "",
@@ -388,8 +392,11 @@ const CampaignsSchedules = () => {
   const [contacts, setContacts] = useState([]);
   const [tags, setTags] = useState([]);
   const [whatsapps, setWhatsapps] = useState([]);
-  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [sendType, setSendType] = useState("scheduled");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterText, setFilterText] = useState("");
   const [campaignForm, setCampaignForm] = useState(initialCampaign);
   const [scheduleForm, setScheduleForm] = useState(initialSchedule);
   const [campaignMedia, setCampaignMedia] = useState(null);
@@ -553,10 +560,11 @@ const CampaignsSchedules = () => {
       if (campaignMedia) payload.append("media", campaignMedia);
 
       await api.post("/campaigns", payload, { headers: { "Content-Type": "multipart/form-data" } });
-      toast.success("Campanha iniciada.");
-      setCampaignModalOpen(false);
+      toast.success(campaignForm.scheduledAt ? "Campanha agendada." : "Campanha criada.");
+      setScheduleModalOpen(false);
       setCampaignForm(initialCampaign);
       setCampaignMedia(null);
+      setSendType("scheduled");
       loadData();
     } catch (err) {
       toastError(err);
@@ -699,7 +707,7 @@ const CampaignsSchedules = () => {
         recurrenceLabel: "Envio em fila",
         status: campaign.status,
         statusLabel: getCampaignStatusLabel(campaign.status),
-        nextRunAt: campaign.status === "scheduled" ? campaign.createdAt : null,
+        nextRunAt: campaign.recipients?.find(recipient => recipient.nextRunAt)?.nextRunAt || (campaign.status === "scheduled" ? campaign.createdAt : null),
         lastRunAt: campaign.completedAt || campaign.startedAt || campaign.updatedAt,
         whatsappName: campaign.whatsapp?.name || "Padrao",
         message: campaign.message,
@@ -712,9 +720,10 @@ const CampaignsSchedules = () => {
       return {
         id: `schedule-${schedule.id}`,
         source: "schedule",
+        sendType: schedule.sendType || "scheduled",
         raw: schedule,
         name: schedule.contact?.name || schedule.message?.slice(0, 42) || `Agendamento #${schedule.id}`,
-        typeLabel: "Agendamento",
+        typeLabel: schedule.sendType === "campaign" ? "Campanha" : "Mensagem agendada",
         recurrenceLabel: getScheduleRecurrenceLabel(schedule),
         status: schedule.status,
         statusLabel: getScheduleStatusLabel(schedule.status),
@@ -732,11 +741,15 @@ const CampaignsSchedules = () => {
       return bDate - aDate;
     });
 
-    if (tab === 1) return allItems.filter(item => item.source === "campaign");
-    if (tab === 2) return allItems.filter(item => item.source === "schedule");
-    if (tab === 3) return allItems.filter(item => ["running", "paused", "scheduled"].includes(item.status));
-    if (tab === 4) return allItems.filter(item => ["failed", "error", "completed_with_errors"].includes(item.status) || item.progress.failed > 0);
-    return allItems;
+    return allItems.filter(item => {
+      if (filterType !== "all" && (item.sendType || item.source) !== filterType) return false;
+      if (filterStatus !== "all" && item.status !== filterStatus) return false;
+      if (filterText) {
+        const searchable = normalizeSearch(`${item.name} ${item.message} ${item.statusLabel} ${item.typeLabel}`);
+        if (!searchable.includes(normalizeSearch(filterText))) return false;
+      }
+      return true;
+    });
   };
 
   const renderIconAction = ({ title, icon, onClick, disabled = false, color = "default" }) => (
@@ -751,7 +764,21 @@ const CampaignsSchedules = () => {
 
   const openNewScheduleModal = () => {
     setEditingScheduleId(null);
+    setSendType("scheduled");
+    setCampaignForm(initialCampaign);
     setScheduleForm(initialSchedule);
+    setCampaignMedia(null);
+    setScheduleMedia(null);
+    setScheduleTimeInput("");
+    setScheduleModalOpen(true);
+  };
+
+  const openNewSendModal = () => {
+    setEditingScheduleId(null);
+    setSendType("scheduled");
+    setCampaignForm(initialCampaign);
+    setScheduleForm(initialSchedule);
+    setCampaignMedia(null);
     setScheduleMedia(null);
     setScheduleTimeInput("");
     setScheduleModalOpen(true);
@@ -759,9 +786,13 @@ const CampaignsSchedules = () => {
 
   const openEditScheduleModal = schedule => {
     setEditingScheduleId(schedule.id);
+    setSendType(schedule.sendType || "scheduled");
     setScheduleForm({
+      sendType: schedule.sendType || "scheduled",
       contactIds: schedule.contactId ? [schedule.contactId] : [],
-      tagIds: [],
+      tagIds: schedule.tagIds || [],
+      excludeTagIds: schedule.excludeTagIds || [],
+      tagAppliedLastDays: schedule.tagAppliedLastDays || "",
       audience: "all",
       message: schedule.message || "",
       scheduledAt: toDateTimeLocalValue(schedule.scheduledAt),
@@ -788,7 +819,10 @@ const CampaignsSchedules = () => {
   const closeScheduleModal = () => {
     setScheduleModalOpen(false);
     setEditingScheduleId(null);
+    setSendType("scheduled");
     setScheduleForm(initialSchedule);
+    setCampaignForm(initialCampaign);
+    setCampaignMedia(null);
     setScheduleMedia(null);
     setScheduleTimeInput("");
   };
@@ -796,7 +830,8 @@ const CampaignsSchedules = () => {
   const saveSchedule = async () => {
     try {
       const payload = new FormData();
-      Object.entries(scheduleForm).forEach(([key, value]) => {
+      const schedulePayload = { ...scheduleForm, sendType };
+      Object.entries(schedulePayload).forEach(([key, value]) => {
         payload.append(key, Array.isArray(value) ? JSON.stringify(value) : value);
       });
       if (scheduleMedia) payload.append("media", scheduleMedia);
@@ -806,7 +841,7 @@ const CampaignsSchedules = () => {
         toast.success("Agendamento atualizado.");
       } else {
         await api.post("/scheduled-messages", payload, { headers: { "Content-Type": "multipart/form-data" } });
-        toast.success("Mensagem agendada.");
+        toast.success(sendType === "campaign" ? "Campanha agendada." : "Mensagem agendada.");
       }
 
       closeScheduleModal();
@@ -966,42 +1001,66 @@ const CampaignsSchedules = () => {
     <Container maxWidth={false} className={classes.root}>
       <div className={classes.header}>
         <div>
-          <Typography variant="h6">Campanhas e Agendamentos</Typography>
+          <Typography variant="h6">Agendamentos</Typography>
           <Typography variant="body2" className={classes.helper}>
-            Centralize envios imediatos, campanhas em fila e mensagens recorrentes em uma unica area.
+            Centralize mensagens agendadas, campanhas por etiqueta e envios recorrentes em uma unica area.
           </Typography>
         </div>
         <div>
           <Button
             color="primary"
-            variant="outlined"
-            onClick={() => setCampaignModalOpen(true)}
-            style={{ marginRight: 8 }}
-          >
-            Nova campanha
-          </Button>
-          <Button
-            color="primary"
             variant="contained"
-            onClick={openNewScheduleModal}
+            onClick={openNewSendModal}
           >
-            Novo agendamento
+            Novo envio
           </Button>
         </div>
       </div>
-      <Tabs
-        value={tab}
-        indicatorColor="primary"
-        textColor="primary"
-        onChange={(event, value) => setTab(value)}
-        className={classes.tabs}
-      >
+      <Tabs value={0} indicatorColor="primary" textColor="primary" className={classes.tabs}>
         <Tab label="Todos" />
-        <Tab label="Campanhas" />
-        <Tab label="Agendamentos" />
-        <Tab label="Em andamento" />
-        <Tab label="Com erros" />
       </Tabs>
+
+      <Paper className={classes.paper} variant="outlined" style={{ marginBottom: 16 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} sm={4}>
+            <TextField
+              fullWidth
+              margin="dense"
+              variant="outlined"
+              label="Buscar"
+              value={filterText}
+              onChange={event => setFilterText(event.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon color="action" />
+                  </InputAdornment>
+                )
+              }}
+            />
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField select fullWidth margin="dense" variant="outlined" label="Tipo" value={filterType} onChange={event => setFilterType(event.target.value)}>
+              <MenuItem value="all">Todos</MenuItem>
+              <MenuItem value="schedule">Mensagem agendada</MenuItem>
+              <MenuItem value="campaign">Campanha</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <TextField select fullWidth margin="dense" variant="outlined" label="Status" value={filterStatus} onChange={event => setFilterStatus(event.target.value)}>
+              <MenuItem value="all">Todos</MenuItem>
+              <MenuItem value="scheduled">Agendado</MenuItem>
+              <MenuItem value="running">Em execucao</MenuItem>
+              <MenuItem value="paused">Pausado</MenuItem>
+              <MenuItem value="completed">Concluido</MenuItem>
+              <MenuItem value="completed_with_errors">Concluido com erros</MenuItem>
+              <MenuItem value="sent">Enviado</MenuItem>
+              <MenuItem value="failed">Erro</MenuItem>
+              <MenuItem value="canceled">Cancelado</MenuItem>
+            </TextField>
+          </Grid>
+        </Grid>
+      </Paper>
 
       <Paper className={classes.paper} variant="outlined">
         <div className={classes.playlist}>
@@ -1065,135 +1124,29 @@ const CampaignsSchedules = () => {
         </div>
       </Paper>
 
-      <Dialog open={campaignModalOpen} onClose={() => setCampaignModalOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Nova campanha</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth required margin="dense" variant="outlined" label="Nome" name="name" value={campaignForm.name} onChange={handleCampaignChange} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de destinatario" name="recipientType" value={campaignForm.recipientType} onChange={handleCampaignAudienceChange}>
-                <MenuItem value="contacts">Contatos</MenuItem>
-                <MenuItem value="tags">Etiquetas</MenuItem>
-                <MenuItem value="groups">Grupos de WhatsApp</MenuItem>
-              </TextField>
-              <Typography variant="caption" color="textSecondary">
-                Escolha se a campanha sera enviada para contatos selecionados, contatos com etiquetas ou grupos de WhatsApp.
-              </Typography>
-            </Grid>
-            {campaignForm.recipientType !== "tags" && (
-              <Grid item xs={12} sm={6}>
-                <ContactPicker
-                  classes={classes}
-                  contacts={contacts}
-                  audience={campaignForm.recipientType === "groups" ? "groups" : "contacts"}
-                  selectedIds={campaignForm.contactIds}
-                  label={campaignForm.recipientType === "groups" ? "Grupos de WhatsApp" : "Contatos"}
-                  onChange={contactIds => setCampaignForm(prev => ({ ...prev, contactIds }))}
-                />
-                <Typography variant="caption" color="textSecondary">
-                  Marque os destinatarios que devem receber esta campanha.
-                </Typography>
-              </Grid>
-            )}
-            {campaignForm.recipientType === "tags" && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  margin="dense"
-                  variant="outlined"
-                  label="Etiquetas para envio"
-                  name="tagIds"
-                  value={campaignForm.tagIds}
-                  onChange={handleCampaignChange}
-                  SelectProps={{ multiple: true, renderValue: renderTagValue }}
-                >
-                  {tags.map(tag => (
-                    <MenuItem key={tag.id} value={tag.id}>
-                      {tag.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Typography variant="caption" color="textSecondary">
-                  A campanha sera enviada para contatos que tenham pelo menos uma das etiquetas marcadas.
-                </Typography>
-              </Grid>
-            )}
-            {campaignForm.recipientType === "tags" && (
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="number" margin="dense" variant="outlined" label="Etiqueta aplicada nos ultimos dias" name="tagAppliedLastDays" value={campaignForm.tagAppliedLastDays} onChange={handleCampaignChange} placeholder="Ex: 7" />
-                <Typography variant="caption" color="textSecondary">
-                  Se preencher 7, envia apenas para contatos cuja etiqueta foi aplicada nos ultimos 7 dias.
-                </Typography>
-              </Grid>
-            )}
-            {campaignForm.recipientType === "tags" && (
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  select
-                  fullWidth
-                  margin="dense"
-                  variant="outlined"
-                  label="Nao enviar para contatos com estas etiquetas"
-                  name="excludeTagIds"
-                  value={campaignForm.excludeTagIds}
-                  onChange={handleCampaignChange}
-                  SelectProps={{ multiple: true, renderValue: renderTagValue }}
-                >
-                  {tags.map(tag => (
-                    <MenuItem key={tag.id} value={tag.id}>
-                      {tag.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <Typography variant="caption" color="textSecondary">
-                  Contatos com essas etiquetas nao receberao a campanha.
-                </Typography>
-              </Grid>
-            )}
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth type="number" margin="dense" variant="outlined" label="Pausar após envios" name="pauseAfter" value={campaignForm.pauseAfter} onChange={handleCampaignChange} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <TextField fullWidth type="number" margin="dense" variant="outlined" label="Tempo de pausa (min.)" name="pauseMinutes" value={campaignForm.pauseMinutes} onChange={handleCampaignChange} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField fullWidth required margin="dense" variant="outlined" label="Sequencia de intervalos em segundos" name="intervalPattern" value={campaignForm.intervalPattern} onChange={handleCampaignChange} placeholder="10:2:95:12:34" />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField select fullWidth margin="dense" variant="outlined" label="Conexão WhatsApp" name="whatsappId" value={campaignForm.whatsappId} onChange={handleCampaignChange}>
-                <MenuItem value="">Padrão</MenuItem>
-                {whatsapps.map(whatsapp => (
-                  <MenuItem key={whatsapp.id} value={whatsapp.id}>{whatsapp.name}</MenuItem>
-                ))}
-              </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <MessageTemplateField
-                label="Mensagem"
-                name="message"
-                value={campaignForm.message}
-                onChange={handleCampaignChange}
-                rows={5}
-                required
-                onMediaChange={setCampaignMedia}
-                mediaName={campaignMedia?.name}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCampaignModalOpen(false)}>Cancelar</Button>
-          <Button color="primary" variant="contained" onClick={createCampaign}>Iniciar</Button>
-        </DialogActions>
-      </Dialog>
-
       <Dialog open={scheduleModalOpen} onClose={closeScheduleModal} maxWidth="md" fullWidth>
-        <DialogTitle>{editingScheduleId ? "Editar agendamento" : "Novo agendamento"}</DialogTitle>
+        <DialogTitle>{editingScheduleId ? "Editar agendamento" : "Novo envio"}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2}>
+            {!editingScheduleId && (
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Tipo do envio"
+                  value={sendType}
+                  onChange={event => setSendType(event.target.value)}
+                >
+                  <MenuItem value="scheduled">Mensagem agendada</MenuItem>
+                  <MenuItem value="campaign">Campanha</MenuItem>
+                </TextField>
+                <Typography variant="caption" color="textSecondary">
+                  Escolha se este envio sera uma mensagem simples agendada ou uma campanha com destinatarios em massa.
+                </Typography>
+              </Grid>
+            )}
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth margin="dense" variant="outlined" label="Público" name="audience" value={scheduleForm.audience} onChange={handleScheduleAudienceChange}>
                 <MenuItem value="all">Contatos e grupos</MenuItem>
@@ -1229,6 +1182,37 @@ const CampaignsSchedules = () => {
                   </MenuItem>
                 ))}
               </TextField>
+              <Typography variant="caption" color="textSecondary">
+                Se marcar etiquetas, o envio sera feito para contatos que tenham pelo menos uma delas.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField fullWidth type="number" margin="dense" variant="outlined" label="Etiqueta aplicada nos ultimos dias" name="tagAppliedLastDays" value={scheduleForm.tagAppliedLastDays} onChange={handleScheduleChange} placeholder="Ex: 7" />
+              <Typography variant="caption" color="textSecondary">
+                Opcional. Use para enviar apenas para contatos cuja etiqueta foi aplicada recentemente.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                select
+                fullWidth
+                margin="dense"
+                variant="outlined"
+                label="Nao enviar para contatos com estas etiquetas"
+                name="excludeTagIds"
+                value={scheduleForm.excludeTagIds}
+                onChange={handleScheduleChange}
+                SelectProps={{ multiple: true, renderValue: renderTagValue }}
+              >
+                {tags.map(tag => (
+                  <MenuItem key={tag.id} value={tag.id}>
+                    {tag.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Typography variant="caption" color="textSecondary">
+                Contatos com essas etiquetas serao ignorados neste envio.
+              </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de agendamento" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>

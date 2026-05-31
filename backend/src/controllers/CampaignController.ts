@@ -116,6 +116,20 @@ const validateIntervalPattern = (value: any): void => {
   }
 };
 
+const parseOptionalScheduledAt = (value: any): Date | null => {
+  if (!value) return null;
+
+  const raw = String(value).trim();
+  const hasTimezone = /([zZ]|[+-]\d{2}:?\d{2})$/.test(raw);
+  const date = new Date(hasTimezone ? raw : `${raw}-03:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new AppError("Data de inicio da campanha invalida.", 400);
+  }
+
+  return date;
+};
+
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const campaigns = await Campaign.findAll({
     include,
@@ -139,7 +153,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     contactIds = [],
     tagIds = [],
     excludeTagIds = [],
-    tagAppliedLastDays
+    tagAppliedLastDays,
+    scheduledAt
   } = req.body;
   const type = recipientType || audience || "contacts";
 
@@ -190,14 +205,14 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError("ERR_CAMPAIGN_NO_RECIPIENTS", 400);
   }
 
-  const now = new Date();
+  const firstRunAt = parseOptionalScheduledAt(scheduledAt) || new Date();
 
   await CampaignContact.bulkCreate(
     contacts.map((contact, index) => ({
       campaignId: campaign.id,
       contactId: contact.id,
       status: "pending",
-      nextRunAt: index === 0 ? now : null
+      nextRunAt: index === 0 ? firstRunAt : null
     }))
   );
 

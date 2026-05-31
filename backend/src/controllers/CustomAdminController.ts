@@ -1,4 +1,5 @@
 ﻿import { Request, Response } from "express";
+import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 
 import TicketCategory from "../models/TicketCategory";
@@ -123,7 +124,7 @@ function normalizeKeywordText(value: any): string | null {
   return normalized.length ? normalized.join(", ") : null;
 }
 
-function normalizeBody(resource: string, body: any): any {
+async function normalizeBody(resource: string, body: any): Promise<any> {
   const data = { ...body };
 
   delete data.id;
@@ -189,6 +190,10 @@ function normalizeBody(resource: string, body: any): any {
       requireField(data.responseMessage, "Informe a mensagem que sera enviada ao cliente.");
     }
 
+    if (action === "OPEN_SUBMENU") {
+      requireField(data.responseMessage, "Informe a mensagem propria deste submenu.");
+    }
+
     if (action === "TRANSFER_QUEUE" || action === "HUMAN" || action === "START_AI") {
       if (!nullableNumber(data.targetQueueId)) {
         throw new AppError("Escolha a fila destino desta opcao.", 400);
@@ -225,9 +230,23 @@ function normalizeBody(resource: string, body: any): any {
       }
     }
 
+    const parentOptionId = nullableNumber(data.parentOptionId);
+    const duplicatedOption = await UraOption.findOne({
+      where: {
+        flowId: Number(data.flowId),
+        parentOptionId,
+        optionKey: data.optionKey,
+        ...(data.id ? { id: { [Op.ne]: data.id } } : {})
+      }
+    });
+
+    if (duplicatedOption) {
+      throw new AppError("Ja existe uma opcao com esse numero neste menu/submenu.", 400);
+    }
+
     return {
       flowId: Number(data.flowId),
-      parentOptionId: nullableNumber(data.parentOptionId),
+      parentOptionId,
       optionKey: data.optionKey,
       title: data.title,
       responseMessage: data.responseMessage || null,
@@ -350,7 +369,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   const { resource } = req.params;
   const model = getModel(resource);
-  const data = normalizeBody(resource, req.body);
+  const data = await normalizeBody(resource, req.body);
   if (resource === "uraFlows") {
     applyMediaUpload(data, req, { url: "welcomeMediaUrl", type: "welcomeMediaType", name: "welcomeMediaName" });
     if (!req.file) {
@@ -393,7 +412,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     throw new AppError("ERR_CUSTOM_RESOURCE_NOT_FOUND", 404);
   }
 
-  const data = normalizeBody(resource, req.body);
+  const data = await normalizeBody(resource, { ...req.body, id });
   if (resource === "uraFlows") {
     applyMediaUpload(data, req, { url: "welcomeMediaUrl", type: "welcomeMediaType", name: "welcomeMediaName" });
     if (!req.file) {

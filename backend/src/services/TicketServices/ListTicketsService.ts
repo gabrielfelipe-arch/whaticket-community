@@ -19,6 +19,7 @@ interface Request {
   userId: string;
   withUnreadMessages?: string;
   queueIds: number[];
+  triageOnly?: string;
 }
 
 interface Response {
@@ -35,7 +36,8 @@ const ListTicketsService = async ({
   date,
   showAll,
   userId,
-  withUnreadMessages
+  withUnreadMessages,
+  triageOnly
 }: Request): Promise<Response> => {
   let whereCondition: Filterable["where"] = {
     [Op.or]: [{ userId }, { status: "pending" }],
@@ -79,6 +81,17 @@ const ListTicketsService = async ({
     whereCondition = {
       ...whereCondition,
       status
+    };
+  }
+
+  if (triageOnly === "true") {
+    whereCondition = {
+      ...whereCondition,
+      queueId: null,
+      [Op.or]: [
+        { uraActive: true },
+        { aiActive: true }
+      ]
     };
   }
 

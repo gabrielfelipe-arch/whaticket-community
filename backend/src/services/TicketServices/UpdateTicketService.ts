@@ -147,6 +147,7 @@ const UpdateTicketService = async ({
   }
 
   const shouldDisableBot = status === "closed" || (status === "open" && !!userId);
+  const shouldDisableUra = status === "closed" || (status === "open" && !!userId);
   const disableBotAt = shouldDisableBot && ticket.aiActive ? new Date() : aiFinishedAt;
 
   await ticket.update({
@@ -193,9 +194,9 @@ const UpdateTicketService = async ({
     aiConversationSummary,
     uraFlowId,
     uraMenuSentAt,
-    currentUraOptionId,
+    currentUraOptionId: shouldDisableUra ? null : currentUraOptionId,
     uraInvalidAttempts,
-    uraActive,
+    uraActive: shouldDisableUra ? false : uraActive,
     lastUraInteractionAt
   });
 

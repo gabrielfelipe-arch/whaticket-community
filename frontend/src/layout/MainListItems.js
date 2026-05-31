@@ -228,7 +228,7 @@ const MainListItems = (props) => {
       />
       <ListItemLink
         to="/campaigns-schedules"
-        primary="Campanhas e Agendamentos"
+        primary="Agendamentos"
         icon={<EventNoteOutlinedIcon />}
         className={classes.item}
         activeClassName={classes.activeItem}

@@ -39,6 +39,19 @@ class ScheduledMessage extends Model<ScheduledMessage> {
   @Column
   batchId: string;
 
+  @Default("scheduled")
+  @Column
+  sendType: string;
+
+  @Column(DataType.JSONB)
+  tagIds: number[];
+
+  @Column(DataType.JSONB)
+  excludeTagIds: number[];
+
+  @Column
+  tagAppliedLastDays: number;
+
   @Default(0)
   @Column
   sequence: number;

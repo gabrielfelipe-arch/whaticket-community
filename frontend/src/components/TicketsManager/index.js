@@ -8,6 +8,7 @@ import Tab from "@material-ui/core/Tab";
 import Badge from "@material-ui/core/Badge";
 import MoveToInboxIcon from "@material-ui/icons/MoveToInbox";
 import CheckBoxIcon from "@material-ui/icons/CheckBox";
+import CallSplitIcon from "@material-ui/icons/CallSplit";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Switch from "@material-ui/core/Switch";
 import NewTicketModal from "../NewTicketModal";
@@ -102,6 +103,7 @@ const TicketsManager = () => {
   const { user } = useContext(AuthContext);
   const [openCount, setOpenCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
+  const [triageCount, setTriageCount] = useState(0);
   const userQueueIds = user.queues?.map((q) => q.id) || [];
   const [selectedQueueIds, setSelectedQueueIds] = useState(userQueueIds || []);
 
@@ -282,6 +284,19 @@ const TicketsManager = () => {
             }
             value={"pending"}
           />
+          <Tab
+            label={
+              <Badge
+                className={classes.badge}
+                badgeContent={triageCount}
+                color="primary"
+              >
+                Em triagem
+              </Badge>
+            }
+            value={"triage"}
+            icon={<CallSplitIcon />}
+          />
         </Tabs>
         <Paper className={classes.ticketsWrapper}>
           <TicketsList
@@ -296,6 +311,14 @@ const TicketsManager = () => {
             selectedQueueIds={selectedQueueIds}
             updateCount={(val) => setPendingCount(val)}
             style={applyPanelStyle("pending")}
+          />
+          <TicketsList
+            status="pending"
+            showAll={true}
+            selectedQueueIds={selectedQueueIds}
+            updateCount={(val) => setTriageCount(val)}
+            style={applyPanelStyle("triage")}
+            triageOnly="true"
           />
         </Paper>
       </TabPanel>

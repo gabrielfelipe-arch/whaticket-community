@@ -146,6 +146,14 @@ const useStyles = makeStyles(theme => ({
 		color: theme.custom?.status?.ai?.color || "#0369A1",
 		fontWeight: 800,
 	},
+	triageTag: {
+		marginLeft: 8,
+		height: 22,
+		fontSize: 11,
+		background: theme.palette.type === "dark" ? "#312E81" : "#EDE9FE",
+		color: theme.palette.type === "dark" ? "#DDD6FE" : "#5B21B6",
+		fontWeight: 800,
+	},
 }));
 
 const TicketListItem = ({ ticket }) => {
@@ -228,13 +236,16 @@ const TicketListItem = ({ ticket }) => {
 							>
 								{ticket.contact.name}
 							</Typography>
+							{ticket.uraActive && !ticket.queueId && !ticket.aiActive && (
+								<Chip size="small" className={classes.triageTag} label="Em triagem" />
+							)}
 							{ticket.aiActive && (
 								<Chip size="small" className={classes.aiTag} label="IA atendendo" />
 							)}
 							{ticket.status === "closed" && (
 								<Chip size="small" className={clsx(classes.statusChip, classes.closedChip)} label="Finalizado" />
 							)}
-							{ticket.status === "pending" && !ticket.aiActive && (
+							{ticket.status === "pending" && !ticket.aiActive && !ticket.uraActive && (
 								<Chip size="small" className={clsx(classes.statusChip, classes.pendingChip)} label="Aguardando" />
 							)}
 							{ticket.status === "open" && !ticket.aiActive && (
@@ -294,7 +305,11 @@ const TicketListItem = ({ ticket }) => {
 							handleAcepptTicket(ticket.id);
 						}}
 					>
-						{ticket.aiActive ? "Assumir atendimento" : i18n.t("ticketsList.buttons.accept")}
+						{ticket.aiActive
+							? "Assumir atendimento"
+							: ticket.uraActive
+								? "Assumir triagem"
+								: i18n.t("ticketsList.buttons.accept")}
 					</ButtonWithSpinner>
 				)}
 			</ListItem>

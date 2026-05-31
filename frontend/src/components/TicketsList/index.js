@@ -156,7 +156,7 @@ const reducer = (state, action) => {
 };
 
 	const TicketsList = (props) => {
-		const { status, searchParam, showAll, selectedQueueIds, updateCount, style } =
+		const { status, searchParam, showAll, selectedQueueIds, updateCount, style, triageOnly } =
 			props;
 	const classes = useStyles();
 	const [pageNumber, setPageNumber] = useState(1);
@@ -166,7 +166,7 @@ const reducer = (state, action) => {
 	useEffect(() => {
 		dispatch({ type: "RESET" });
 		setPageNumber(1);
-	}, [status, searchParam, dispatch, showAll, selectedQueueIds]);
+	}, [status, searchParam, dispatch, showAll, selectedQueueIds, triageOnly]);
 
 	const { tickets, hasMore, loading } = useTickets({
 		pageNumber,
@@ -174,6 +174,7 @@ const reducer = (state, action) => {
 		status,
 		showAll,
 		queueIds: JSON.stringify(selectedQueueIds),
+		triageOnly,
 	});
 
 	useEffect(() => {

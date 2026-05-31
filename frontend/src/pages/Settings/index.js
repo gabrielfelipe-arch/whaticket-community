@@ -9,6 +9,7 @@ import {
 	DialogContent,
 	DialogTitle,
 	Chip,
+	Checkbox,
 	FormControlLabel,
 	Grid,
 	IconButton,
@@ -480,12 +481,7 @@ const groupedSettingsTabs = [
 	{ label: "Etiquetas", type: "resource", resource: getResourceByEndpoint("/tags") },
 	{
 		label: "URA",
-		type: "group",
-		groupKey: "ura",
-		children: [
-			{ label: "Fluxos de URA", resource: getResourceByEndpoint("/ura-flows") },
-			{ label: "Opcoes de URA", resource: getResourceByEndpoint("/ura-options") }
-		]
+		type: "uraTree"
 	},
 	{
 		label: "IA",
@@ -497,7 +493,7 @@ const groupedSettingsTabs = [
 		]
 	},
 	{ label: "Logs de auditoria", type: "resource", resource: getResourceByEndpoint("/audit-logs") }
-].filter(tab => tab.type === "general" || tab.resource || tab.children?.every(child => child.resource));
+].filter(tab => ["general", "uraTree"].includes(tab.type) || tab.resource || tab.children?.every(child => child.resource));
 
 const defaultModelsByProvider = {
 	openai: "gpt-4o-mini",
@@ -700,6 +696,357 @@ const CompanyBusinessHours = ({ modeValue, rulesValue, messageValue, onChangeSet
 				<Button color="primary" variant="contained" onClick={save}>
 					Salvar horario da empresa
 				</Button>
+			</Grid>
+		</Grid>
+	);
+};
+
+const emptyUraFlow = {
+	name: "",
+	description: "",
+	welcomeMessage: "",
+	invalidOptionMessage: "",
+	maxInvalidAttempts: 3,
+	fallbackQueueId: "",
+	active: true
+};
+
+const emptyUraOption = flowId => ({
+	flowId: flowId || "",
+	parentOptionId: "",
+	optionKey: "",
+	title: "",
+	responseMessage: "",
+	action: "SEND_MESSAGE",
+	targetQueueId: "",
+	order: 0,
+	active: true
+});
+
+const UraTreePanel = ({ classes }) => {
+	const [flows, setFlows] = useState([]);
+	const [options, setOptions] = useState([]);
+	const [queues, setQueues] = useState([]);
+	const [selectedFlowId, setSelectedFlowId] = useState("");
+	const [flowForm, setFlowForm] = useState(emptyUraFlow);
+	const [optionForm, setOptionForm] = useState(null);
+	const [selectedOptionId, setSelectedOptionId] = useState(null);
+	const [loading, setLoading] = useState(false);
+
+	const load = async () => {
+		setLoading(true);
+		try {
+			const [{ data: flowData }, { data: optionData }, { data: queueData }] = await Promise.all([
+				api.get("/ura-flows"),
+				api.get("/ura-options"),
+				api.get("/queue")
+			]);
+			const nextFlows = Array.isArray(flowData) ? flowData : [];
+			const nextOptions = Array.isArray(optionData) ? optionData : [];
+			setFlows(nextFlows);
+			setOptions(nextOptions);
+			setQueues(Array.isArray(queueData) ? queueData : []);
+			if (!selectedFlowId && nextFlows.length) {
+				setSelectedFlowId(nextFlows[0].id);
+				setFlowForm({ ...emptyUraFlow, ...nextFlows[0], fallbackQueueId: nextFlows[0].fallbackQueueId || "" });
+			}
+		} catch (err) {
+			toastError(err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		load();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	useEffect(() => {
+		const flow = flows.find(item => Number(item.id) === Number(selectedFlowId));
+		if (flow) {
+			setFlowForm({ ...emptyUraFlow, ...flow, fallbackQueueId: flow.fallbackQueueId || "" });
+		} else {
+			setFlowForm(emptyUraFlow);
+		}
+		setSelectedOptionId(null);
+		setOptionForm(null);
+	}, [selectedFlowId, flows]);
+
+	const currentOptions = options
+		.filter(option => Number(option.flowId) === Number(selectedFlowId))
+		.sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || String(a.optionKey).localeCompare(String(b.optionKey)));
+
+	const childOptions = parentId => currentOptions.filter(option =>
+		Number(option.parentOptionId || 0) === Number(parentId || 0)
+	);
+
+	const selectOption = option => {
+		setSelectedOptionId(option.id);
+		setOptionForm({
+			...emptyUraOption(selectedFlowId),
+			...option,
+			parentOptionId: option.parentOptionId || "",
+			targetQueueId: option.targetQueueId || ""
+		});
+	};
+
+	const newFlow = () => {
+		setSelectedFlowId("");
+		setFlowForm(emptyUraFlow);
+		setSelectedOptionId(null);
+		setOptionForm(null);
+	};
+
+	const newOption = parentOptionId => {
+		setSelectedOptionId(null);
+		setOptionForm({
+			...emptyUraOption(selectedFlowId),
+			parentOptionId: parentOptionId || "",
+			order: currentOptions.length + 1
+		});
+	};
+
+	const saveFlow = async () => {
+		try {
+			const payload = {
+				...flowForm,
+				fallbackQueueId: flowForm.fallbackQueueId || null,
+				active: flowForm.active !== false
+			};
+			if (payload.id) {
+				await api.put(`/ura-flows/${payload.id}`, payload);
+				toast.success("URA salva.");
+			} else {
+				const { data } = await api.post("/ura-flows", payload);
+				setSelectedFlowId(data.id);
+				toast.success("URA criada.");
+			}
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const saveOption = async () => {
+		if (!optionForm) return;
+		try {
+			const payload = {
+				...optionForm,
+				flowId: selectedFlowId,
+				parentOptionId: optionForm.parentOptionId || null,
+				targetQueueId: optionForm.targetQueueId || null,
+				active: optionForm.active !== false
+			};
+			if (payload.id) {
+				await api.put(`/ura-options/${payload.id}`, payload);
+				toast.success("Opcao salva.");
+			} else {
+				const { data } = await api.post("/ura-options", payload);
+				setSelectedOptionId(data.id);
+				toast.success("Opcao criada.");
+			}
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const removeOption = async option => {
+		if (!window.confirm("Excluir esta opcao da URA? As subopcoes tambem podem ficar sem caminho claro.")) return;
+		try {
+			await api.delete(`/ura-options/${option.id}`);
+			setSelectedOptionId(null);
+			setOptionForm(null);
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const actionLabel = action => ({
+		SEND_MESSAGE: "Enviar mensagem",
+		OPEN_SUBMENU: "Abrir submenu",
+		TRANSFER_QUEUE: "Transferir para fila",
+		START_AI: "Acionar IA",
+		HUMAN: "Encaminhar humano",
+		BACK_PREVIOUS: "Voltar anterior",
+		BACK_ROOT: "Voltar inicio"
+	}[action] || action);
+
+	const renderTree = (parentId = null, level = 0) => {
+		const children = childOptions(parentId);
+		if (!children.length) {
+			return level === 0 ? (
+				<Typography variant="body2" color="textSecondary">Nenhuma opcao cadastrada neste nivel.</Typography>
+			) : null;
+		}
+
+		return children.map(option => (
+			<div key={option.id} style={{ marginLeft: level * 18, marginTop: 8 }}>
+				<Paper
+					variant="outlined"
+					style={{
+						padding: 10,
+						borderColor: Number(selectedOptionId) === Number(option.id) ? "#2563EB" : undefined,
+						background: Number(selectedOptionId) === Number(option.id) ? "#EFF6FF" : undefined
+					}}
+				>
+					<Grid container spacing={1} alignItems="center">
+						<Grid item xs>
+							<Typography variant="body2">
+								<strong>{option.optionKey}</strong> - {option.title}
+							</Typography>
+							<Typography variant="caption" color="textSecondary">
+								{actionLabel(option.action)}
+								{option.action === "OPEN_SUBMENU" ? " · submenu" : ""}
+							</Typography>
+						</Grid>
+						<Grid item>
+							<Button size="small" onClick={() => selectOption(option)}>Editar</Button>
+							<Button size="small" color="primary" onClick={() => newOption(option.id)}>Subopcao</Button>
+						</Grid>
+					</Grid>
+				</Paper>
+				{renderTree(option.id, level + 1)}
+			</div>
+		));
+	};
+
+	return (
+		<Grid container spacing={2}>
+			<Grid item xs={12}>
+				<Paper variant="outlined" style={{ padding: 16 }}>
+					<Grid container spacing={2} alignItems="center">
+						<Grid item xs={12} md={5}>
+							<TextField
+								select
+								fullWidth
+								variant="outlined"
+								margin="dense"
+								label="URA"
+								value={selectedFlowId || ""}
+								onChange={event => setSelectedFlowId(event.target.value)}
+							>
+								{flows.map(flow => (
+									<MenuItem key={flow.id} value={flow.id}>{flow.name}</MenuItem>
+								))}
+							</TextField>
+						</Grid>
+						<Grid item>
+							<Button variant="outlined" color="primary" onClick={newFlow}>Nova URA</Button>
+						</Grid>
+						<Grid item xs>
+							<Typography variant="caption" color="textSecondary">
+								Monte o menu principal, submenus e opcoes em uma unica tela. O atendimento fica em triagem ate uma opcao transferir, encerrar ou acionar IA.
+							</Typography>
+						</Grid>
+					</Grid>
+				</Paper>
+			</Grid>
+
+			<Grid item xs={12} md={4}>
+				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+					<Typography variant="h6">Configuracoes da URA</Typography>
+					<TextField fullWidth margin="dense" variant="outlined" label="Nome da URA" value={flowForm.name || ""} onChange={event => setFlowForm(prev => ({ ...prev, name: event.target.value }))} />
+					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Descricao" value={flowForm.description || ""} onChange={event => setFlowForm(prev => ({ ...prev, description: event.target.value }))} />
+					<MessageTemplateField label="Mensagem do menu principal" name="welcomeMessage" value={flowForm.welcomeMessage || ""} rows={5} onChange={event => setFlowForm(prev => ({ ...prev, welcomeMessage: event.target.value }))} />
+					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Mensagem de opcao invalida" value={flowForm.invalidOptionMessage || ""} onChange={event => setFlowForm(prev => ({ ...prev, invalidOptionMessage: event.target.value }))} />
+					<TextField fullWidth margin="dense" variant="outlined" type="number" label="Maximo de tentativas invalidas" value={flowForm.maxInvalidAttempts || ""} onChange={event => setFlowForm(prev => ({ ...prev, maxInvalidAttempts: event.target.value }))} />
+					<TextField select fullWidth margin="dense" variant="outlined" label="Fila fallback opcional" value={flowForm.fallbackQueueId || ""} onChange={event => setFlowForm(prev => ({ ...prev, fallbackQueueId: event.target.value }))}>
+						<MenuItem value="">Sem fila fallback</MenuItem>
+						{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>)}
+					</TextField>
+					<FormControlLabel
+						control={<Switch color="primary" checked={flowForm.active !== false} onChange={event => setFlowForm(prev => ({ ...prev, active: event.target.checked }))} />}
+						label="URA ativa"
+					/>
+					<Button fullWidth variant="contained" color="primary" onClick={saveFlow} disabled={loading}>
+						Salvar URA
+					</Button>
+				</Paper>
+			</Grid>
+
+			<Grid item xs={12} md={4}>
+				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+					<Grid container alignItems="center" spacing={1}>
+						<Grid item xs>
+							<Typography variant="h6">Arvore da URA</Typography>
+						</Grid>
+						<Grid item>
+							<Button size="small" variant="outlined" color="primary" disabled={!selectedFlowId} onClick={() => newOption(null)}>
+								Adicionar opcao
+							</Button>
+						</Grid>
+					</Grid>
+					<Typography variant="caption" color="textSecondary">
+						Opcoes sem pai aparecem no menu principal. Subopcoes aparecem dentro do submenu escolhido.
+					</Typography>
+					<div style={{ marginTop: 12 }}>{renderTree()}</div>
+				</Paper>
+			</Grid>
+
+			<Grid item xs={12} md={4}>
+				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+					<Typography variant="h6">Editor da opcao</Typography>
+					{!optionForm ? (
+						<Typography variant="body2" color="textSecondary">
+							Selecione uma opcao na arvore ou clique em Adicionar opcao.
+						</Typography>
+					) : (
+						<>
+							<TextField select fullWidth margin="dense" variant="outlined" label="Aparece dentro de" value={optionForm.parentOptionId || ""} onChange={event => setOptionForm(prev => ({ ...prev, parentOptionId: event.target.value }))}>
+								<MenuItem value="">Menu principal</MenuItem>
+								{currentOptions.filter(item => Number(item.id) !== Number(optionForm.id)).map(option => (
+									<MenuItem key={option.id} value={option.id}>{option.optionKey} - {option.title}</MenuItem>
+								))}
+							</TextField>
+							<Grid container spacing={1}>
+								<Grid item xs={4}>
+									<TextField fullWidth margin="dense" variant="outlined" label="Opcao" value={optionForm.optionKey || ""} onChange={event => setOptionForm(prev => ({ ...prev, optionKey: event.target.value }))} />
+								</Grid>
+								<Grid item xs={8}>
+									<TextField fullWidth margin="dense" variant="outlined" label="Titulo" value={optionForm.title || ""} onChange={event => setOptionForm(prev => ({ ...prev, title: event.target.value }))} />
+								</Grid>
+							</Grid>
+							<TextField select fullWidth margin="dense" variant="outlined" label="Acao principal" value={optionForm.action || "SEND_MESSAGE"} onChange={event => setOptionForm(prev => ({ ...prev, action: event.target.value }))}>
+								<MenuItem value="SEND_MESSAGE">Enviar mensagem</MenuItem>
+								<MenuItem value="OPEN_SUBMENU">Abrir submenu</MenuItem>
+								<MenuItem value="TRANSFER_QUEUE">Transferir para fila</MenuItem>
+								<MenuItem value="START_AI">Acionar IA</MenuItem>
+								<MenuItem value="HUMAN">Encaminhar para humano</MenuItem>
+								<MenuItem value="BACK_PREVIOUS">Voltar ao menu anterior</MenuItem>
+								<MenuItem value="BACK_ROOT">Voltar ao menu inicial</MenuItem>
+							</TextField>
+							{["TRANSFER_QUEUE", "HUMAN", "START_AI"].includes(optionForm.action) && (
+								<TextField select fullWidth margin="dense" variant="outlined" label="Fila destino" value={optionForm.targetQueueId || ""} onChange={event => setOptionForm(prev => ({ ...prev, targetQueueId: event.target.value }))}>
+									<MenuItem value="">Selecione</MenuItem>
+									{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>)}
+								</TextField>
+							)}
+							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={optionForm.responseMessage || ""} rows={5} onChange={event => setOptionForm(prev => ({ ...prev, responseMessage: event.target.value }))} />
+							<TextField fullWidth margin="dense" variant="outlined" type="number" label="Ordem" value={optionForm.order || 0} onChange={event => setOptionForm(prev => ({ ...prev, order: event.target.value }))} />
+							<FormControlLabel
+								control={<Switch color="primary" checked={optionForm.active !== false} onChange={event => setOptionForm(prev => ({ ...prev, active: event.target.checked }))} />}
+								label="Opcao ativa"
+							/>
+							<Grid container spacing={1}>
+								<Grid item xs>
+									<Button fullWidth variant="contained" color="primary" onClick={saveOption}>
+										Salvar opcao
+									</Button>
+								</Grid>
+								{optionForm.id && (
+									<Grid item>
+										<Button variant="outlined" color="secondary" onClick={() => removeOption(optionForm)}>
+											Excluir
+										</Button>
+									</Grid>
+								)}
+							</Grid>
+						</>
+					)}
+				</Paper>
 			</Grid>
 		</Grid>
 	);
@@ -1606,6 +1953,8 @@ const Settings = () => {
 						onUploadLogo={handleUploadLogo}
 						classes={classes}
 					/>
+				) : activeTab.type === "uraTree" ? (
+					<UraTreePanel classes={classes} />
 				) : activeTab.type === "group" ? (
 					<>
 						<Tabs

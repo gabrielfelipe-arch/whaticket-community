@@ -6,6 +6,7 @@ import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
 import Tag from "../models/Tag";
+import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
 import ScheduledMessageExecution from "../models/ScheduledMessageExecution";
 
@@ -163,6 +164,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     contactId,
     contactIds = [],
     tagIds = [],
+    excludeTagIds = [],
+    tagAppliedLastDays,
+    sendType = "scheduled",
     audience = "all",
     whatsappId,
     message,
@@ -216,6 +220,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     ...parseNumberArray(contactIds)
   ];
   const selectedTagIds = parseNumberArray(tagIds);
+  const selectedExcludeTagIds = parseNumberArray(excludeTagIds);
+  const recentDays = Number(tagAppliedLastDays || 0);
 
   if (!selectedContactIds.length && !selectedTagIds.length) {
     throw new AppError("ERR_SCHEDULE_RECIPIENTS_REQUIRED", 400);
@@ -236,6 +242,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     contactWhere.id = { [Op.in]: selectedContactIds };
   }
 
+  const tagThroughWhere: any = {};
+  if (recentDays > 0) {
+    tagThroughWhere.appliedAt = {
+      [Op.gte]: new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000)
+    };
+  }
+
   const contactRows = await Contact.findAll({
     where: contactWhere,
     include: selectedTagIds.length
@@ -244,7 +257,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
             model: Tag,
             as: "tags",
             attributes: [],
-            through: { attributes: [] },
+            through: { attributes: [], where: tagThroughWhere },
             where: { id: { [Op.in]: selectedTagIds } },
             required: true
           }
@@ -255,17 +268,34 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     (contact, index, self) => self.findIndex(item => item.id === contact.id) === index
   );
 
-  if (!contacts.length) {
+  let filteredContacts = contacts;
+  if (selectedExcludeTagIds.length && contacts.length) {
+    const excludedRows = await ContactTag.findAll({
+      attributes: ["contactId"],
+      where: {
+        contactId: { [Op.in]: contacts.map(contact => contact.id) },
+        tagId: { [Op.in]: selectedExcludeTagIds }
+      }
+    });
+    const excludedContactIds = new Set(excludedRows.map(row => Number(row.contactId)));
+    filteredContacts = contacts.filter(contact => !excludedContactIds.has(Number(contact.id)));
+  }
+
+  if (!filteredContacts.length) {
     throw new AppError("ERR_SCHEDULE_NO_RECIPIENTS", 400);
   }
 
   const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   const schedules = await ScheduledMessage.bulkCreate(
-    contacts.map((contact, index) => ({
+    filteredContacts.map((contact, index) => ({
       contactId: contact.id,
       whatsappId: whatsappId || null,
       batchId,
+      sendType: ["scheduled", "campaign"].includes(sendType) ? sendType : "scheduled",
+      tagIds: selectedTagIds,
+      excludeTagIds: selectedExcludeTagIds,
+      tagAppliedLastDays: recentDays > 0 ? recentDays : null,
       sequence: index,
       message,
       ...mediaDataFromRequest(req),
@@ -326,10 +356,23 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     repeatUnit,
     maxRuns,
     respectBusinessHours,
-    missedRunPolicy
+    missedRunPolicy,
+    sendType,
+    tagIds,
+    excludeTagIds,
+    tagAppliedLastDays
   } = req.body;
 
   if (message !== undefined) allowedData.message = message;
+  if (sendType !== undefined) {
+    allowedData.sendType = ["scheduled", "campaign"].includes(sendType) ? sendType : "scheduled";
+  }
+  if (tagIds !== undefined) allowedData.tagIds = parseNumberArray(tagIds);
+  if (excludeTagIds !== undefined) allowedData.excludeTagIds = parseNumberArray(excludeTagIds);
+  if (tagAppliedLastDays !== undefined) {
+    const recentDays = Number(tagAppliedLastDays || 0);
+    allowedData.tagAppliedLastDays = recentDays > 0 ? recentDays : null;
+  }
   Object.assign(allowedData, mediaDataFromRequest(req));
   if (whatsappId !== undefined) allowedData.whatsappId = whatsappId || null;
   if (intervalPattern !== undefined) {
@@ -468,6 +511,10 @@ export const duplicate = async (req: Request, res: Response): Promise<Response> 
     contactId: schedule.contactId,
     whatsappId: schedule.whatsappId,
     batchId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
+    sendType: schedule.sendType || "scheduled",
+    tagIds: schedule.tagIds || [],
+    excludeTagIds: schedule.excludeTagIds || [],
+    tagAppliedLastDays: schedule.tagAppliedLastDays,
     sequence: 0,
     message: schedule.message,
     mediaUrl: schedule.mediaUrl,
