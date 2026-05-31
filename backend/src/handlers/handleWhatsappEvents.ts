@@ -903,12 +903,29 @@ const sortUraOptions = (options: any[]): any[] =>
 const getUraOptionsByParent = (flow: any, parentOptionId: number | null): any[] =>
   sortUraOptions(flow.options || []).filter(option => {
     const optionParentId = option.parentOptionId ? Number(option.parentOptionId) : null;
-    return optionParentId === parentOptionId;
+    return option.active !== false && optionParentId === parentOptionId;
   });
 
 const getCurrentUraParentOption = async (ticket: Ticket): Promise<UraOption | null> => {
   if (!ticket.currentUraOptionId) return null;
   return UraOption.findByPk(ticket.currentUraOptionId);
+};
+
+const hasParentUraOption = (parentOption?: any | null): boolean =>
+  !!parentOption?.parentOptionId;
+
+const getSubmenuNavigationFooter = (parentOption?: any | null): string => {
+  const lines = [
+    hasParentUraOption(parentOption)
+      ? "Para voltar ao menu ou encerrar o atendimento, digite:"
+      : "Para voltar ao menu principal ou encerrar o atendimento, digite:"
+  ];
+  if (hasParentUraOption(parentOption)) {
+    lines.push("*V* - Voltar");
+  }
+  lines.push("*M* - Menu principal");
+  lines.push("*S* - Encerrar atendimento");
+  return lines.join("\n");
 };
 
 const buildUraMenu = (flow: any, parentOption?: any | null): string => {
@@ -919,8 +936,50 @@ const buildUraMenu = (flow: any, parentOption?: any | null): string => {
     .join("\n");
 
   const menuMessage = parentOption?.responseMessage || flow.welcomeMessage;
+  const navigationFooter = parentOption ? getSubmenuNavigationFooter(parentOption) : null;
 
-  return [menuMessage, optionLines].filter(Boolean).join("\n");
+  return [menuMessage, optionLines, navigationFooter].filter(Boolean).join("\n\n");
+};
+
+const appendSubmenuNavigationFooter = (
+  body?: string | null,
+  parentOption?: any | null
+): string | null => {
+  if (!body) return body || null;
+  return `${body.trim()}\n\n${getSubmenuNavigationFooter(parentOption)}`;
+};
+
+const getUraNavigationCommand = (messageBody: string): "back" | "root" | "close" | null => {
+  const normalized = normalizeText(messageBody || "").trim();
+  if (["v", "voltar", "volta", "anterior", "menu anterior"].includes(normalized)) return "back";
+  if (["m", "menu", "inicio", "principal", "menu principal", "inicial"].includes(normalized)) return "root";
+  if (["s", "sair", "encerrar", "finalizar", "fechar", "encerra", "finaliza", "fecha"].includes(normalized)) return "close";
+  return null;
+};
+
+const getUraClosingReasonId = async (flow: any): Promise<number | null> => {
+  if (flow?.aiAutoCloseReasonId) return flow.aiAutoCloseReasonId;
+
+  const reason = await ClosingReason.findOne({
+    where: { active: true },
+    order: [["id", "ASC"]]
+  });
+
+  return reason?.id || null;
+};
+
+const getUraAiAutoCloseConfig = (flow: any, selectedOption: any) => {
+  const optionAutoCloseEnabled = selectedOption?.aiAutoCloseEnabled === true;
+  const flowAutoCloseEnabled = flow?.aiAutoCloseEnabled === true;
+  const source = optionAutoCloseEnabled ? selectedOption : flowAutoCloseEnabled ? flow : null;
+
+  return {
+    aiAutoCloseEnabled: !!source,
+    aiAutoCloseMinutes: source?.aiAutoCloseMinutes || null,
+    aiAutoCloseMessage: source?.aiAutoCloseMessage || null,
+    aiAutoCloseReasonId: source?.aiAutoCloseReasonId || null,
+    aiAutoCloseOnlyIfNotHandedOff: source?.aiAutoCloseOnlyIfNotHandedOff !== false
+  };
 };
 
 const findUraOption = (options: any[], messageBody: string): any | undefined => {
@@ -948,6 +1007,103 @@ const handleUraLogic = async (
     flow,
     currentParentOption?.id ? Number(currentParentOption.id) : null
   );
+
+  const navigationCommand = currentParentOption
+    ? getUraNavigationCommand(messageBody)
+    : null;
+
+  if (navigationCommand === "root") {
+    const menu = buildUraMenu(flow, null);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: flow.welcomeMediaUrl,
+        mediaType: flow.welcomeMediaType,
+        mediaName: flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      lastUraInteractionAt: new Date(),
+      aiAutoCloseEnabled: false,
+      aiAutoCloseMinutes: null,
+      aiAutoCloseMessage: null,
+      aiAutoCloseReasonId: null
+    });
+    return true;
+  }
+
+  if (navigationCommand === "back") {
+    const parent = currentParentOption?.parentOptionId
+      ? await UraOption.findByPk(currentParentOption.parentOptionId)
+      : null;
+    const menu = buildUraMenu(flow, parent);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: parent?.responseMediaUrl || flow.welcomeMediaUrl,
+        mediaType: parent?.responseMediaType || flow.welcomeMediaType,
+        mediaName: parent?.responseMediaName || flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: parent?.id || null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      lastUraInteractionAt: new Date(),
+      aiAutoCloseEnabled: false,
+      aiAutoCloseMinutes: null,
+      aiAutoCloseMessage: null,
+      aiAutoCloseReasonId: null
+    });
+    return true;
+  }
+
+  if (navigationCommand === "close") {
+    const closingReasonId = await getUraClosingReasonId(flow);
+    if (!closingReasonId) {
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        "Nao encontrei um motivo de encerramento configurado para finalizar este atendimento automaticamente.",
+        ticket,
+        "ura"
+      );
+      return true;
+    }
+
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      "Atendimento encerrado. Se precisar, envie uma nova mensagem para comecar novamente.",
+      ticket,
+      "ura"
+    );
+    await UpdateTicketService({
+      ticketData: {
+        status: "closed",
+        queueId: ticket.queueId,
+        aiActive: false,
+        aiSettingId: null,
+        closingReasonId,
+        closingNote: "Encerrado por comando de navegacao da URA",
+        automationClosed: true,
+        uraActive: false,
+        currentUraOptionId: null
+      },
+      ticketId: ticket.id
+    });
+    return true;
+  }
+
   const selectedOption = findUraOption(currentOptions, messageBody) ||
     (
       isHumanRequest(messageBody)
@@ -988,6 +1144,21 @@ const handleUraLogic = async (
             lastUraInteractionAt: new Date()
           },
           ticketId: ticket.id
+        });
+      } else {
+        await sendTextMessage(
+          whatsappId,
+          contactPayload,
+          flow.invalidOptionMessage ||
+            "Nao consegui identificar uma opcao valida. Vou encerrar este menu por agora. Se precisar, envie uma nova mensagem para recomecar.",
+          ticket,
+          "ura"
+        );
+        await ticket.update({
+          uraInvalidAttempts: invalidAttempts,
+          uraActive: false,
+          currentUraOptionId: null,
+          lastUraInteractionAt: new Date()
         });
       }
       return true;
@@ -1111,18 +1282,45 @@ const handleUraLogic = async (
   }
 
   if (selectedOption.responseMessage || selectedOption.responseMediaUrl) {
+    const shouldShowNavigationFooter =
+      !!currentParentOption && selectedOption.action === "SEND_MESSAGE";
+
     await sendConfiguredMessage({
       whatsappId,
       contactPayload,
-      body: selectedOption.responseMessage,
+      body: shouldShowNavigationFooter
+        ? appendSubmenuNavigationFooter(selectedOption.responseMessage, currentParentOption)
+        : selectedOption.responseMessage,
       ticket,
       mediaUrl: selectedOption.responseMediaUrl,
       mediaType: selectedOption.responseMediaType,
       mediaName: selectedOption.responseMediaName
     });
+
+    if (selectedOption.action === "SEND_MESSAGE") {
+      await ticket.update({
+        lastUraInteractionAt: new Date(),
+        aiAutoCloseEnabled: selectedOption.aiAutoCloseEnabled === true,
+        aiAutoCloseMinutes: selectedOption.aiAutoCloseEnabled
+          ? selectedOption.aiAutoCloseMinutes || null
+          : null,
+        aiAutoCloseMessage: selectedOption.aiAutoCloseEnabled
+          ? selectedOption.aiAutoCloseMessage || null
+          : null,
+        aiAutoCloseReasonId: selectedOption.aiAutoCloseEnabled
+          ? selectedOption.aiAutoCloseReasonId || null
+          : null,
+        aiAutoCloseOnlyIfNotHandedOff: selectedOption.aiAutoCloseOnlyIfNotHandedOff !== false
+      });
+    }
   }
 
   if (selectedOption.action === "TRANSFER_QUEUE" && selectedOption.targetQueueId) {
+    const queue = await Queue.findByPk(selectedOption.targetQueueId);
+    if (queue && await sendQueueUnavailableIfNeeded(whatsappId, contactPayload, ticket, queue)) {
+      return true;
+    }
+
     await UpdateTicketService({
       ticketData: {
         queueId: selectedOption.targetQueueId,
@@ -1137,7 +1335,28 @@ const handleUraLogic = async (
     return true;
   }
 
+  if (selectedOption.action === "CLOSE_TICKET") {
+    await UpdateTicketService({
+      ticketData: {
+        status: "closed",
+        queueId: ticket.queueId,
+        aiActive: false,
+        aiHandled: true,
+        aiSettingId: null,
+        closingReasonId: selectedOption.closingReasonId,
+        closingNote: "Encerrado pela URA",
+        uraActive: false,
+        currentUraOptionId: null
+      },
+      ticketId: ticket.id
+    });
+
+    return true;
+  }
+
   if (selectedOption.action === "START_AI") {
+    const autoCloseConfig = getUraAiAutoCloseConfig(flow, selectedOption);
+
     if (selectedOption.targetQueueId) {
       const queue = await Queue.findByPk(selectedOption.targetQueueId);
       if (queue && await sendQueueUnavailableIfNeeded(whatsappId, contactPayload, ticket, queue)) {
@@ -1171,17 +1390,7 @@ const handleUraLogic = async (
           lastAiAskedMoreHelp: false,
           aiInteractionCount: 0,
           aiConversationSummary: null,
-          aiAutoCloseEnabled: selectedOption.aiAutoCloseEnabled === true,
-          aiAutoCloseMinutes: selectedOption.aiAutoCloseEnabled
-            ? selectedOption.aiAutoCloseMinutes || null
-            : null,
-          aiAutoCloseMessage: selectedOption.aiAutoCloseEnabled
-            ? selectedOption.aiAutoCloseMessage || null
-            : null,
-          aiAutoCloseReasonId: selectedOption.aiAutoCloseEnabled
-            ? selectedOption.aiAutoCloseReasonId || null
-            : null,
-          aiAutoCloseOnlyIfNotHandedOff: selectedOption.aiAutoCloseOnlyIfNotHandedOff !== false,
+          ...autoCloseConfig,
           aiHumanHandoffQueueId: selectedOption.aiHumanHandoffQueueId || null,
           aiHumanHandoffMessage: selectedOption.aiHumanHandoffMessage || null,
           aiHandoffAlertEnabled: selectedOption.aiHandoffAlertEnabled ? true : false,
@@ -1220,11 +1429,7 @@ const handleUraLogic = async (
       lastAiAskedMoreHelp: false,
       aiInteractionCount: 0,
       aiConversationSummary: null,
-      aiAutoCloseEnabled: false,
-      aiAutoCloseMinutes: null,
-      aiAutoCloseMessage: null,
-      aiAutoCloseReasonId: null,
-      aiAutoCloseOnlyIfNotHandedOff: true,
+      ...autoCloseConfig,
       aiHumanHandoffQueueId: null,
       aiHumanHandoffMessage: null,
       aiHandoffAlertEnabled: false,

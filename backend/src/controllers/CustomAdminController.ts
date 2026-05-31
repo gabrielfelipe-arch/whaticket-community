@@ -161,6 +161,21 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     if (data.active !== false && data.active !== "false") {
       requireField(data.welcomeMessage, "Informe a mensagem inicial da URA.");
     }
+    const aiAutoCloseEnabled = isEnabled(data.aiAutoCloseEnabled);
+
+    if (aiAutoCloseEnabled) {
+      if (!data.aiAutoCloseMinutes || Number(data.aiAutoCloseMinutes) <= 0) {
+        throw new AppError("Informe o tempo sem resposta para encerrar o atendimento.", 400);
+      }
+
+      if (!data.aiAutoCloseMessage) {
+        throw new AppError("Informe a mensagem que sera enviada antes do encerramento.", 400);
+      }
+
+      if (!nullableNumber(data.aiAutoCloseReasonId)) {
+        throw new AppError("Escolha o motivo de encerramento.", 400);
+      }
+    }
 
     return {
       name: data.name,
@@ -172,6 +187,11 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       invalidOptionMessage: data.invalidOptionMessage || null,
       maxInvalidAttempts: Number(data.maxInvalidAttempts || 3),
       fallbackQueueId: nullableNumber(data.fallbackQueueId),
+      aiAutoCloseEnabled,
+      aiAutoCloseMinutes: aiAutoCloseEnabled ? Number(data.aiAutoCloseMinutes) : null,
+      aiAutoCloseMessage: aiAutoCloseEnabled ? data.aiAutoCloseMessage || null : null,
+      aiAutoCloseReasonId: aiAutoCloseEnabled ? nullableNumber(data.aiAutoCloseReasonId) : null,
+      aiAutoCloseOnlyIfNotHandedOff: data.aiAutoCloseOnlyIfNotHandedOff !== false && data.aiAutoCloseOnlyIfNotHandedOff !== "false",
       active: data.active !== false
     };
   }
@@ -198,6 +218,10 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       if (!nullableNumber(data.targetQueueId)) {
         throw new AppError("Escolha a fila destino desta opcao.", 400);
       }
+    }
+
+    if (action === "CLOSE_TICKET" && !nullableNumber(data.closingReasonId)) {
+      throw new AppError("Escolha o motivo de encerramento desta opcao.", 400);
     }
 
     if (aiHumanHandoffEnabled) {
@@ -255,6 +279,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       responseMediaName: data.responseMediaName || null,
       action,
       targetQueueId: nullableNumber(data.targetQueueId),
+      closingReasonId: nullableNumber(data.closingReasonId),
       aiHumanHandoffEnabled,
       aiHumanHandoffQueueId: nullableNumber(data.aiHumanHandoffQueueId),
       aiHumanHandoffMessage: data.aiHumanHandoffMessage || null,

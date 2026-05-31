@@ -53,6 +53,9 @@ class UraOption extends Model<UraOption> {
   @Column
   targetQueueId: number;
 
+  @Column
+  closingReasonId: number;
+
   @Default(false)
   @Column
   aiHumanHandoffEnabled: boolean;

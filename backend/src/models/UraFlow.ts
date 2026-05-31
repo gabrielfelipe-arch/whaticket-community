@@ -45,6 +45,23 @@ class UraFlow extends Model<UraFlow> {
   @Column
   active: boolean;
 
+  @Default(false)
+  @Column
+  aiAutoCloseEnabled: boolean;
+
+  @Column
+  aiAutoCloseMinutes: number;
+
+  @Column(DataType.TEXT)
+  aiAutoCloseMessage: string;
+
+  @Column
+  aiAutoCloseReasonId: number;
+
+  @Default(true)
+  @Column
+  aiAutoCloseOnlyIfNotHandedOff: boolean;
+
   @HasMany(() => UraOption)
   options: UraOption[];
 

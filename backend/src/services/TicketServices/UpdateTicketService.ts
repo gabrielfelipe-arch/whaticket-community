@@ -54,6 +54,7 @@ interface TicketData {
   uraInvalidAttempts?: number;
   uraActive?: boolean;
   lastUraInteractionAt?: Date | null;
+  automationClosed?: boolean;
 }
 
 interface Request {
@@ -119,19 +120,21 @@ const UpdateTicketService = async ({
     currentUraOptionId,
     uraInvalidAttempts,
     uraActive,
-    lastUraInteractionAt
+    lastUraInteractionAt,
+    automationClosed
   } = ticketData;
 
   const ticket = await ShowTicketService(ticketId);
   await SetTicketMessagesAsRead(ticket);
 
   const closingByAiContext = status === "closed" && aiHandled === true && !aiAutoClosed;
+  const closingByAutomationContext = status === "closed" && automationClosed === true;
 
-  if (status === "closed" && !ticket.isGroup && !aiAutoClosed && !closingByAiContext && (!categoryId || !closingReasonId)) {
+  if (status === "closed" && !ticket.isGroup && !aiAutoClosed && !closingByAiContext && !closingByAutomationContext && (!categoryId || !closingReasonId)) {
     throw new AppError("ERR_CLOSING_FIELDS_REQUIRED", 400);
   }
 
-  if (status === "closed" && !ticket.isGroup && (aiAutoClosed || closingByAiContext) && !closingReasonId) {
+  if (status === "closed" && !ticket.isGroup && (aiAutoClosed || closingByAiContext || closingByAutomationContext) && !closingReasonId) {
     throw new AppError("ERR_CLOSING_REASON_REQUIRED", 400);
   }
 

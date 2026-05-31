@@ -295,11 +295,21 @@ const resources = [
 					{ value: "TRANSFER_QUEUE", label: "Transferir para fila" },
 					{ value: "START_AI", label: "Acionar IA" },
 					{ value: "HUMAN", label: "Encaminhar para humano" },
+					{ value: "CLOSE_TICKET", label: "Encerrar atendimento" },
 					{ value: "BACK_PREVIOUS", label: "Voltar ao menu anterior" },
 					{ value: "BACK_ROOT", label: "Voltar ao menu inicial" }
 				]
 			},
 			{ name: "targetQueueId", label: "Fila destino", type: "relation", relation: "queues", nullable: true, showWhen: form => ["TRANSFER_QUEUE", "HUMAN", "START_AI"].includes(form.action) },
+			{
+				name: "closingReasonId",
+				label: "Motivo de encerramento",
+				type: "relation",
+				relation: "closingReasons",
+				nullable: true,
+				showWhen: form => form.action === "CLOSE_TICKET",
+				helperText: "Obrigatorio quando a opcao da URA encerrar o atendimento."
+			},
 			{
 				name: "aiHumanHandoffEnabled",
 				label: "Permitir que a IA chame atendente",
@@ -323,15 +333,15 @@ const resources = [
 			},
 			{
 				name: "aiAutoCloseEnabled",
-				label: "Ativar encerramento por inatividade",
+				label: "Ativar encerramento por inatividade do atendimento automatico",
 				type: "boolean",
-				helperText: "Ao marcar, aparecem os campos de tempo, mensagem e motivo de encerramento. Pode ser usado junto com encaminhamento e aviso."
+				helperText: "Ao marcar, esta opcao usa uma regra propria de inatividade para URA ou IA. Se deixar desmarcado, usa a regra geral da URA."
 			},
 			{
 				name: "aiAutoCloseMinutes",
-				label: "Tempo sem resposta para encerrar",
+				label: "Tempo sem resposta/interacao para encerrar",
 				type: "number",
-				helperText: "Informe quantos minutos a IA deve aguardar sem resposta do cliente antes de encerrar. Ex: 30."
+				helperText: "Informe quantos minutos o atendimento automatico deve aguardar sem resposta do cliente antes de encerrar. Ex: 30."
 			},
 			{
 				name: "aiAutoCloseMessage",
@@ -346,13 +356,13 @@ const resources = [
 				type: "relation",
 				relation: "closingReasons",
 				nullable: true,
-				helperText: "Escolha o motivo usado quando esta opcao da URA encerrar automaticamente pela IA."
+				helperText: "Escolha o motivo usado quando esta opcao encerrar automaticamente por inatividade."
 			},
 			{
 				name: "aiAutoCloseOnlyIfNotHandedOff",
-				label: "Encerrar somente se nao foi encaminhado",
+				label: "Nao encerrar se ja foi encaminhado",
 				type: "boolean",
-				helperText: "Mantem o encerramento automatico apenas para atendimentos que continuam com a IA."
+				helperText: "Evita encerrar automaticamente quando o atendimento ja saiu da automacao e foi para um atendente."
 			},
 			{
 				name: "aiHandoffAlertEnabled",
@@ -708,6 +718,11 @@ const emptyUraFlow = {
 	invalidOptionMessage: "",
 	maxInvalidAttempts: 3,
 	fallbackQueueId: "",
+	aiAutoCloseEnabled: false,
+	aiAutoCloseMinutes: "",
+	aiAutoCloseMessage: "",
+	aiAutoCloseReasonId: "",
+	aiAutoCloseOnlyIfNotHandedOff: true,
 	active: true
 };
 
@@ -719,19 +734,52 @@ const emptyUraOption = flowId => ({
 	responseMessage: "",
 	action: "SEND_MESSAGE",
 	targetQueueId: "",
+	closingReasonId: "",
+	aiHumanHandoffEnabled: false,
+	aiHumanHandoffQueueId: "",
+	aiHumanHandoffMessage: "",
+	aiAutoCloseEnabled: false,
+	aiAutoCloseMinutes: "",
+	aiAutoCloseMessage: "",
+	aiAutoCloseReasonId: "",
+	aiAutoCloseOnlyIfNotHandedOff: true,
+	aiHandoffAlertEnabled: false,
+	aiHandoffAlertTo: "",
+	aiHandoffAlertMessage: "",
 	order: 0,
 	active: true
 });
+
+const textValue = value => value === null || value === undefined ? "" : String(value);
 
 const UraTreePanel = ({ classes }) => {
 	const [flows, setFlows] = useState([]);
 	const [options, setOptions] = useState([]);
 	const [queues, setQueues] = useState([]);
+	const [closingReasons, setClosingReasons] = useState([]);
 	const [selectedFlowId, setSelectedFlowId] = useState("");
 	const [flowForm, setFlowForm] = useState(emptyUraFlow);
 	const [optionForm, setOptionForm] = useState(null);
 	const [selectedOptionId, setSelectedOptionId] = useState(null);
 	const [loading, setLoading] = useState(false);
+	const [flowMediaFile, setFlowMediaFile] = useState(null);
+	const [optionMediaFile, setOptionMediaFile] = useState(null);
+
+	const setFlowField = (name, value) => {
+		setFlowForm(prev => ({
+			...emptyUraFlow,
+			...(prev || {}),
+			[name]: value
+		}));
+	};
+
+	const setOptionField = (name, value) => {
+		setOptionForm(prev => ({
+			...emptyUraOption(selectedFlowId),
+			...(prev || {}),
+			[name]: value
+		}));
+	};
 
 	const load = async () => {
 		setLoading(true);
@@ -741,14 +789,21 @@ const UraTreePanel = ({ classes }) => {
 				api.get("/ura-options"),
 				api.get("/queue")
 			]);
+			const { data: closingReasonData } = await api.get("/closing-reasons").catch(() => ({ data: [] }));
 			const nextFlows = Array.isArray(flowData) ? flowData : [];
 			const nextOptions = Array.isArray(optionData) ? optionData : [];
 			setFlows(nextFlows);
 			setOptions(nextOptions);
 			setQueues(Array.isArray(queueData) ? queueData : []);
+			setClosingReasons(Array.isArray(closingReasonData) ? closingReasonData : []);
 			if (!selectedFlowId && nextFlows.length) {
 				setSelectedFlowId(nextFlows[0].id);
-				setFlowForm({ ...emptyUraFlow, ...nextFlows[0], fallbackQueueId: nextFlows[0].fallbackQueueId || "" });
+				setFlowForm({
+					...emptyUraFlow,
+					...nextFlows[0],
+					fallbackQueueId: nextFlows[0].fallbackQueueId || "",
+					aiAutoCloseReasonId: nextFlows[0].aiAutoCloseReasonId || ""
+				});
 			}
 		} catch (err) {
 			toastError(err);
@@ -765,12 +820,20 @@ const UraTreePanel = ({ classes }) => {
 	useEffect(() => {
 		const flow = flows.find(item => Number(item.id) === Number(selectedFlowId));
 		if (flow) {
-			setFlowForm({ ...emptyUraFlow, ...flow, fallbackQueueId: flow.fallbackQueueId || "" });
+			setFlowForm({
+				...emptyUraFlow,
+				...flow,
+				fallbackQueueId: flow.fallbackQueueId || "",
+				aiAutoCloseReasonId: flow.aiAutoCloseReasonId || ""
+			});
+			setFlowMediaFile(null);
 		} else {
 			setFlowForm(emptyUraFlow);
+			setFlowMediaFile(null);
 		}
 		setSelectedOptionId(null);
 		setOptionForm(null);
+		setOptionMediaFile(null);
 	}, [selectedFlowId, flows]);
 
 	const currentOptions = options
@@ -787,15 +850,21 @@ const UraTreePanel = ({ classes }) => {
 			...emptyUraOption(selectedFlowId),
 			...option,
 			parentOptionId: option.parentOptionId || "",
-			targetQueueId: option.targetQueueId || ""
+			targetQueueId: option.targetQueueId || "",
+			closingReasonId: option.closingReasonId || "",
+			aiHumanHandoffQueueId: option.aiHumanHandoffQueueId || "",
+			aiAutoCloseReasonId: option.aiAutoCloseReasonId || ""
 		});
+		setOptionMediaFile(null);
 	};
 
 	const newFlow = () => {
 		setSelectedFlowId("");
 		setFlowForm(emptyUraFlow);
+		setFlowMediaFile(null);
 		setSelectedOptionId(null);
 		setOptionForm(null);
+		setOptionMediaFile(null);
 	};
 
 	const newOption = parentOptionId => {
@@ -805,6 +874,7 @@ const UraTreePanel = ({ classes }) => {
 			parentOptionId: parentOptionId || "",
 			order: currentOptions.length + 1
 		});
+		setOptionMediaFile(null);
 	};
 
 	const saveFlow = async () => {
@@ -812,16 +882,23 @@ const UraTreePanel = ({ classes }) => {
 			const payload = {
 				...flowForm,
 				fallbackQueueId: flowForm.fallbackQueueId || null,
+				aiAutoCloseEnabled: !!flowForm.aiAutoCloseEnabled,
+				aiAutoCloseMinutes: flowForm.aiAutoCloseEnabled ? flowForm.aiAutoCloseMinutes : null,
+				aiAutoCloseMessage: flowForm.aiAutoCloseEnabled ? flowForm.aiAutoCloseMessage : "",
+				aiAutoCloseReasonId: flowForm.aiAutoCloseEnabled ? (flowForm.aiAutoCloseReasonId || null) : null,
+				aiAutoCloseOnlyIfNotHandedOff: flowForm.aiAutoCloseOnlyIfNotHandedOff !== false,
 				active: flowForm.active !== false
 			};
+			const requestBody = flowMediaFile ? buildMultipartPayload(payload, flowMediaFile) : payload;
 			if (payload.id) {
-				await api.put(`/ura-flows/${payload.id}`, payload);
+				await api.put(`/ura-flows/${payload.id}`, requestBody);
 				toast.success("URA salva.");
 			} else {
-				const { data } = await api.post("/ura-flows", payload);
+				const { data } = await api.post("/ura-flows", requestBody);
 				setSelectedFlowId(data.id);
 				toast.success("URA criada.");
 			}
+			setFlowMediaFile(null);
 			await load();
 		} catch (err) {
 			toastError(err);
@@ -836,16 +913,30 @@ const UraTreePanel = ({ classes }) => {
 				flowId: selectedFlowId,
 				parentOptionId: optionForm.parentOptionId || null,
 				targetQueueId: optionForm.targetQueueId || null,
+				closingReasonId: optionForm.closingReasonId || null,
+				aiHumanHandoffEnabled: !!optionForm.aiHumanHandoffEnabled,
+				aiHumanHandoffQueueId: optionForm.aiHumanHandoffEnabled ? (optionForm.aiHumanHandoffQueueId || null) : null,
+				aiHumanHandoffMessage: optionForm.aiHumanHandoffEnabled ? optionForm.aiHumanHandoffMessage : "",
+				aiAutoCloseEnabled: !!optionForm.aiAutoCloseEnabled,
+				aiAutoCloseMinutes: optionForm.aiAutoCloseEnabled ? optionForm.aiAutoCloseMinutes : null,
+				aiAutoCloseMessage: optionForm.aiAutoCloseEnabled ? optionForm.aiAutoCloseMessage : "",
+				aiAutoCloseReasonId: optionForm.aiAutoCloseEnabled ? (optionForm.aiAutoCloseReasonId || null) : null,
+				aiAutoCloseOnlyIfNotHandedOff: optionForm.aiAutoCloseOnlyIfNotHandedOff !== false,
+				aiHandoffAlertEnabled: !!optionForm.aiHandoffAlertEnabled,
+				aiHandoffAlertTo: optionForm.aiHandoffAlertEnabled ? optionForm.aiHandoffAlertTo : "",
+				aiHandoffAlertMessage: optionForm.aiHandoffAlertEnabled ? optionForm.aiHandoffAlertMessage : "",
 				active: optionForm.active !== false
 			};
+			const requestBody = optionMediaFile ? buildMultipartPayload(payload, optionMediaFile) : payload;
 			if (payload.id) {
-				await api.put(`/ura-options/${payload.id}`, payload);
+				await api.put(`/ura-options/${payload.id}`, requestBody);
 				toast.success("Opcao salva.");
 			} else {
-				const { data } = await api.post("/ura-options", payload);
+				const { data } = await api.post("/ura-options", requestBody);
 				setSelectedOptionId(data.id);
 				toast.success("Opcao criada.");
 			}
+			setOptionMediaFile(null);
 			await load();
 		} catch (err) {
 			toastError(err);
@@ -870,6 +961,7 @@ const UraTreePanel = ({ classes }) => {
 		TRANSFER_QUEUE: "Transferir para fila",
 		START_AI: "Acionar IA",
 		HUMAN: "Encaminhar humano",
+		CLOSE_TICKET: "Encerrar atendimento",
 		BACK_PREVIOUS: "Voltar anterior",
 		BACK_ROOT: "Voltar inicio"
 	}[action] || action);
@@ -895,7 +987,7 @@ const UraTreePanel = ({ classes }) => {
 					<Grid container spacing={1} alignItems="center">
 						<Grid item xs>
 							<Typography variant="body2">
-								<strong>{option.optionKey}</strong> - {option.title}
+								<strong>{textValue(option.optionKey)}</strong> - {textValue(option.title)}
 							</Typography>
 							<Typography variant="caption" color="textSecondary">
 								{actionLabel(option.action)}
@@ -929,7 +1021,7 @@ const UraTreePanel = ({ classes }) => {
 								onChange={event => setSelectedFlowId(event.target.value)}
 							>
 								{flows.map(flow => (
-									<MenuItem key={flow.id} value={flow.id}>{flow.name}</MenuItem>
+									<MenuItem key={flow.id} value={flow.id}>{textValue(flow.name)}</MenuItem>
 								))}
 							</TextField>
 						</Grid>
@@ -948,17 +1040,56 @@ const UraTreePanel = ({ classes }) => {
 			<Grid item xs={12} md={4}>
 				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
 					<Typography variant="h6">Configuracoes da URA</Typography>
-					<TextField fullWidth margin="dense" variant="outlined" label="Nome da URA" value={flowForm.name || ""} onChange={event => setFlowForm(prev => ({ ...prev, name: event.target.value }))} />
-					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Descricao" value={flowForm.description || ""} onChange={event => setFlowForm(prev => ({ ...prev, description: event.target.value }))} />
-					<MessageTemplateField label="Mensagem do menu principal" name="welcomeMessage" value={flowForm.welcomeMessage || ""} rows={5} onChange={event => setFlowForm(prev => ({ ...prev, welcomeMessage: event.target.value }))} />
-					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Mensagem de opcao invalida" value={flowForm.invalidOptionMessage || ""} onChange={event => setFlowForm(prev => ({ ...prev, invalidOptionMessage: event.target.value }))} />
-					<TextField fullWidth margin="dense" variant="outlined" type="number" label="Maximo de tentativas invalidas" value={flowForm.maxInvalidAttempts || ""} onChange={event => setFlowForm(prev => ({ ...prev, maxInvalidAttempts: event.target.value }))} />
-					<TextField select fullWidth margin="dense" variant="outlined" label="Fila fallback opcional" value={flowForm.fallbackQueueId || ""} onChange={event => setFlowForm(prev => ({ ...prev, fallbackQueueId: event.target.value }))}>
+					<TextField fullWidth margin="dense" variant="outlined" label="Nome da URA" value={textValue(flowForm.name)} onChange={event => setFlowField("name", event.target.value)} />
+					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Descricao" value={textValue(flowForm.description)} onChange={event => setFlowField("description", event.target.value)} />
+					<MessageTemplateField label="Mensagem do menu principal" name="welcomeMessage" value={textValue(flowForm.welcomeMessage)} rows={5} onChange={event => setFlowField("welcomeMessage", event.target.value)} />
+					<input
+						accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+						id="ura-flow-media"
+						type="file"
+						style={{ display: "none" }}
+						onChange={event => setFlowMediaFile(event.target.files?.[0] || null)}
+					/>
+					<label htmlFor="ura-flow-media">
+						<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
+							Anexar arquivo da mensagem inicial
+						</Button>
+					</label>
+					<Typography variant="caption" display="block" color="textSecondary">
+						{flowMediaFile?.name || flowForm.welcomeMediaName || "Nenhum anexo selecionado"}
+					</Typography>
+					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Mensagem de opcao invalida" value={textValue(flowForm.invalidOptionMessage)} onChange={event => setFlowField("invalidOptionMessage", event.target.value)} />
+					<TextField fullWidth margin="dense" variant="outlined" type="number" label="Maximo de tentativas invalidas" value={textValue(flowForm.maxInvalidAttempts)} onChange={event => setFlowField("maxInvalidAttempts", event.target.value)} />
+					<TextField select fullWidth margin="dense" variant="outlined" label="Fila fallback opcional" value={flowForm.fallbackQueueId || ""} onChange={event => setFlowField("fallbackQueueId", event.target.value)}>
 						<MenuItem value="">Sem fila fallback</MenuItem>
-						{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>)}
+						{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{textValue(queue.name)}</MenuItem>)}
 					</TextField>
+					<Paper variant="outlined" style={{ padding: 12, marginTop: 12, marginBottom: 8 }}>
+						<Typography variant="subtitle2">Encerramento por inatividade do atendimento automatico</Typography>
+						<Typography variant="caption" color="textSecondary">
+							Use uma unica regra para encerrar quando o cliente ficar sem responder no menu da URA ou no atendimento com IA iniciado por esta URA.
+						</Typography>
+						<FormControlLabel
+							control={<Switch color="primary" checked={!!flowForm.aiAutoCloseEnabled} onChange={event => setFlowField("aiAutoCloseEnabled", event.target.checked)} />}
+							label="Ativar encerramento por inatividade"
+						/>
+						{flowForm.aiAutoCloseEnabled && (
+							<>
+								<TextField fullWidth margin="dense" variant="outlined" type="number" label="Tempo sem resposta/interacao para encerrar (min.)" value={textValue(flowForm.aiAutoCloseMinutes)} onChange={event => setFlowField("aiAutoCloseMinutes", event.target.value)} />
+								<MessageTemplateField label="Mensagem antes de encerrar" name="flowAiAutoCloseMessage" value={textValue(flowForm.aiAutoCloseMessage)} rows={3} onChange={event => setFlowField("aiAutoCloseMessage", event.target.value)} />
+								<TextField select fullWidth margin="dense" variant="outlined" label="Motivo de encerramento" value={flowForm.aiAutoCloseReasonId || ""} onChange={event => setFlowField("aiAutoCloseReasonId", event.target.value)}>
+									<MenuItem value="">Selecione</MenuItem>
+									{closingReasons.map(reason => <MenuItem key={reason.id} value={reason.id}>{textValue(reason.name)}</MenuItem>)}
+								</TextField>
+								<FormControlLabel
+									control={<Switch color="primary" checked={flowForm.aiAutoCloseOnlyIfNotHandedOff !== false} onChange={event => setFlowField("aiAutoCloseOnlyIfNotHandedOff", event.target.checked)} />}
+									label="Nao encerrar se ja foi encaminhado para atendente"
+								/>
+							</>
+						)}
+					</Paper>
 					<FormControlLabel
-						control={<Switch color="primary" checked={flowForm.active !== false} onChange={event => setFlowForm(prev => ({ ...prev, active: event.target.checked }))} />}
+						control={<Switch color="primary" checked={flowForm.active !== false} onChange={event => setFlowField("active", event.target.checked)} />}
 						label="URA ativa"
 					/>
 					<Button fullWidth variant="contained" color="primary" onClick={saveFlow} disabled={loading}>
@@ -995,39 +1126,108 @@ const UraTreePanel = ({ classes }) => {
 						</Typography>
 					) : (
 						<>
-							<TextField select fullWidth margin="dense" variant="outlined" label="Aparece dentro de" value={optionForm.parentOptionId || ""} onChange={event => setOptionForm(prev => ({ ...prev, parentOptionId: event.target.value }))}>
+							<TextField select fullWidth margin="dense" variant="outlined" label="Aparece dentro de" value={optionForm.parentOptionId || ""} onChange={event => setOptionField("parentOptionId", event.target.value)}>
 								<MenuItem value="">Menu principal</MenuItem>
 								{currentOptions.filter(item => Number(item.id) !== Number(optionForm.id)).map(option => (
-									<MenuItem key={option.id} value={option.id}>{option.optionKey} - {option.title}</MenuItem>
+									<MenuItem key={option.id} value={option.id}>{textValue(option.optionKey)} - {textValue(option.title)}</MenuItem>
 								))}
 							</TextField>
 							<Grid container spacing={1}>
 								<Grid item xs={4}>
-									<TextField fullWidth margin="dense" variant="outlined" label="Opcao" value={optionForm.optionKey || ""} onChange={event => setOptionForm(prev => ({ ...prev, optionKey: event.target.value }))} />
+									<TextField fullWidth margin="dense" variant="outlined" label="Opcao" value={textValue(optionForm.optionKey)} onChange={event => setOptionField("optionKey", event.target.value)} />
 								</Grid>
 								<Grid item xs={8}>
-									<TextField fullWidth margin="dense" variant="outlined" label="Titulo" value={optionForm.title || ""} onChange={event => setOptionForm(prev => ({ ...prev, title: event.target.value }))} />
+									<TextField fullWidth margin="dense" variant="outlined" label="Titulo" value={textValue(optionForm.title)} onChange={event => setOptionField("title", event.target.value)} />
 								</Grid>
 							</Grid>
-							<TextField select fullWidth margin="dense" variant="outlined" label="Acao principal" value={optionForm.action || "SEND_MESSAGE"} onChange={event => setOptionForm(prev => ({ ...prev, action: event.target.value }))}>
+							<TextField select fullWidth margin="dense" variant="outlined" label="Acao principal" value={optionForm.action || "SEND_MESSAGE"} onChange={event => setOptionField("action", event.target.value)}>
 								<MenuItem value="SEND_MESSAGE">Enviar mensagem</MenuItem>
 								<MenuItem value="OPEN_SUBMENU">Abrir submenu</MenuItem>
 								<MenuItem value="TRANSFER_QUEUE">Transferir para fila</MenuItem>
 								<MenuItem value="START_AI">Acionar IA</MenuItem>
 								<MenuItem value="HUMAN">Encaminhar para humano</MenuItem>
+								<MenuItem value="CLOSE_TICKET">Encerrar atendimento</MenuItem>
 								<MenuItem value="BACK_PREVIOUS">Voltar ao menu anterior</MenuItem>
 								<MenuItem value="BACK_ROOT">Voltar ao menu inicial</MenuItem>
 							</TextField>
 							{["TRANSFER_QUEUE", "HUMAN", "START_AI"].includes(optionForm.action) && (
-								<TextField select fullWidth margin="dense" variant="outlined" label="Fila destino" value={optionForm.targetQueueId || ""} onChange={event => setOptionForm(prev => ({ ...prev, targetQueueId: event.target.value }))}>
+								<TextField select fullWidth margin="dense" variant="outlined" label="Fila destino" value={optionForm.targetQueueId || ""} onChange={event => setOptionField("targetQueueId", event.target.value)}>
 									<MenuItem value="">Selecione</MenuItem>
-									{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>)}
+									{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{textValue(queue.name)}</MenuItem>)}
 								</TextField>
 							)}
-							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={optionForm.responseMessage || ""} rows={5} onChange={event => setOptionForm(prev => ({ ...prev, responseMessage: event.target.value }))} />
-							<TextField fullWidth margin="dense" variant="outlined" type="number" label="Ordem" value={optionForm.order || 0} onChange={event => setOptionForm(prev => ({ ...prev, order: event.target.value }))} />
+							{optionForm.action === "CLOSE_TICKET" && (
+								<TextField select fullWidth margin="dense" variant="outlined" label="Motivo de encerramento" value={optionForm.closingReasonId || ""} onChange={event => setOptionField("closingReasonId", event.target.value)}>
+									<MenuItem value="">Selecione</MenuItem>
+									{closingReasons.map(reason => <MenuItem key={reason.id} value={reason.id}>{textValue(reason.name)}</MenuItem>)}
+								</TextField>
+							)}
+							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={textValue(optionForm.responseMessage)} rows={5} onChange={event => setOptionField("responseMessage", event.target.value)} />
+							<input
+								accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+								id="ura-option-media"
+								type="file"
+								style={{ display: "none" }}
+								onChange={event => setOptionMediaFile(event.target.files?.[0] || null)}
+							/>
+							<label htmlFor="ura-option-media">
+								<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
+									Anexar arquivo da opcao
+								</Button>
+							</label>
+							<Typography variant="caption" display="block" color="textSecondary">
+								{optionMediaFile?.name || optionForm.responseMediaName || "Nenhum anexo selecionado"}
+							</Typography>
+							<Paper variant="outlined" style={{ padding: 12, marginTop: 12 }}>
+								<Typography variant="subtitle2">Regras do atendimento automatico nesta opcao</Typography>
+								<Typography variant="caption" color="textSecondary">
+									Use estes campos apenas quando esta opcao precisar de uma regra diferente da configuracao geral da URA.
+								</Typography>
+								<FormControlLabel
+									control={<Switch color="primary" checked={!!optionForm.aiHumanHandoffEnabled} onChange={event => setOptionField("aiHumanHandoffEnabled", event.target.checked)} />}
+									label="Permitir que a IA encaminhe para atendente"
+								/>
+								{optionForm.aiHumanHandoffEnabled && (
+									<>
+										<TextField select fullWidth margin="dense" variant="outlined" label="Fila humana para encaminhar" value={optionForm.aiHumanHandoffQueueId || ""} onChange={event => setOptionField("aiHumanHandoffQueueId", event.target.value)}>
+											<MenuItem value="">Selecione</MenuItem>
+											{queues.map(queue => <MenuItem key={queue.id} value={queue.id}>{textValue(queue.name)}</MenuItem>)}
+										</TextField>
+										<MessageTemplateField label="Mensagem para o cliente antes de transferir" name="aiHumanHandoffMessage" value={textValue(optionForm.aiHumanHandoffMessage)} rows={3} onChange={event => setOptionField("aiHumanHandoffMessage", event.target.value)} />
+									</>
+								)}
+								<FormControlLabel
+									control={<Switch color="primary" checked={!!optionForm.aiAutoCloseEnabled} onChange={event => setOptionField("aiAutoCloseEnabled", event.target.checked)} />}
+									label="Usar encerramento por inatividade proprio nesta opcao"
+								/>
+								{optionForm.aiAutoCloseEnabled && (
+									<>
+										<TextField fullWidth margin="dense" variant="outlined" type="number" label="Tempo sem resposta/interacao para encerrar (min.)" value={textValue(optionForm.aiAutoCloseMinutes)} onChange={event => setOptionField("aiAutoCloseMinutes", event.target.value)} />
+										<MessageTemplateField label="Mensagem antes de encerrar" name="aiAutoCloseMessage" value={textValue(optionForm.aiAutoCloseMessage)} rows={3} onChange={event => setOptionField("aiAutoCloseMessage", event.target.value)} />
+										<TextField select fullWidth margin="dense" variant="outlined" label="Motivo de encerramento" value={optionForm.aiAutoCloseReasonId || ""} onChange={event => setOptionField("aiAutoCloseReasonId", event.target.value)}>
+											<MenuItem value="">Selecione</MenuItem>
+											{closingReasons.map(reason => <MenuItem key={reason.id} value={reason.id}>{textValue(reason.name)}</MenuItem>)}
+										</TextField>
+										<FormControlLabel
+											control={<Switch color="primary" checked={optionForm.aiAutoCloseOnlyIfNotHandedOff !== false} onChange={event => setOptionField("aiAutoCloseOnlyIfNotHandedOff", event.target.checked)} />}
+											label="Nao encerrar se ja foi encaminhado para atendente"
+										/>
+									</>
+								)}
+								<FormControlLabel
+									control={<Switch color="primary" checked={!!optionForm.aiHandoffAlertEnabled} onChange={event => setOptionField("aiHandoffAlertEnabled", event.target.checked)} />}
+									label="Avisar outro WhatsApp quando a IA transferir"
+								/>
+								{optionForm.aiHandoffAlertEnabled && (
+									<>
+										<TextField fullWidth margin="dense" variant="outlined" label="Numero, contato ou grupo para aviso" value={textValue(optionForm.aiHandoffAlertTo)} onChange={event => setOptionField("aiHandoffAlertTo", event.target.value)} />
+										<MessageTemplateField label="Mensagem do aviso" name="aiHandoffAlertMessage" value={textValue(optionForm.aiHandoffAlertMessage)} rows={4} onChange={event => setOptionField("aiHandoffAlertMessage", event.target.value)} />
+									</>
+								)}
+							</Paper>
+							<TextField fullWidth margin="dense" variant="outlined" type="number" label="Ordem" value={textValue(optionForm.order || 0)} onChange={event => setOptionField("order", event.target.value)} />
 							<FormControlLabel
-								control={<Switch color="primary" checked={optionForm.active !== false} onChange={event => setOptionForm(prev => ({ ...prev, active: event.target.checked }))} />}
+								control={<Switch color="primary" checked={optionForm.active !== false} onChange={event => setOptionField("active", event.target.checked)} />}
 								label="Opcao ativa"
 							/>
 							<Grid container spacing={1}>
