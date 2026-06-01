@@ -102,10 +102,19 @@ const ListTicketsService = async ({
       ]
     };
   } else if (status === "pending") {
+    const previousAnd = ((whereCondition as any)[Op.and] as unknown[]) || [];
     whereCondition = {
       ...whereCondition,
       uraActive: false,
-      aiActive: false
+      [Op.and]: [
+        ...previousAnd,
+        {
+          [Op.or]: [
+            { aiActive: false },
+            { queueId: { [Op.ne]: null } }
+          ]
+        } as any
+      ]
     };
   }
 

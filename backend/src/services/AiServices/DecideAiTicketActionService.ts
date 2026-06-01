@@ -245,28 +245,17 @@ const buildProviderErrorKnowledgeFallbackDecision = (
   articles: KnowledgeFragment[],
   reason: string
 ): AiDecision => {
-  const mainArticle = articles[0];
-  const fragment = getCustomerFallbackFragment(mainArticle);
-
   return {
-    intencao: "pergunta_sobre_produto_ou_servico",
-    confianca: "media",
+    intencao: "erro_api_ia",
+    confianca: "alta",
     mensagemInterpretada: message,
-    contexto: "O provedor de IA ficou indisponivel, mas havia uma orientacao cadastrada para responder.",
-    baseEncontrada: true,
-    respostaSegura: !!fragment,
-    acao: fragment ? "responder_com_base" : "encaminhar_atendente",
+    contexto: "O provedor de IA ficou indisponivel durante a geracao da resposta.",
+    baseEncontrada: articles.length > 0,
+    respostaSegura: false,
+    acao: "encaminhar_atendente",
     motivo: reason,
     knowledgeIds: articles.map(article => article.id),
-    resposta: fragment
-      ? [
-          "Tive uma instabilidade no servico de IA agora, mas encontrei uma orientacao que pode te ajudar:",
-          "",
-          fragment,
-          "",
-          "Consegue verificar dessa forma? Se nao resolver, encaminho seu atendimento para um atendente."
-        ].join("\n")
-      : AI_UNAVAILABLE_HANDOFF_MESSAGE
+    resposta: AI_UNAVAILABLE_HANDOFF_MESSAGE
   };
 };
 
@@ -329,9 +318,17 @@ const buildAnswerPrompt = ({
   "Nao escreva titulos como 'Base de Conhecimento', 'Manual', 'Artigo encontrado' ou 'Documento interno'. Esses blocos sao internos e nunca podem aparecer para o cliente.",
   "Nao cole o bloco interno da base na resposta. Extraia apenas a orientacao util e responda como atendente.",
   "Nao retorne JSON, markdown tecnico, tags internas ou explicacoes do sistema.",
+  `Mensagem atual do cliente, que deve guiar a resposta: ${message}`,
+  "A mensagem atual tem prioridade sobre respostas anteriores. Se ela responder uma pergunta que a IA acabou de fazer, trate como continuidade e avance a conversa.",
+  "Se o cliente escolher uma opcao textual como 'por hora', 'mensal', 'pacote', '10 horas' ou informar uma quantidade como '3 horas', use essa informacao para responder. Nao pergunte novamente a mesma coisa.",
   "Se a pergunta pedir calculo simples e a base trouxer o numero necessario, calcule o resultado e mostre a conta de forma curta. Exemplo: diaria de R$ 300 por 10 dias = R$ 3.000.",
+  "Se a base trouxer plano avulso de 2 horas por R$ 140 e o cliente pedir valor por hora, explique que o plano avulso cadastrado e de 2 horas por R$ 140. Se pedir 3 horas e nao houver preco de hora adicional, informe o valor cadastrado e diga que o valor exato para 3 horas precisa ser confirmado por atendente.",
   "Se a pergunta atual for complemento da resposta anterior, use o historico recente para entender a continuidade. Exemplo: depois de informar diaria, 'e para 10 dias?' pede calculo com a diaria anterior.",
   "Se a pergunta for diferente da anterior, responda o novo assunto usando a base encontrada; nao repita resposta antiga.",
+  ticket.lastAiMessage
+    ? `Ultima resposta enviada pela IA, para evitar repeticao literal:\n${ticket.lastAiMessage}`
+    : "",
+  "Se sua resposta ficaria igual ou muito parecida com a ultima resposta da IA, gere uma resposta diferente e mais especifica para a mensagem atual.",
   "Se a base nao tiver informacao suficiente para responder, diga que vai encaminhar para um atendente.",
   `Estado do atendimento atual:\n${buildTicketStateText(ticket)}`,
   "Quando responder uma duvida com seguranca, finalize com uma pergunta natural de checagem ou continuidade, sem repetir sempre a mesma frase.",
@@ -340,7 +337,6 @@ const buildAnswerPrompt = ({
   aiSetting.companyName ? `Empresa ou servico: ${aiSetting.companyName}.` : "",
   `Historico recente:\n${history || "Sem historico."}`,
   `INFORMACOES INTERNAS ENCONTRADAS:\n${knowledge}`,
-  `Mensagem atual do cliente: ${message}`,
   "Resposta final ao cliente:"
 ].filter(Boolean).join("\n\n");
 
@@ -386,6 +382,10 @@ const generateAnswerFromKnowledge = async ({
 
     return cleanCustomerAiAnswer(answer || "") || null;
   } catch (error) {
+    if (error instanceof AiProviderError) {
+      throw error;
+    }
+
     logger.warn(
       {
         ticketId: ticket.id,
@@ -417,14 +417,46 @@ const withGeneratedKnowledgeAnswer = async ({
   knowledge: string;
   articles: KnowledgeFragment[];
 }): Promise<AiDecision> => {
-  const generatedAnswer = await generateAnswerFromKnowledge({
-    aiSetting,
-    ticket,
-    message,
-    contactName,
-    history,
-    knowledge
-  });
+  let generatedAnswer: string | null = null;
+
+  try {
+    generatedAnswer = await generateAnswerFromKnowledge({
+      aiSetting,
+      ticket,
+      message,
+      contactName,
+      history,
+      knowledge
+    });
+  } catch (error) {
+    if (error instanceof AiProviderError) {
+      logger.warn(
+        {
+          ticketId: ticket.id,
+          aiSettingId: aiSetting.id,
+          provider: error.provider,
+          status: error.status,
+          code: error.code
+        },
+        "[AI ACTION] Provider failed during final answer, handoff requested"
+      );
+
+      return {
+        ...decision,
+        intencao: "erro_api_ia",
+        confianca: "alta",
+        contexto: "O provedor de IA ficou indisponivel durante a resposta final.",
+        baseEncontrada: articles.length > 0,
+        respostaSegura: false,
+        acao: "encaminhar_atendente",
+        motivo: `Servico de IA indisponivel: ${error.message}`,
+        resposta: AI_UNAVAILABLE_HANDOFF_MESSAGE,
+        knowledgeIds: articles.map(article => article.id)
+      };
+    }
+
+    throw error;
+  }
 
   if (generatedAnswer) {
     logger.info(
@@ -473,6 +505,21 @@ const isExplicitHumanRequest = (message: string): boolean => {
     /\b(atendimento|suporte)\s+humano\b/.test(normalized) ||
     /\b(nao|n)\s+quero\s+(robo|ia|bot)\b/.test(normalized)
   );
+};
+
+const isExplicitCloseRequest = (message: string): boolean => {
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return false;
+
+  if (/\b(erro|problema|falha|nao consigo|n consigo|dificuldade)\s+(ao|para|pra|de)?\s*(fechar|finalizar|encerrar|concluir)\b/.test(normalized)) {
+    return false;
+  }
+
+  return /^(encerrar|encerra|finalizar|finaliza|fechar|fecha|concluir|conclui|pode encerrar|pode finalizar|pode fechar|pode concluir|quero encerrar|quero finalizar|quero fechar|quero concluir|encerra atendimento|encerrar atendimento|finaliza atendimento|finalizar atendimento|fecha atendimento|fechar atendimento)$/.test(normalized);
 };
 
 const shouldPreferKnowledgeFallback = (
@@ -772,6 +819,20 @@ const DecideAiTicketActionService = async ({
       respostaSegura: false,
       acao: "encaminhar_atendente",
       motivo: "Pedido explicito de atendente humano."
+    };
+  }
+
+  if (isExplicitCloseRequest(message)) {
+    return {
+      intencao: "pedido_encerramento",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente pediu explicitamente para encerrar o atendimento.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "encerrar_atendimento",
+      motivo: "Pedido explicito de encerramento.",
+      resposta: "Perfeito! Vou finalizar seu atendimento. Se precisar novamente, e so chamar. [FECHAR TICKET]"
     };
   }
 

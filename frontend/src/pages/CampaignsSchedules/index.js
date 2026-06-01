@@ -197,6 +197,59 @@ const useStyles = makeStyles(theme => ({
   contactNumber: {
     color: theme.palette.text.secondary,
     fontSize: 12
+  },
+  wizardSteps: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(120px, 1fr))",
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(2),
+    [theme.breakpoints.down("xs")]: {
+      gridTemplateColumns: "1fr"
+    }
+  },
+  wizardStep: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    padding: theme.spacing(1),
+    cursor: "pointer",
+    background: theme.palette.type === "dark" ? "#111A2E" : "#FFFFFF",
+    color: theme.palette.text.secondary,
+    transition: "all .2s ease",
+    "& strong": {
+      display: "block",
+      color: "inherit",
+      fontSize: 13
+    },
+    "& span": {
+      fontSize: 12
+    }
+  },
+  wizardStepActive: {
+    borderColor: theme.palette.primary.main,
+    background: theme.palette.type === "dark" ? "rgba(37,99,235,0.18)" : "#EFF6FF",
+    color: theme.palette.primary.main,
+    boxShadow: theme.custom?.cardShadow || "0 10px 24px rgba(15,23,42,0.08)"
+  },
+  wizardSection: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    padding: theme.spacing(1.5),
+    background: theme.palette.type === "dark" ? "#111A2E" : "#FFFFFF",
+    marginBottom: theme.spacing(1.5)
+  },
+  summaryList: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: theme.spacing(1),
+    [theme.breakpoints.down("xs")]: {
+      gridTemplateColumns: "1fr"
+    }
+  },
+  summaryItem: {
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    padding: theme.spacing(1),
+    background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC"
   }
 }));
 
@@ -255,6 +308,25 @@ const repeatUnitOptions = [
   { value: "minutes", label: "minutos" },
   { value: "hours", label: "horas" },
   { value: "days", label: "dias" }
+];
+
+const scheduleSteps = [
+  {
+    title: "Mensagem e destinatarios",
+    description: "Conteudo, anexo e publico"
+  },
+  {
+    title: "Ritmo de envio",
+    description: "Intervalo e pausas da fila"
+  },
+  {
+    title: "Quando enviar",
+    description: "Data, horarios e recorrencia"
+  },
+  {
+    title: "Resumo",
+    description: "Conferir e concluir"
+  }
 ];
 
 const toDateTimeLocalValue = value => {
@@ -402,6 +474,7 @@ const CampaignsSchedules = () => {
   const [campaignMedia, setCampaignMedia] = useState(null);
   const [scheduleMedia, setScheduleMedia] = useState(null);
   const [scheduleTimeInput, setScheduleTimeInput] = useState("");
+  const [scheduleStep, setScheduleStep] = useState(0);
   const [editingScheduleId, setEditingScheduleId] = useState(null);
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const [logsTitle, setLogsTitle] = useState("");
@@ -695,6 +768,111 @@ const CampaignsSchedules = () => {
     return Math.min(100, Math.round((progress.sent / progress.total) * 100));
   };
 
+  const getSelectedRecipientCount = () => {
+    const selectedContacts = contacts.filter(contact =>
+      scheduleForm.contactIds.map(Number).includes(Number(contact.id))
+    ).length;
+
+    const tagContacts = scheduleForm.tagIds?.length
+      ? contacts.filter(contact => !contact.isGroup && contactHasAnyTag(contact, scheduleForm.tagIds)).length
+      : 0;
+
+    if (selectedContacts && tagContacts) return `${selectedContacts} selecionado(s) + ${tagContacts} por etiqueta`;
+    if (selectedContacts) return `${selectedContacts} selecionado(s)`;
+    if (tagContacts) return `${tagContacts} por etiqueta`;
+    return "Nenhum destinatario selecionado";
+  };
+
+  const getWhenSummary = () => {
+    if (scheduleForm.recurrenceType === "once") {
+      return scheduleForm.scheduledAt
+        ? `Uma vez em ${new Date(scheduleForm.scheduledAt).toLocaleString()}`
+        : "Envio unico sem data definida";
+    }
+
+    if (scheduleForm.recurrenceType === "weekly") {
+      const days = weekdayOptions
+        .filter(day => (scheduleForm.weekdays || []).map(Number).includes(day.value))
+        .map(day => day.label)
+        .join(", ");
+      const times = (scheduleForm.times || []).join(", ");
+      return `Semanal: ${days || "sem dias"} às ${times || "sem horarios"}`;
+    }
+
+    const unitLabel = repeatUnitOptions.find(item => item.value === scheduleForm.repeatUnit)?.label || "horas";
+    return `Repetir a cada ${scheduleForm.repeatEvery || 1} ${unitLabel}`;
+  };
+
+  const validateScheduleStep = step => {
+    if (step === 0) {
+      const hasRecipients = !!scheduleForm.contactIds?.length || !!scheduleForm.tagIds?.length;
+      if (!scheduleForm.message && !scheduleMedia) {
+        toast.error("Informe a mensagem ou anexe um arquivo para enviar.");
+        return false;
+      }
+      if (!hasRecipients) {
+        toast.error("Escolha pelo menos um contato, grupo ou etiqueta.");
+        return false;
+      }
+      return true;
+    }
+
+    if (step === 1) {
+      const intervals = String(scheduleForm.intervalPattern || "")
+        .split(":")
+        .map(item => Number(item.trim()))
+        .filter(Number.isFinite);
+      if (!intervals.length || intervals.some(item => item <= 0)) {
+        toast.error("Informe pelo menos um intervalo valido em segundos.");
+        return false;
+      }
+      if (Number(scheduleForm.pauseAfter || 0) < 0 || Number(scheduleForm.pauseMinutes || 0) < 0) {
+        toast.error("Os campos de pausa nao podem ser negativos.");
+        return false;
+      }
+      return true;
+    }
+
+    if (step === 2) {
+      if (scheduleForm.recurrenceType === "once" && !scheduleForm.scheduledAt) {
+        toast.error("Informe a data e hora do envio.");
+        return false;
+      }
+      if (scheduleForm.recurrenceType === "weekly" && !scheduleForm.weekdays?.length) {
+        toast.error("Escolha pelo menos um dia da semana.");
+        return false;
+      }
+      if (scheduleForm.recurrenceType === "weekly" && !scheduleForm.times?.length) {
+        toast.error("Adicione pelo menos um horario.");
+        return false;
+      }
+      if (scheduleForm.recurrenceType === "interval" && Number(scheduleForm.repeatEvery || 0) <= 0) {
+        toast.error("Informe um intervalo de repeticao valido.");
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  const goToScheduleStep = nextStep => {
+    if (nextStep <= scheduleStep) {
+      setScheduleStep(nextStep);
+      return;
+    }
+
+    for (let step = scheduleStep; step < nextStep; step += 1) {
+      if (!validateScheduleStep(step)) return;
+    }
+    setScheduleStep(nextStep);
+  };
+
+  const nextScheduleStep = () => {
+    if (!validateScheduleStep(scheduleStep)) return;
+    setScheduleStep(prev => Math.min(prev + 1, scheduleSteps.length - 1));
+  };
+
   const buildAutomationItems = () => {
     const campaignItems = campaigns.map(campaign => {
       const progress = getCampaignProgress(campaign);
@@ -770,6 +948,7 @@ const CampaignsSchedules = () => {
     setCampaignMedia(null);
     setScheduleMedia(null);
     setScheduleTimeInput("");
+    setScheduleStep(0);
     setScheduleModalOpen(true);
   };
 
@@ -781,6 +960,7 @@ const CampaignsSchedules = () => {
     setCampaignMedia(null);
     setScheduleMedia(null);
     setScheduleTimeInput("");
+    setScheduleStep(0);
     setScheduleModalOpen(true);
   };
 
@@ -813,6 +993,7 @@ const CampaignsSchedules = () => {
     });
     setScheduleMedia(null);
     setScheduleTimeInput("");
+    setScheduleStep(0);
     setScheduleModalOpen(true);
   };
 
@@ -825,10 +1006,18 @@ const CampaignsSchedules = () => {
     setCampaignMedia(null);
     setScheduleMedia(null);
     setScheduleTimeInput("");
+    setScheduleStep(0);
   };
 
   const saveSchedule = async () => {
     try {
+      for (let step = 0; step < scheduleSteps.length - 1; step += 1) {
+        if (!validateScheduleStep(step)) {
+          setScheduleStep(step);
+          return;
+        }
+      }
+
       const payload = new FormData();
       const schedulePayload = { ...scheduleForm, sendType };
       Object.entries(schedulePayload).forEach(([key, value]) => {
@@ -1127,7 +1316,285 @@ const CampaignsSchedules = () => {
       <Dialog open={scheduleModalOpen} onClose={closeScheduleModal} maxWidth="md" fullWidth>
         <DialogTitle>{editingScheduleId ? "Editar agendamento" : "Novo envio"}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2}>
+          <div className={classes.wizardSteps}>
+            {scheduleSteps.map((step, index) => (
+              <div
+                key={step.title}
+                className={`${classes.wizardStep} ${scheduleStep === index ? classes.wizardStepActive : ""}`}
+                onClick={() => goToScheduleStep(index)}
+                role="button"
+                tabIndex={0}
+              >
+                <strong>{index + 1}. {step.title}</strong>
+                <span>{step.description}</span>
+              </div>
+            ))}
+          </div>
+
+          {scheduleStep === 0 && (
+            <>
+              <Paper className={classes.wizardSection} variant="outlined">
+                <Typography variant="subtitle1">Mensagem</Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Escreva o conteudo, escolha a conexao e anexe arquivo se precisar.
+                </Typography>
+                <Grid container spacing={2}>
+                  {!editingScheduleId && (
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        margin="dense"
+                        variant="outlined"
+                        label="Tipo do envio"
+                        value={sendType}
+                        onChange={event => setSendType(event.target.value)}
+                      >
+                        <MenuItem value="scheduled">Mensagem agendada</MenuItem>
+                        <MenuItem value="campaign">Campanha</MenuItem>
+                      </TextField>
+                    </Grid>
+                  )}
+                  <Grid item xs={12} sm={6}>
+                    <TextField select fullWidth margin="dense" variant="outlined" label="Conexao WhatsApp" name="whatsappId" value={scheduleForm.whatsappId} onChange={handleScheduleChange}>
+                      <MenuItem value="">Padrao</MenuItem>
+                      {whatsapps.map(whatsapp => (
+                        <MenuItem key={whatsapp.id} value={whatsapp.id}>{whatsapp.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <MessageTemplateField
+                      label="Mensagem"
+                      name="message"
+                      value={scheduleForm.message}
+                      onChange={handleScheduleChange}
+                      rows={5}
+                      required
+                      onMediaChange={setScheduleMedia}
+                      mediaName={scheduleMedia?.name}
+                    />
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              <Paper className={classes.wizardSection} variant="outlined">
+                <Typography variant="subtitle1">Destinatarios</Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Selecione contatos, grupos ou etiquetas. Contatos com etiquetas de exclusao serao ignorados.
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField select fullWidth margin="dense" variant="outlined" label="Publico" name="audience" value={scheduleForm.audience} onChange={handleScheduleAudienceChange}>
+                      <MenuItem value="all">Contatos e grupos</MenuItem>
+                      <MenuItem value="contacts">Somente contatos</MenuItem>
+                      <MenuItem value="groups">Somente grupos</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      select
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Etiquetas"
+                      name="tagIds"
+                      value={scheduleForm.tagIds}
+                      onChange={handleScheduleChange}
+                      SelectProps={{ multiple: true, renderValue: renderTagValue }}
+                    >
+                      {tags.map(tag => (
+                        <MenuItem key={tag.id} value={tag.id}>{tag.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <ContactPicker
+                      classes={classes}
+                      contacts={contacts}
+                      audience={scheduleForm.audience}
+                      selectedIds={scheduleForm.contactIds}
+                      label="Contatos ou grupos"
+                      onChange={contactIds => setScheduleForm(prev => ({ ...prev, contactIds }))}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth type="number" margin="dense" variant="outlined" label="Etiqueta aplicada nos ultimos dias" name="tagAppliedLastDays" value={scheduleForm.tagAppliedLastDays} onChange={handleScheduleChange} placeholder="Ex: 7" />
+                    <TextField
+                      select
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Nao enviar para contatos com estas etiquetas"
+                      name="excludeTagIds"
+                      value={scheduleForm.excludeTagIds}
+                      onChange={handleScheduleChange}
+                      SelectProps={{ multiple: true, renderValue: renderTagValue }}
+                    >
+                      {tags.map(tag => (
+                        <MenuItem key={tag.id} value={tag.id}>{tag.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </>
+          )}
+
+          {scheduleStep === 1 && (
+            <Paper className={classes.wizardSection} variant="outlined">
+              <Typography variant="subtitle1">Ritmo de envio</Typography>
+              <Typography variant="body2" color="textSecondary">
+                O sistema envia em fila. Configure intervalos e pausas para evitar envio rapido demais.
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField fullWidth required margin="dense" variant="outlined" label="Intervalos entre mensagens em segundos" name="intervalPattern" value={scheduleForm.intervalPattern} onChange={handleScheduleChange} placeholder="30 ou 20:35:50" />
+                  <Typography variant="caption" color="textSecondary">
+                    Use um tempo fixo, como 30, ou varios tempos separados por dois-pontos, como 20:35:50.
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="number" margin="dense" variant="outlined" label="Pausar apos quantos contatos" name="pauseAfter" value={scheduleForm.pauseAfter} onChange={handleScheduleChange} />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField fullWidth type="number" margin="dense" variant="outlined" label="Tempo da pausa em minutos" name="pauseMinutes" value={scheduleForm.pauseMinutes} onChange={handleScheduleChange} />
+                </Grid>
+              </Grid>
+            </Paper>
+          )}
+
+          {scheduleStep === 2 && (
+            <Paper className={classes.wizardSection} variant="outlined">
+              <Typography variant="subtitle1">Quando enviar</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Escolha envio unico, dias e horarios especificos ou repeticao por intervalo.
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de agendamento" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>
+                    <MenuItem value="once">Executar uma vez</MenuItem>
+                    <MenuItem value="weekly">Dias e horarios especificos</MenuItem>
+                    <MenuItem value="interval">Repetir por intervalo</MenuItem>
+                  </TextField>
+                </Grid>
+                {scheduleForm.recurrenceType === "once" && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField fullWidth required type="datetime-local" margin="dense" variant="outlined" label="Data e hora" name="scheduledAt" value={scheduleForm.scheduledAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                  </Grid>
+                )}
+                {scheduleForm.recurrenceType === "weekly" && (
+                  <>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2">Dias da semana</Typography>
+                      <Grid container spacing={1}>
+                        {weekdayOptions.map(day => (
+                          <Grid item xs={6} sm={3} md={2} key={day.value}>
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  color="primary"
+                                  checked={(scheduleForm.weekdays || []).map(Number).includes(day.value)}
+                                  onChange={() => toggleScheduleWeekday(day.value)}
+                                />
+                              }
+                              label={day.label}
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2">Horarios</Typography>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} sm={4}>
+                          <TextField fullWidth type="time" margin="dense" variant="outlined" label="Horario" value={scheduleTimeInput} onChange={event => setScheduleTimeInput(event.target.value)} InputLabelProps={{ shrink: true }} />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <Button fullWidth variant="outlined" color="primary" onClick={addScheduleTime}>
+                            Adicionar horario
+                          </Button>
+                        </Grid>
+                      </Grid>
+                      <div className={classes.tagChips} style={{ marginTop: 8 }}>
+                        {(scheduleForm.times || []).map(time => (
+                          <Chip key={time} size="small" label={time} onDelete={() => removeScheduleTime(time)} />
+                        ))}
+                      </div>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Inicio" name="startsAt" value={scheduleForm.startsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Fim opcional" name="endsAt" value={scheduleForm.endsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                    </Grid>
+                  </>
+                )}
+                {scheduleForm.recurrenceType === "interval" && (
+                  <>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth required type="number" margin="dense" variant="outlined" label="Repetir a cada" name="repeatEvery" value={scheduleForm.repeatEvery} onChange={handleScheduleChange} inputProps={{ min: 1 }} />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField select fullWidth margin="dense" variant="outlined" label="Unidade" name="repeatUnit" value={scheduleForm.repeatUnit} onChange={handleScheduleChange}>
+                        {repeatUnitOptions.map(unit => (
+                          <MenuItem key={unit.value} value={unit.value}>{unit.label}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField fullWidth type="number" margin="dense" variant="outlined" label="Limite de execucoes" name="maxRuns" value={scheduleForm.maxRuns} onChange={handleScheduleChange} inputProps={{ min: 1 }} helperText="Opcional" />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Comecar em" name="startsAt" value={scheduleForm.startsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} helperText="Se vazio, comeca no proximo minuto." />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField fullWidth type="datetime-local" margin="dense" variant="outlined" label="Fim opcional" name="endsAt" value={scheduleForm.endsAt} onChange={handleScheduleChange} InputLabelProps={{ shrink: true }} />
+                    </Grid>
+                  </>
+                )}
+              </Grid>
+            </Paper>
+          )}
+
+          {scheduleStep === 3 && (
+            <Paper className={classes.wizardSection} variant="outlined">
+              <Typography variant="subtitle1">Resumo</Typography>
+              <Typography variant="body2" color="textSecondary">
+                Confira antes de concluir. O envio sera processado em fila respeitando o ritmo configurado.
+              </Typography>
+              <div className={classes.summaryList}>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Tipo</Typography>
+                  <Typography variant="body2">{sendType === "campaign" ? "Campanha" : "Mensagem agendada"}</Typography>
+                </div>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Destinatarios</Typography>
+                  <Typography variant="body2">{getSelectedRecipientCount()}</Typography>
+                </div>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Ritmo</Typography>
+                  <Typography variant="body2">
+                    Intervalos: {scheduleForm.intervalPattern || "nao informado"}s. Pausa a cada {scheduleForm.pauseAfter || 0} contato(s) por {scheduleForm.pauseMinutes || 0} min.
+                  </Typography>
+                </div>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Quando enviar</Typography>
+                  <Typography variant="body2">{getWhenSummary()}</Typography>
+                </div>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Conexao</Typography>
+                  <Typography variant="body2">{whatsapps.find(item => Number(item.id) === Number(scheduleForm.whatsappId))?.name || "Padrao"}</Typography>
+                </div>
+                <div className={classes.summaryItem}>
+                  <Typography variant="caption" color="textSecondary">Anexo</Typography>
+                  <Typography variant="body2">{scheduleMedia?.name || "Sem anexo novo"}</Typography>
+                </div>
+              </div>
+            </Paper>
+          )}
+
+          <Grid container spacing={2} style={{ display: "none" }}>
             {!editingScheduleId && (
               <Grid item xs={12} sm={6}>
                 <TextField
@@ -1341,9 +1808,20 @@ const CampaignsSchedules = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={closeScheduleModal}>Cancelar</Button>
-          <Button color="primary" variant="contained" onClick={saveSchedule}>
+          {scheduleStep > 0 && (
+            <Button onClick={() => setScheduleStep(prev => Math.max(prev - 1, 0))}>
+              Voltar
+            </Button>
+          )}
+          {scheduleStep < scheduleSteps.length - 1 ? (
+            <Button color="primary" variant="contained" onClick={nextScheduleStep}>
+              Avancar
+            </Button>
+          ) : (
+            <Button color="primary" variant="contained" onClick={saveSchedule}>
             {editingScheduleId ? "Salvar" : "Agendar"}
-          </Button>
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
       <Dialog open={logsModalOpen} onClose={() => setLogsModalOpen(false)} maxWidth="md" fullWidth>

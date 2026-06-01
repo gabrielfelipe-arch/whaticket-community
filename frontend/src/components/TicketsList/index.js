@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
+import React, { useState, useEffect, useReducer, useContext, useRef } from "react";
 import openSocket from "../../services/socket-io";
 
 import { makeStyles } from "@material-ui/core/styles";
@@ -161,6 +161,7 @@ const reducer = (state, action) => {
 	const classes = useStyles();
 	const [pageNumber, setPageNumber] = useState(1);
 	const [ticketsList, dispatch] = useReducer(reducer, []);
+	const recentlyRemovedTicketIds = useRef(new Set());
 	const { user } = useContext(AuthContext);
 
 	useEffect(() => {
@@ -208,6 +209,15 @@ const reducer = (state, action) => {
 		const notBelongsToUserQueues = ticket =>
 			ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
 
+		const removeTicketFromPanel = ticketId => {
+			recentlyRemovedTicketIds.current.add(ticketId);
+			dispatch({ type: "DELETE_TICKET", payload: ticketId });
+
+			setTimeout(() => {
+				recentlyRemovedTicketIds.current.delete(ticketId);
+			}, 30000);
+		};
+
 		socket.on("connect", () => {
 			if (status) {
 				socket.emit("joinTickets", status);
@@ -232,19 +242,23 @@ const reducer = (state, action) => {
 			}
 
 			if (data.action === "update" && !shouldUpdateTicket(data.ticket)) {
-				dispatch({ type: "DELETE_TICKET", payload: data.ticket.id });
+				removeTicketFromPanel(data.ticket.id);
 			}
 
 			if (data.action === "update" && notBelongsToUserQueues(data.ticket)) {
-				dispatch({ type: "DELETE_TICKET", payload: data.ticket.id });
+				removeTicketFromPanel(data.ticket.id);
 			}
 
 			if (data.action === "delete") {
-				dispatch({ type: "DELETE_TICKET", payload: data.ticketId });
+				removeTicketFromPanel(data.ticketId);
 			}
 		});
 
 		socket.on("appMessage", data => {
+			if (recentlyRemovedTicketIds.current.has(data.ticket?.id)) {
+				return;
+			}
+
 			if (data.action === "create" && shouldUpdateTicket(data.ticket)) {
 				dispatch({
 					type: "UPDATE_TICKET_UNREAD_MESSAGES",
