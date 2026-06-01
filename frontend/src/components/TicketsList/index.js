@@ -191,7 +191,7 @@ const reducer = (state, action) => {
 
 		const belongsToThisPanel = ticket => {
 			if (triageOnly === "true") {
-				return ticket.status === "pending" && !ticket.queueId && (ticket.uraActive || ticket.aiActive);
+				return ticket.status === "pending" && (ticket.uraActive || ticket.aiActive);
 			}
 
 			if (status === "pending") {

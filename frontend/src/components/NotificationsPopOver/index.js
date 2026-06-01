@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import { useHistory } from "react-router-dom";
+import clsx from "clsx";
 import { format } from "date-fns";
 import openSocket from "../../services/socket-io";
 import useSound from "use-sound";
@@ -38,11 +39,15 @@ const useStyles = makeStyles(theme => ({
 		boxShadow: "none !important",
 	},
 	iconButton: {
-		color: theme.palette.text.primary,
+		color: "#FFFFFF",
+		"& .MuiSvgIcon-root": {
+			color: "#FFFFFF",
+			fill: "#FFFFFF",
+		},
 	},
 }));
 
-const NotificationsPopOver = () => {
+const NotificationsPopOver = ({ className }) => {
 	const classes = useStyles();
 
 	const history = useHistory();
@@ -194,7 +199,7 @@ const NotificationsPopOver = () => {
 				onClick={handleClick}
 				ref={anchorEl}
 				aria-label="Open Notifications"
-				className={classes.iconButton}
+				className={clsx(classes.iconButton, className)}
 			>
 				<Badge badgeContent={notifications.length} color="secondary">
 					<ChatIcon />

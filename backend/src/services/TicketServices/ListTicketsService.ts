@@ -95,7 +95,6 @@ const ListTicketsService = async ({
   if (triageOnly === "true") {
     whereCondition = {
       ...whereCondition,
-      queueId: null,
       [Op.or]: [
         { uraActive: true },
         { aiActive: true }
@@ -105,13 +104,18 @@ const ListTicketsService = async ({
     const previousAnd = ((whereCondition as any)[Op.and] as unknown[]) || [];
     whereCondition = {
       ...whereCondition,
-      uraActive: false,
       [Op.and]: [
         ...previousAnd,
         {
           [Op.or]: [
             { aiActive: false },
-            { queueId: { [Op.ne]: null } }
+            { aiActive: null }
+          ]
+        } as any,
+        {
+          [Op.or]: [
+            { uraActive: false },
+            { uraActive: null }
           ]
         } as any
       ]
