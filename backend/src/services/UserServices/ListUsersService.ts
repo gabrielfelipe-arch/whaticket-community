@@ -40,6 +40,7 @@ const ListUsersService = async ({
       "id",
       "email",
       "profile",
+      "active",
       "attendanceGreeting",
       "operationalStatus",
       "lastActivityAt",

@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 
 import AppError from "../errors/AppError";
 import authConfig from "../config/auth";
+import User from "../models/User";
 
 interface TokenPayload {
   id: string;
@@ -12,7 +13,7 @@ interface TokenPayload {
   exp: number;
 }
 
-const isAuth = (req: Request, res: Response, next: NextFunction): void => {
+const isAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -25,9 +26,17 @@ const isAuth = (req: Request, res: Response, next: NextFunction): void => {
     const decoded = verify(token, authConfig.secret);
     const { id, profile } = decoded as TokenPayload;
 
+    const user = await User.findByPk(id, {
+      attributes: ["id", "profile", "active"]
+    });
+
+    if (!user || user.active === false) {
+      throw new AppError("Usuário inativo. Procure o administrador do sistema.", 403);
+    }
+
     req.user = {
       id,
-      profile
+      profile: user.profile || profile
     };
   } catch (err) {
     throw new AppError(

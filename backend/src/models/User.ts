@@ -49,6 +49,10 @@ class User extends Model<User> {
   @Column
   profile: string;
 
+  @Default(true)
+  @Column
+  active: boolean;
+
   @Column(DataType.TEXT)
   attendanceGreeting: string;
 

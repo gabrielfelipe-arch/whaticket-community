@@ -40,6 +40,10 @@ const AuthUserService = async ({
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
   }
 
+  if (user.active === false) {
+    throw new AppError("Usuário inativo. Procure o administrador do sistema.", 403);
+  }
+
   if (!(await user.checkPassword(password))) {
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
   }

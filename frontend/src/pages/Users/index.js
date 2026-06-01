@@ -43,6 +43,16 @@ const statusColors = {
   offline: "#94A3B8",
 };
 
+const accountStatusLabels = {
+  active: "Ativo",
+  inactive: "Inativo",
+};
+
+const accountStatusColors = {
+  active: "#22C55E",
+  inactive: "#EF4444",
+};
+
 const reducer = (state, action) => {
   if (action.type === "LOAD_USERS") {
     const users = action.payload;
@@ -257,6 +267,9 @@ const Users = () => {
                 {i18n.t("users.table.profile")}
               </TableCell>
               <TableCell align="center">
+                Acesso
+              </TableCell>
+              <TableCell align="center">
                 Status
               </TableCell>
               <TableCell align="center">
@@ -274,6 +287,17 @@ const Users = () => {
                   <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
                   <TableCell align="center">{user.profile}</TableCell>
+                  <TableCell align="center">
+                    <Chip
+                      size="small"
+                      label={user.active === false ? accountStatusLabels.inactive : accountStatusLabels.active}
+                      style={{
+                        backgroundColor: user.active === false ? accountStatusColors.inactive : accountStatusColors.active,
+                        color: "#fff",
+                        fontWeight: 700,
+                      }}
+                    />
+                  </TableCell>
                   <TableCell align="center">
                     <Chip
                       size="small"
@@ -306,7 +330,7 @@ const Users = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {loading && <TableRowSkeleton columns={4} />}
+              {loading && <TableRowSkeleton columns={7} />}
             </>
           </TableBody>
         </Table>

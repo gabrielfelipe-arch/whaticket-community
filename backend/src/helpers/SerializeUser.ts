@@ -7,6 +7,7 @@ interface SerializedUser {
   name: string;
   email: string;
   profile: string;
+  active: boolean;
   attendanceGreeting: string;
   operationalStatus: string;
   lastActivityAt: Date;
@@ -22,6 +23,7 @@ export const SerializeUser = (user: User): SerializedUser => {
     name: user.name,
     email: user.email,
     profile: user.profile,
+    active: user.active,
     attendanceGreeting: user.attendanceGreeting,
     operationalStatus: user.operationalStatus,
     lastActivityAt: user.lastActivityAt,

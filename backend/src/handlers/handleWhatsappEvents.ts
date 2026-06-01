@@ -1699,6 +1699,9 @@ export const handleMessage = async (
       if (handledByUra) return;
     }
 
+    const hasInactiveUraFlow =
+      !!whatsapp.uraFlow && whatsapp.uraFlow.active === false;
+
     if (
       ticket.aiActive &&
       !contextPayload.groupContact &&
@@ -1717,6 +1720,7 @@ export const handleMessage = async (
 
     if (
       !ticket.queue &&
+      !hasInactiveUraFlow &&
       !contextPayload.groupContact &&
       !processedMessage.fromMe &&
       !ticket.userId &&

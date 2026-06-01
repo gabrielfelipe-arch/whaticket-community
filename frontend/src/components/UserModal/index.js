@@ -17,7 +17,9 @@ import {
 	FormControl,
 	TextField,
 	InputAdornment,
-	IconButton
+	IconButton,
+	FormControlLabel,
+	Switch
   } from '@material-ui/core';
 
 import { Visibility, VisibilityOff } from '@material-ui/icons';
@@ -82,6 +84,7 @@ const UserModal = ({ open, onClose, userId }) => {
 		email: "",
 		password: "",
 		profile: "user",
+		active: true,
 		attendanceGreeting: "",
 		operationalStatus: "offline",
 	};
@@ -158,7 +161,7 @@ const UserModal = ({ open, onClose, userId }) => {
 						}, 400);
 					}}
 				>
-					{({ touched, errors, isSubmitting }) => (
+					{({ touched, errors, isSubmitting, values }) => (
 						<Form>
 							<DialogContent dividers>
 								<div className={classes.multFieldLine}>
@@ -273,6 +276,23 @@ const UserModal = ({ open, onClose, userId }) => {
 									label="Saudacao de atendimento"
 									name="attendanceGreeting"
 									rows={3}
+								/>
+								<Can
+									role={loggedInUser.profile}
+									perform="user-modal:editProfile"
+									yes={() => (
+										<FormControlLabel
+											control={
+												<Field
+													as={Switch}
+													color="primary"
+													name="active"
+													checked={values.active !== false}
+												/>
+											}
+											label={values.active === false ? "Usuario inativo" : "Usuario ativo"}
+										/>
+									)}
 								/>
 								<Can
 									role={loggedInUser.profile}
