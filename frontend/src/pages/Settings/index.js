@@ -29,7 +29,9 @@ import {
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
+import CloudDownloadIcon from "@material-ui/icons/CloudDownload";
 import EditIcon from "@material-ui/icons/Edit";
+import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import { toast } from "react-toastify";
 
 import api from "../../services/api";
@@ -828,6 +830,38 @@ const plainTextToHtml = value =>
 		.split(/\n{2,}/)
 		.map(paragraph => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
 		.join("");
+
+const htmlToPlainText = value => {
+	const container = document.createElement("div");
+	container.innerHTML = String(value || "")
+		.replace(/<br\s*\/?>/gi, "\n")
+		.replace(/<\/p>/gi, "\n\n")
+		.replace(/<\/li>/gi, "\n");
+	return (container.textContent || container.innerText || "")
+		.replace(/\n{3,}/g, "\n\n")
+		.trim();
+};
+
+const slugText = value =>
+	String(value || "arquivo")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "") || "arquivo";
+
+const downloadTextFile = (filename, content) => {
+	const blob = new Blob([content || ""], { type: "text/plain;charset=utf-8" });
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename;
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+	URL.revokeObjectURL(url);
+};
 
 const defaultValue = field => {
 	if (field.name === "fixed") return false;
@@ -1768,13 +1802,39 @@ const emptyQualificationQuestion = formId => ({
 
 const safeArray = value => Array.isArray(value) ? value.filter(Boolean) : [];
 
+const qualificationRouteActions = [
+	{ value: "NEXT", label: "Continuar para a proxima pergunta" },
+	{ value: "GOTO_QUESTION", label: "Ir para uma pergunta especifica" },
+	{ value: "END_FORM", label: "Encerrar formulario e seguir acao da URA" },
+	{ value: "START_AI", label: "Encerrar e iniciar IA" },
+	{ value: "TRANSFER_QUEUE", label: "Encerrar e transferir para fila" },
+	{ value: "HUMAN", label: "Encerrar e encaminhar para humano" },
+	{ value: "CLOSE_TICKET", label: "Encerrar atendimento" },
+	{ value: "BACK_ROOT", label: "Voltar ao menu principal da URA" },
+	{ value: "BACK_PREVIOUS", label: "Voltar ao menu anterior da URA" },
+	{ value: "OPEN_URA_OPTION", label: "Abrir uma opcao/submenu da URA" }
+];
+
 const parseQuestionOptions = value => {
 	if (Array.isArray(value)) {
 		return safeArray(value).map((item, index) => ({
 			value: String(item?.value || index + 1),
 			label: String(item?.label || item?.value || ""),
-			tagRefs: parseListValue(item?.tagRefs || item?.tagIds || [])
-		})).filter(item => item.label);
+			tagRefs: parseListValue(item?.tagRefs || item?.tagIds || []),
+			nextAction: item?.nextAction || "NEXT",
+			nextMessage: item?.nextMessage || "",
+			nextMessages: Array.isArray(item?.nextMessages)
+				? item.nextMessages.map(message => ({
+					body: message?.body || "",
+					mediaUrl: message?.mediaUrl || "",
+					mediaType: message?.mediaType || "",
+					mediaName: message?.mediaName || ""
+				})).filter(message => message.body || message.mediaUrl)
+				: (item?.nextMessage ? [{ body: item.nextMessage, mediaUrl: "", mediaType: "", mediaName: "" }] : []),
+			nextQuestionId: item?.nextQuestionId || "",
+			targetQueueId: item?.targetQueueId || "",
+			uraOptionId: item?.uraOptionId || ""
+		})).filter(item => item.value);
 	}
 
 	const text = String(value || "").trim();
@@ -1791,7 +1851,13 @@ const parseQuestionOptions = value => {
 				return {
 					value: parts[1] ? parts[0] : String(index + 1),
 					label: parts[1] || parts[0],
-					tagRefs: parseListValue(parts.slice(2).join(","))
+					tagRefs: parseListValue(parts.slice(2).join(",")),
+					nextAction: "NEXT",
+					nextMessage: "",
+					nextMessages: [],
+					nextQuestionId: "",
+					targetQueueId: "",
+					uraOptionId: ""
 				};
 			})
 			.filter(item => item.label);
@@ -1837,11 +1903,14 @@ const QualificationFormsPanel = ({ classes }) => {
 	const [questions, setQuestions] = useState([]);
 	const [tags, setTags] = useState([]);
 	const [uraOptions, setUraOptions] = useState([]);
+	const [queues, setQueues] = useState([]);
 	const [selectedFormId, setSelectedFormId] = useState("");
 	const [form, setForm] = useState(emptyQualificationForm);
 	const [questionForm, setQuestionForm] = useState(null);
 	const [showAdvancedQuestion, setShowAdvancedQuestion] = useState(false);
 	const [loading, setLoading] = useState(false);
+	const [tagDialogOpen, setTagDialogOpen] = useState(false);
+	const [quickTagForm, setQuickTagForm] = useState({ name: "", color: "#607d8b", fixed: false });
 
 	const selectedFormQuestions = safeArray(questions)
 		.filter(question => Number(question.formId) === Number(selectedFormId))
@@ -1852,11 +1921,12 @@ const QualificationFormsPanel = ({ classes }) => {
 	const load = async () => {
 		setLoading(true);
 		try {
-			const [{ data: formData }, { data: questionData }, { data: tagData }, { data: uraOptionData }] = await Promise.all([
+			const [{ data: formData }, { data: questionData }, { data: tagData }, { data: uraOptionData }, { data: queueData }] = await Promise.all([
 				api.get("/qualification-forms"),
 				api.get("/qualification-form-questions"),
 				api.get("/tags"),
-				api.get("/ura-options").catch(() => ({ data: [] }))
+				api.get("/ura-options").catch(() => ({ data: [] })),
+				api.get("/queues").catch(() => ({ data: [] }))
 			]);
 
 			const nextForms = safeArray(formData);
@@ -1864,6 +1934,7 @@ const QualificationFormsPanel = ({ classes }) => {
 			setQuestions(safeArray(questionData));
 			setTags(safeArray(tagData));
 			setUraOptions(safeArray(uraOptionData));
+			setQueues(safeArray(queueData));
 
 			if (!selectedFormId && nextForms.length) {
 				setSelectedFormId(nextForms[0].id);
@@ -1961,8 +2032,8 @@ const QualificationFormsPanel = ({ classes }) => {
 
 			if (name === "type" && ["single_choice", "multiple_choice"].includes(value) && !parseQuestionOptions(next.options).length) {
 				next.options = [
-					{ value: "1", label: "", tagRefs: [] },
-					{ value: "2", label: "", tagRefs: [] }
+					{ value: "1", label: "", tagRefs: [], nextAction: "NEXT", nextMessage: "", nextMessages: [], nextQuestionId: "", targetQueueId: "", uraOptionId: "" },
+					{ value: "2", label: "", tagRefs: [], nextAction: "NEXT", nextMessage: "", nextMessages: [], nextQuestionId: "", targetQueueId: "", uraOptionId: "" }
 				];
 			}
 
@@ -1978,7 +2049,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				...(prev || {}),
 				options: [
 					...options,
-					{ value: String(options.length + 1), label: "", tagRefs: [] }
+					{ value: String(options.length + 1), label: "", tagRefs: [], nextAction: "NEXT", nextMessage: "", nextMessages: [], nextQuestionId: "", targetQueueId: "", uraOptionId: "" }
 				]
 			};
 		});
@@ -1995,6 +2066,52 @@ const QualificationFormsPanel = ({ classes }) => {
 				)
 			};
 		});
+	};
+
+	const updateOptionMessages = (optionIndex, messages) => {
+		updateOption(optionIndex, {
+			nextMessages: safeArray(messages),
+			nextMessage: safeArray(messages).map(message => textValue(message.body).trim()).filter(Boolean)[0] || ""
+		});
+	};
+
+	const addOptionMessage = optionIndex => {
+		const option = parseQuestionOptions(questionForm?.options || [])[optionIndex] || {};
+		updateOptionMessages(optionIndex, [
+			...safeArray(option.nextMessages),
+			{ body: "", mediaUrl: "", mediaType: "", mediaName: "" }
+		]);
+	};
+
+	const updateOptionMessage = (optionIndex, messageIndex, changes) => {
+		const option = parseQuestionOptions(questionForm?.options || [])[optionIndex] || {};
+		const messages = safeArray(option.nextMessages);
+		updateOptionMessages(optionIndex, messages.map((message, index) =>
+			index === messageIndex ? { ...message, ...changes } : message
+		));
+	};
+
+	const removeOptionMessage = (optionIndex, messageIndex) => {
+		const option = parseQuestionOptions(questionForm?.options || [])[optionIndex] || {};
+		updateOptionMessages(optionIndex, safeArray(option.nextMessages).filter((_, index) => index !== messageIndex));
+	};
+
+	const uploadOptionMessageMedia = async (optionIndex, messageIndex, file) => {
+		if (!file) return;
+		const formData = new FormData();
+		formData.append("media", file);
+
+		try {
+			const { data } = await api.post("/qualification-form-message-media", formData);
+			updateOptionMessage(optionIndex, messageIndex, {
+				mediaUrl: data.mediaUrl,
+				mediaType: data.mediaType,
+				mediaName: data.mediaName
+			});
+			toast.success("Anexo carregado.");
+		} catch (err) {
+			toastError(err);
+		}
 	};
 
 	const removeOption = index => {
@@ -2015,7 +2132,20 @@ const QualificationFormsPanel = ({ classes }) => {
 				.map((option, index) => ({
 					value: textValue(index + 1),
 					label: textValue(option.label).trim(),
-					tagRefs: parseListValue(option.tagRefs)
+					tagRefs: parseListValue(option.tagRefs),
+					nextAction: option.nextAction || "NEXT",
+					nextMessage: textValue(option.nextMessage).trim() || null,
+					nextMessages: safeArray(option.nextMessages)
+						.map(message => ({
+							body: textValue(message.body).trim() || null,
+							mediaUrl: message.mediaUrl || null,
+							mediaType: message.mediaType || null,
+							mediaName: message.mediaName || null
+						}))
+						.filter(message => message.body || message.mediaUrl),
+					nextQuestionId: option.nextAction === "GOTO_QUESTION" ? option.nextQuestionId || null : null,
+					targetQueueId: ["TRANSFER_QUEUE", "START_AI"].includes(option.nextAction) ? option.targetQueueId || null : null,
+					uraOptionId: option.nextAction === "OPEN_URA_OPTION" ? option.uraOptionId || null : null
 				}))
 				.filter(option => option.label);
 
@@ -2059,6 +2189,29 @@ const QualificationFormsPanel = ({ classes }) => {
 		}
 	};
 
+	const saveQuickTag = async () => {
+		const name = textValue(quickTagForm.name).trim();
+		if (!name) {
+			toast.info("Informe o nome da etiqueta.");
+			return;
+		}
+
+		try {
+			await api.post("/tags", {
+				name,
+				color: quickTagForm.color || "#607d8b",
+				fixed: !!quickTagForm.fixed
+			});
+			const { data } = await api.get("/tags");
+			setTags(safeArray(data));
+			setQuickTagForm({ name: "", color: "#607d8b", fixed: false });
+			setTagDialogOpen(false);
+			toast.success("Etiqueta criada.");
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
 	const renderOptionTags = option => {
 		const selected = parseListValue(option.tagRefs);
 		if (!selected.length) return "Sem etiquetas";
@@ -2066,6 +2219,24 @@ const QualificationFormsPanel = ({ classes }) => {
 		return selected
 			.map(tagId => safeArray(tags).find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
 			.join(", ");
+	};
+
+	const renderOptionRoute = option => {
+		const action = option.nextAction || "NEXT";
+		const actionLabel = qualificationRouteActions.find(item => item.value === action)?.label || "Continuar";
+		if (action === "GOTO_QUESTION" && option.nextQuestionId) {
+			const target = selectedFormQuestions.find(question => String(question.id) === String(option.nextQuestionId));
+			return `${actionLabel}: ${target?.label || `pergunta #${option.nextQuestionId}`}`;
+		}
+		if (["TRANSFER_QUEUE", "START_AI"].includes(action) && option.targetQueueId) {
+			const queue = safeArray(queues).find(item => String(item.id) === String(option.targetQueueId));
+			return `${actionLabel}: ${queue?.name || `fila #${option.targetQueueId}`}`;
+		}
+		if (action === "OPEN_URA_OPTION" && option.uraOptionId) {
+			const uraOption = safeArray(uraOptions).find(item => String(item.id) === String(option.uraOptionId));
+			return `${actionLabel}: ${uraOption ? `${uraOption.optionKey} - ${uraOption.title}` : `opcao #${option.uraOptionId}`}`;
+		}
+		return actionLabel;
 	};
 
 	const getFormUsage = formId =>
@@ -2077,6 +2248,7 @@ const QualificationFormsPanel = ({ classes }) => {
 	const selectedFormUsage = selectedFormId ? getFormUsage(selectedFormId) : [];
 
 	return (
+		<>
 		<Grid container spacing={2}>
 			<Grid item xs={12} md={3}>
 				<Paper variant="outlined" className={classes.formBuilderPanel}>
@@ -2239,6 +2411,12 @@ const QualificationFormsPanel = ({ classes }) => {
 											<div className={classes.questionMetaRow}>
 												<Chip size="small" variant="outlined" label={["single_choice", "multiple_choice"].includes(question.type) ? "Respostas configuradas" : "Resposta livre do cliente"} />
 												<Chip size="small" variant="outlined" label={question.required === false ? "Opcional" : "Obrigatoria"} />
+												{options.some(option => option.nextAction && option.nextAction !== "NEXT") && (
+													<Chip size="small" variant="outlined" color="primary" label="Fluxo condicional" />
+												)}
+												{options.some(option => textValue(option.nextMessage).trim() || safeArray(option.nextMessages).length) && (
+													<Chip size="small" variant="outlined" color="primary" label="Mensagem intermediaria" />
+												)}
 											</div>
 											{options.length > 0 && (
 												<div className={classes.inlineChips}>
@@ -2246,7 +2424,7 @@ const QualificationFormsPanel = ({ classes }) => {
 														<Chip
 															key={`${question.id}-${option.value}`}
 															size="small"
-															label={`Opcao ${option.value}: ${option.label}`}
+															label={`Opcao ${option.value}: ${option.label}${option.nextAction && option.nextAction !== "NEXT" ? ` -> ${renderOptionRoute(option)}` : ""}`}
 														/>
 													))}
 												</div>
@@ -2391,7 +2569,193 @@ const QualificationFormsPanel = ({ classes }) => {
 															</MenuItem>
 														))}
 													</TextField>
+													<Button
+														size="small"
+														variant="outlined"
+														color="primary"
+														onClick={() => setTagDialogOpen(true)}
+													>
+														Nova etiqueta
+													</Button>
 												</Grid>
+												<Grid item xs={12}>
+													<TextField
+														select
+														fullWidth
+														margin="dense"
+														variant="outlined"
+														label="Depois desta resposta"
+														value={option.nextAction || "NEXT"}
+														onChange={event => {
+															const value = event.target.value;
+															updateOption(index, {
+																nextAction: value,
+																nextQuestionId: value === "GOTO_QUESTION" ? option.nextQuestionId : "",
+																targetQueueId: ["TRANSFER_QUEUE", "START_AI"].includes(value) ? option.targetQueueId : "",
+																uraOptionId: value === "OPEN_URA_OPTION" ? option.uraOptionId : ""
+															});
+														}}
+														helperText={renderOptionRoute(option)}
+													>
+														{qualificationRouteActions.map(action => (
+															<MenuItem key={action.value} value={action.value}>
+																{action.label}
+															</MenuItem>
+														))}
+													</TextField>
+												</Grid>
+												<Grid item xs={12}>
+													<div className={classes.previewBox}>
+														<div className={classes.formBuilderHeader}>
+															<div>
+																<Typography variant="subtitle2">Mensagens antes do destino</Typography>
+																<Typography variant="caption" color="textSecondary">
+																	Envie uma ou mais mensagens antes de ir para IA, fila, URA ou outra pergunta.
+																</Typography>
+															</div>
+															<Button size="small" variant="outlined" color="primary" onClick={() => addOptionMessage(index)}>
+																Adicionar
+															</Button>
+														</div>
+														{safeArray(option.nextMessages).map((message, messageIndex) => (
+															<div key={`${index}-${messageIndex}`} className={classes.optionEditorRow}>
+																<TextField
+																	fullWidth
+																	margin="dense"
+																	variant="outlined"
+																	multiline
+																	rows={2}
+																	label={`Mensagem ${messageIndex + 1}`}
+																	value={textValue(message.body)}
+																	onChange={event => {
+																		const value = event.target.value;
+																		updateOptionMessage(index, messageIndex, { body: value });
+																	}}
+																/>
+																<Grid container spacing={1} alignItems="center">
+																	<Grid item xs>
+																		<Typography variant="caption" color="textSecondary">
+																			{message.mediaName || "Sem anexo"}
+																		</Typography>
+																	</Grid>
+																	<Grid item>
+																		<input
+																			id={`qualification-option-media-${index}-${messageIndex}`}
+																			type="file"
+																			style={{ display: "none" }}
+																			onChange={event => {
+																				const file = event.target.files?.[0];
+																				uploadOptionMessageMedia(index, messageIndex, file);
+																				event.target.value = "";
+																			}}
+																		/>
+																		<label htmlFor={`qualification-option-media-${index}-${messageIndex}`}>
+																			<Button size="small" variant="outlined" color="primary" component="span">
+																				Anexar
+																			</Button>
+																		</label>
+																	</Grid>
+																	{message.mediaUrl && (
+																		<Grid item>
+																			<Button
+																				size="small"
+																				variant="outlined"
+																				onClick={() => updateOptionMessage(index, messageIndex, {
+																					mediaUrl: "",
+																					mediaType: "",
+																					mediaName: ""
+																				})}
+																			>
+																				Remover anexo
+																			</Button>
+																		</Grid>
+																	)}
+																	<Grid item>
+																		<Button size="small" color="secondary" variant="outlined" onClick={() => removeOptionMessage(index, messageIndex)}>
+																			Remover mensagem
+																		</Button>
+																	</Grid>
+																</Grid>
+															</div>
+														))}
+														{!safeArray(option.nextMessages).length && (
+															<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+																Nenhuma mensagem intermediaria. O destino sera executado diretamente.
+															</Typography>
+														)}
+													</div>
+												</Grid>
+												{option.nextAction === "GOTO_QUESTION" && (
+													<Grid item xs={12}>
+														<TextField
+															select
+															fullWidth
+															margin="dense"
+															variant="outlined"
+															label="Pergunta de destino"
+															value={option.nextQuestionId || ""}
+															onChange={event => {
+																const value = event.target.value;
+																updateOption(index, { nextQuestionId: value });
+															}}
+														>
+															{selectedFormQuestions
+																.filter(item => Number(item.id) !== Number(questionForm.id))
+																.map(item => (
+																	<MenuItem key={item.id} value={item.id}>
+																		{Number(item.order || 0)}. {textValue(item.label)}
+																	</MenuItem>
+																))}
+														</TextField>
+													</Grid>
+												)}
+												{["TRANSFER_QUEUE", "START_AI"].includes(option.nextAction) && (
+													<Grid item xs={12}>
+														<TextField
+															select
+															fullWidth
+															margin="dense"
+															variant="outlined"
+															label={option.nextAction === "START_AI" ? "Fila/IA de destino" : "Fila de destino"}
+															value={option.targetQueueId || ""}
+															onChange={event => {
+																const value = event.target.value;
+																updateOption(index, { targetQueueId: value });
+															}}
+															helperText={option.nextAction === "START_AI" ? "Se a fila tiver IA configurada, ela sera usada; se vazio, usa a acao original quando possivel." : "Obrigatorio para transferir direto para uma fila."}
+														>
+															<MenuItem value="">Usar destino padrao</MenuItem>
+															{safeArray(queues).map(queue => (
+																<MenuItem key={queue.id} value={queue.id}>
+																	{textValue(queue.name)}
+																</MenuItem>
+															))}
+														</TextField>
+													</Grid>
+												)}
+												{option.nextAction === "OPEN_URA_OPTION" && (
+													<Grid item xs={12}>
+														<TextField
+															select
+															fullWidth
+															margin="dense"
+															variant="outlined"
+															label="Opcao/submenu da URA"
+															value={option.uraOptionId || ""}
+															onChange={event => {
+																const value = event.target.value;
+																updateOption(index, { uraOptionId: value });
+															}}
+															helperText="Use para abrir diretamente uma opcao/submenu ja cadastrado na URA."
+														>
+															{safeArray(uraOptions).map(uraOption => (
+																<MenuItem key={uraOption.id} value={uraOption.id}>
+																	{uraOption.optionKey} - {textValue(uraOption.title)}
+																</MenuItem>
+															))}
+														</TextField>
+													</Grid>
+												)}
 												<Grid item xs={12}>
 													<Button size="small" color="secondary" variant="outlined" onClick={() => removeOption(index)}>
 														Remover opcao
@@ -2507,9 +2871,26 @@ const QualificationFormsPanel = ({ classes }) => {
 									{textValue(questionForm.label) || "Pergunta ainda nao preenchida"}
 								</Typography>
 								{choiceQuestion && parseQuestionOptions(questionForm.options).map((option, index) => (
-									<Typography key={option.value} variant="body2">
-										<strong>{index + 1}</strong> - {option.label || "Opcao sem texto"}
-									</Typography>
+									<div key={option.value}>
+										<Typography variant="body2">
+											<strong>{index + 1}</strong> - {option.label || "Opcao sem texto"}
+										</Typography>
+										{option.nextAction && option.nextAction !== "NEXT" && (
+											<Typography variant="caption" color="textSecondary" display="block">
+												Destino: {renderOptionRoute(option)}
+											</Typography>
+										)}
+										{safeArray(option.nextMessages).map((message, messageIndex) => (
+											<Typography key={`${option.value}-message-${messageIndex}`} variant="caption" color="textSecondary" display="block">
+												Mensagem {messageIndex + 1}: {textValue(message.body).trim() || "Sem texto"}{message.mediaName ? ` + anexo: ${message.mediaName}` : ""}
+											</Typography>
+										))}
+										{!safeArray(option.nextMessages).length && textValue(option.nextMessage).trim() && (
+											<Typography variant="caption" color="textSecondary" display="block">
+												Mensagem antes do destino: {textValue(option.nextMessage).trim()}
+											</Typography>
+										)}
+									</div>
 								))}
 								{!choiceQuestion && (
 									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
@@ -2538,6 +2919,57 @@ const QualificationFormsPanel = ({ classes }) => {
 				</div>
 		</Grid>
 		</Grid>
+		<Dialog open={tagDialogOpen} onClose={() => setTagDialogOpen(false)} maxWidth="xs" fullWidth>
+			<DialogTitle>Nova etiqueta</DialogTitle>
+			<DialogContent>
+				<TextField
+					fullWidth
+					margin="dense"
+					variant="outlined"
+					label="Nome da etiqueta"
+					value={quickTagForm.name}
+					onChange={event => {
+						const value = event.target.value;
+						setQuickTagForm(prev => ({ ...prev, name: value }));
+					}}
+				/>
+				<TextField
+					fullWidth
+					margin="dense"
+					variant="outlined"
+					type="color"
+					label="Cor"
+					InputLabelProps={{ shrink: true }}
+					value={quickTagForm.color}
+					onChange={event => {
+						const value = event.target.value;
+						setQuickTagForm(prev => ({ ...prev, color: value }));
+					}}
+				/>
+				<FormControlLabel
+					control={
+						<Switch
+							color="primary"
+							checked={!!quickTagForm.fixed}
+							onChange={event => {
+								const checked = event.target.checked;
+								setQuickTagForm(prev => ({ ...prev, fixed: checked }));
+							}}
+						/>
+					}
+					label="Etiqueta fixa"
+				/>
+			</DialogContent>
+			<DialogActions>
+				<Button onClick={() => setTagDialogOpen(false)} color="secondary">
+					Cancelar
+				</Button>
+				<Button onClick={saveQuickTag} color="primary" variant="contained">
+					Salvar etiqueta
+				</Button>
+			</DialogActions>
+		</Dialog>
+		</>
 	);
 };
 
@@ -2937,6 +3369,7 @@ const ResourcePanel = ({ resource, classes }) => {
 	const [form, setForm] = useState({});
 	const [mediaFile, setMediaFile] = useState(null);
 	const [testingApi, setTestingApi] = useState(false);
+	const [testingRowId, setTestingRowId] = useState(null);
 
 	const loadRows = async () => {
 		try {
@@ -3097,15 +3530,16 @@ const ResourcePanel = ({ resource, classes }) => {
 		}
 	};
 
-	const testAiApi = async () => {
-		if (!form.id) {
+	const testAiApi = async (row = form) => {
+		if (!row?.id) {
 			toast.info("Salve a configuracao antes de testar a API.");
 			return;
 		}
 
 		setTestingApi(true);
+		setTestingRowId(row.id);
 		try {
-			const { data } = await api.post(`${resource.endpoint}/${form.id}/test`);
+			const { data } = await api.post(`${resource.endpoint}/${row.id}/test`);
 			if (data.ok || data.success) {
 				toast.success(
 					data.responseText
@@ -3122,7 +3556,43 @@ const ResourcePanel = ({ resource, classes }) => {
 			toastError(err);
 		} finally {
 			setTestingApi(false);
+			setTestingRowId(null);
 		}
+	};
+
+	const buildDownloadText = row => {
+		if (resource.endpoint === "/ai-settings") {
+			return [
+				`Nome da IA: ${textValue(row.name)}`,
+				`Empresa/servico: ${textValue(row.companyName)}`,
+				`Tipo de atendimento: ${textValue(row.serviceType)}`,
+				`Provedor: ${textValue(row.provider)}`,
+				`Modelo: ${textValue(row.model)}`,
+				"",
+				"Como a IA deve se comportar:",
+				textValue(row.behaviorPrompt),
+				"",
+				"Instrucoes adicionais:",
+				textValue(row.systemPrompt)
+			].join("\n");
+		}
+
+		if (resource.endpoint === "/knowledge-base") {
+			return [
+				`Titulo: ${textValue(row.title)}`,
+				`Palavras-chave: ${formatTagText(row.tags)}`,
+				"",
+				htmlToPlainText(row.contentHtml || row.content)
+			].join("\n");
+		}
+
+		return "";
+	};
+
+	const downloadRowText = row => {
+		const prefix = resource.endpoint === "/ai-settings" ? "prompt-ia" : "base-conhecimento";
+		const name = slugText(row.name || row.title || row.id);
+		downloadTextFile(`${prefix}-${name}.txt`, buildDownloadText(row));
 	};
 
 	const fieldHelper = field => field.helperText ? (
@@ -3196,6 +3666,25 @@ const ResourcePanel = ({ resource, classes }) => {
 								))}
 								{!resource.readOnly && (
 									<TableCell align="right">
+										{resource.endpoint === "/ai-settings" && (
+											<IconButton
+												size="small"
+												title="Testar API da IA"
+												onClick={() => testAiApi(row)}
+												disabled={testingRowId === row.id}
+											>
+												<PlayArrowIcon />
+											</IconButton>
+										)}
+										{["/ai-settings", "/knowledge-base"].includes(resource.endpoint) && (
+											<IconButton
+												size="small"
+												title="Baixar TXT"
+												onClick={() => downloadRowText(row)}
+											>
+												<CloudDownloadIcon />
+											</IconButton>
+										)}
 										<IconButton size="small" onClick={() => openEdit(row)}>
 											<EditIcon />
 										</IconButton>
@@ -3405,7 +3894,7 @@ const ResourcePanel = ({ resource, classes }) => {
 				<DialogActions>
 					{resource.endpoint === "/ai-settings" && (
 						<Button
-							onClick={testAiApi}
+							onClick={() => testAiApi()}
 							color="primary"
 							variant="outlined"
 							disabled={testingApi || !form.id}

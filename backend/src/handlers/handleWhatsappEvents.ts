@@ -1122,7 +1122,22 @@ const getUraAiAutoCloseConfig = (flow: any, selectedOption: any) => {
   };
 };
 
-type QualificationOption = { value: string; label: string; tagRefs?: string[] };
+type QualificationOption = {
+  value: string;
+  label: string;
+  tagRefs?: string[];
+  nextAction?: string | null;
+  nextMessage?: string | null;
+  nextMessages?: Array<{
+    body?: string | null;
+    mediaUrl?: string | null;
+    mediaType?: string | null;
+    mediaName?: string | null;
+  }>;
+  nextQuestionId?: number | null;
+  targetQueueId?: number | null;
+  uraOptionId?: number | null;
+};
 
 const parseQualificationOptions = (value?: string | null): QualificationOption[] => {
   if (!value) return [];
@@ -1138,7 +1153,20 @@ const parseQualificationOptions = (value?: string | null): QualificationOption[]
           ? item.tagRefs.map((tag: unknown) => String(tag).trim()).filter(Boolean)
           : Array.isArray(item?.tagIds)
             ? item.tagIds.map((tag: unknown) => String(tag).trim()).filter(Boolean)
-            : []
+            : [],
+        nextAction: item?.nextAction ? String(item.nextAction).trim() : null,
+        nextMessage: item?.nextMessage ? String(item.nextMessage).trim() : null,
+        nextMessages: Array.isArray(item?.nextMessages)
+          ? item.nextMessages.map((message: any) => ({
+              body: message?.body ? String(message.body).trim() : null,
+              mediaUrl: message?.mediaUrl ? String(message.mediaUrl).trim() : null,
+              mediaType: message?.mediaType ? String(message.mediaType).trim() : null,
+              mediaName: message?.mediaName ? String(message.mediaName).trim() : null
+            })).filter((message: any) => message.body || message.mediaUrl)
+          : [],
+        nextQuestionId: item?.nextQuestionId ? Number(item.nextQuestionId) : null,
+        targetQueueId: item?.targetQueueId ? Number(item.targetQueueId) : null,
+        uraOptionId: item?.uraOptionId ? Number(item.uraOptionId) : null
       }))
       .filter(item => item.value && item.label);
   } catch (error) {
@@ -1252,7 +1280,14 @@ const parseQualificationAnswer = (
   question: QualificationFormQuestion,
   messageBody: string,
   allowSkip: boolean
-): { ok: boolean; value?: string | null; optionLabel?: string | null; skipped?: boolean; tagRefs?: string[] } => {
+): {
+  ok: boolean;
+  value?: string | null;
+  optionLabel?: string | null;
+  skipped?: boolean;
+  tagRefs?: string[];
+  selectedOptions?: QualificationOption[];
+} => {
   const raw = String(messageBody || "").trim();
   const normalized = normalizeText(raw);
 
@@ -1277,7 +1312,8 @@ const parseQualificationAnswer = (
         tagRefs: selected.reduce<string[]>(
           (acc, option) => acc.concat(option.tagRefs || []),
           []
-        )
+        ),
+        selectedOptions: selected
       };
     }
 
@@ -1286,7 +1322,13 @@ const parseQualificationAnswer = (
     );
 
     if (!selected) return { ok: false };
-    return { ok: true, value: selected.value, optionLabel: selected.label, tagRefs: selected.tagRefs || [] };
+    return {
+      ok: true,
+      value: selected.value,
+      optionLabel: selected.label,
+      tagRefs: selected.tagRefs || [],
+      selectedOptions: [selected]
+    };
   }
 
   if (question.required && !raw) return { ok: false };
@@ -1414,6 +1456,252 @@ const executeQualificationAfterAction = async (
     currentUraOptionId: null,
     aiConversationSummary: initialSummary || ticket.aiConversationSummary || null
   });
+};
+
+const finishQualificationResponse = async (
+  response: QualificationFormResponse,
+  ticket: Ticket
+): Promise<string> => {
+  await response.update({
+    status: "completed",
+    currentQuestionId: null,
+    completedAt: new Date()
+  });
+
+  const summary = await buildQualificationSummary(response.id);
+  const collectedData = await getQualificationCollectedData(response.id);
+
+  await ticket.update({
+    aiConversationSummary: summary || ticket.aiConversationSummary || null,
+    lastUraInteractionAt: new Date()
+  });
+
+  await UpdateAiTicketContextService({
+    ticket,
+    source: "qualification_form",
+    summary: summary || ticket.aiConversationSummary || null,
+    collectedData
+  });
+
+  return summary;
+};
+
+const getQualificationRouteOption = (
+  answer: ReturnType<typeof parseQualificationAnswer>
+): QualificationOption | null => {
+  const selected = answer.selectedOptions || [];
+  return selected.find(option => {
+    const action = String(option.nextAction || "").trim();
+    const message = String(option.nextMessage || "").trim();
+    const messages = option.nextMessages || [];
+    return message || messages.length || (action && action !== "NEXT");
+  }) || null;
+};
+
+const sendQualificationRouteMessage = async (
+  whatsappId: number,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  routeOption: QualificationOption
+): Promise<void> => {
+  const messages = [
+    ...((routeOption.nextMessages || []).filter(message => message.body || message.mediaUrl)),
+    ...(
+      String(routeOption.nextMessage || "").trim() && !(routeOption.nextMessages || []).length
+        ? [{ body: String(routeOption.nextMessage || "").trim() }]
+        : []
+    )
+  ];
+
+  for (const message of messages) {
+    await sendConfiguredMessage({
+      whatsappId,
+      contactPayload,
+      body: message.body || null,
+      ticket,
+      mediaUrl: message.mediaUrl || null,
+      mediaType: message.mediaType || null,
+      mediaName: message.mediaName || null
+    });
+  }
+};
+
+const executeQualificationRoute = async (
+  whatsappId: number,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  flow: any,
+  selectedOption: UraOption,
+  response: QualificationFormResponse,
+  routeOption: QualificationOption,
+  questions: QualificationFormQuestion[]
+): Promise<boolean> => {
+  const action = String(routeOption.nextAction || "NEXT").trim();
+
+  await sendQualificationRouteMessage(whatsappId, ticket, contactPayload, routeOption);
+
+  if (action === "NEXT") {
+    return false;
+  }
+
+  if (action === "GOTO_QUESTION" && routeOption.nextQuestionId) {
+    const nextQuestion = questions.find(item => Number(item.id) === Number(routeOption.nextQuestionId));
+    if (nextQuestion) {
+      await response.update({ currentQuestionId: nextQuestion.id, invalidAttempts: 0 });
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        buildQualificationQuestionMessage(nextQuestion, selectedOption.allowQualificationFormSkip),
+        ticket,
+        "ura"
+      );
+      return true;
+    }
+  }
+
+  if (action === "BACK_ROOT") {
+    const summary = await finishQualificationResponse(response, ticket);
+    const menu = buildUraMenu(flow, null);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: flow.welcomeMediaUrl,
+        mediaType: flow.welcomeMediaType,
+        mediaName: flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      uraActive: true,
+      aiConversationSummary: summary || ticket.aiConversationSummary || null,
+      lastUraInteractionAt: new Date()
+    });
+    return true;
+  }
+
+  if (action === "BACK_PREVIOUS") {
+    const summary = await finishQualificationResponse(response, ticket);
+    const parent = selectedOption.parentOptionId
+      ? await UraOption.findByPk(selectedOption.parentOptionId)
+      : null;
+    const menu = buildUraMenu(flow, parent);
+    if (menu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: menu,
+        ticket,
+        mediaUrl: parent?.responseMediaUrl || flow.welcomeMediaUrl,
+        mediaType: parent?.responseMediaType || flow.welcomeMediaType,
+        mediaName: parent?.responseMediaName || flow.welcomeMediaName
+      });
+    }
+    await ticket.update({
+      currentUraOptionId: parent?.id || null,
+      uraMenuSentAt: new Date(),
+      uraInvalidAttempts: 0,
+      uraActive: true,
+      aiConversationSummary: summary || ticket.aiConversationSummary || null,
+      lastUraInteractionAt: new Date()
+    });
+    return true;
+  }
+
+  if (action === "OPEN_URA_OPTION" && routeOption.uraOptionId) {
+    const summary = await finishQualificationResponse(response, ticket);
+    const targetOption = await UraOption.findByPk(routeOption.uraOptionId);
+    if (!targetOption) return false;
+
+    const submenuOptions = getUraOptionsByParent(flow, Number(targetOption.id));
+    const submenu = buildUraMenu(flow, targetOption);
+    if (submenuOptions.length && submenu) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: submenu,
+        ticket,
+        mediaUrl: targetOption.responseMediaUrl,
+        mediaType: targetOption.responseMediaType,
+        mediaName: targetOption.responseMediaName
+      });
+      await ticket.update({
+        currentUraOptionId: targetOption.id,
+        uraMenuSentAt: new Date(),
+        uraInvalidAttempts: 0,
+        uraActive: true,
+        aiConversationSummary: summary || ticket.aiConversationSummary || null,
+        lastUraInteractionAt: new Date()
+      });
+      return true;
+    }
+
+    if (targetOption.responseMessage || targetOption.responseMediaUrl) {
+      await sendConfiguredMessage({
+        whatsappId,
+        contactPayload,
+        body: targetOption.action === "SEND_MESSAGE"
+          ? appendSubmenuNavigationFooter(targetOption.responseMessage, targetOption)
+          : targetOption.responseMessage,
+        ticket,
+        mediaUrl: targetOption.responseMediaUrl,
+        mediaType: targetOption.responseMediaType,
+        mediaName: targetOption.responseMediaName
+      });
+    }
+
+    if (targetOption.action === "SEND_MESSAGE") {
+      await ticket.update({
+        currentUraOptionId: targetOption.parentOptionId || null,
+        uraMenuSentAt: new Date(),
+        uraInvalidAttempts: 0,
+        uraActive: true,
+        aiConversationSummary: summary || ticket.aiConversationSummary || null,
+        lastUraInteractionAt: new Date()
+      });
+      return true;
+    }
+
+    await executeQualificationAfterAction(
+      whatsappId,
+      ticket,
+      contactPayload,
+      flow,
+      targetOption,
+      summary
+    );
+    return true;
+  }
+
+  if (["END_FORM", "START_AI", "TRANSFER_QUEUE", "HUMAN", "CLOSE_TICKET"].includes(action)) {
+    const summary = await finishQualificationResponse(response, ticket);
+    const effectiveOption = {
+      ...selectedOption.get({ plain: true }),
+      action: action === "END_FORM" ? selectedOption.action : action,
+      targetQueueId: routeOption.targetQueueId || selectedOption.targetQueueId || null
+    } as UraOption;
+
+    logger.info(
+      { ticketId: ticket.id, responseId: response.id, routeAction: action },
+      "[QUALIFICATION FORM] Completed by conditional route"
+    );
+
+    await executeQualificationAfterAction(
+      whatsappId,
+      ticket,
+      contactPayload,
+      flow,
+      effectiveOption,
+      summary
+    );
+    return true;
+  }
+
+  return false;
 };
 
 const beginQualificationForm = async (
@@ -1549,6 +1837,21 @@ const handleActiveQualificationForm = async (
   }
 
   const questions = await getQualificationQuestions(response.formId);
+  const routeOption = answer.ok ? getQualificationRouteOption(answer) : null;
+
+  if (routeOption && await executeQualificationRoute(
+    whatsappId,
+    ticket,
+    contactPayload,
+    flow,
+    selectedOption,
+    response,
+    routeOption,
+    questions
+  )) {
+    return true;
+  }
+
   const currentIndex = questions.findIndex(item => Number(item.id) === Number(question.id));
   const nextQuestion = questions[currentIndex + 1];
 
@@ -1564,24 +1867,7 @@ const handleActiveQualificationForm = async (
     return true;
   }
 
-  await response.update({
-    status: "completed",
-    currentQuestionId: null,
-    completedAt: new Date()
-  });
-
-  const summary = await buildQualificationSummary(response.id);
-  const collectedData = await getQualificationCollectedData(response.id);
-  await ticket.update({
-    aiConversationSummary: summary || ticket.aiConversationSummary || null,
-    lastUraInteractionAt: new Date()
-  });
-  await UpdateAiTicketContextService({
-    ticket,
-    source: "qualification_form",
-    summary: summary || ticket.aiConversationSummary || null,
-    collectedData
-  });
+  const summary = await finishQualificationResponse(response, ticket);
 
   logger.info(
     { ticketId: ticket.id, responseId: response.id, afterAction: selectedOption.action },

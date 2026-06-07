@@ -43,6 +43,12 @@ resources.forEach(({ path, resource }) => {
 
 customAdminRoutes.get("/audit-logs", isAuth, AuditLogController.index);
 customAdminRoutes.post("/ai-settings/:id/test", isAuth, CustomAdminController.testAiSetting);
+customAdminRoutes.post(
+  "/qualification-form-message-media",
+  isAuth,
+  upload.single("media"),
+  CustomAdminController.uploadQualificationMessageMedia
+);
 
 customAdminRoutes.get("/custom/:resource", isAuth, CustomAdminController.index);
 customAdminRoutes.post("/custom/:resource", isAuth, CustomAdminController.store);

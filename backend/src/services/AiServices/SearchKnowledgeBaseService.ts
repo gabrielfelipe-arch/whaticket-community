@@ -127,6 +127,8 @@ const buildTsQuery = (terms: string[]): string =>
     .map(term => `${term}:*`)
     .join(" | ");
 
+const KNOWLEDGE_CONTEXT_LIMIT = 16000;
+
 const runFullTextSearch = async (query: string): Promise<KnowledgeFragment[]> =>
   sequelize.query<KnowledgeFragment>(
     `
@@ -154,15 +156,7 @@ const runFullTextSearch = async (query: string): Promise<KnowledgeFragment[]> =>
         k.title,
         k.tags,
         k."contentHtml",
-        coalesce(
-          nullif(ts_headline(
-            'portuguese',
-            k.content,
-            search.q,
-            'MaxFragments=2, MinWords=18, MaxWords=55, StartSel="", StopSel="", FragmentDelimiter=" ... "'
-          ), ''),
-          left(k.content, 900)
-        ) as fragment,
+        left(k.content, ${KNOWLEDGE_CONTEXT_LIMIT}) as fragment,
         ts_rank_cd(k.document, search.q) as rank,
         'fts' as source
       from weighted_articles k, search
@@ -208,7 +202,7 @@ const runFallbackSearch = async (terms: string[]): Promise<KnowledgeFragment[]> 
         k.title,
         k.tags,
         k."contentHtml",
-        left(k.content, 900) as fragment,
+        left(k.content, ${KNOWLEDGE_CONTEXT_LIMIT}) as fragment,
         (${scoreParts})::float as rank,
         'fallback' as source
       from "KnowledgeBaseArticles" k

@@ -150,8 +150,15 @@ const buildQualificationQuestion = (
 
 const applyNoToolConfirmationGuardrail = (decision: AiDecision): AiDecision => {
   const response = normalizeText(decision.resposta || "");
+  const hasInformationalQuote =
+    /\b(orcamento|cotacao|estimativa|valor|preco|fica|ficaria|total|calculo)\b/.test(response) &&
+    !/\b(reserva|agendamento|contratacao|contrato|pagamento|pedido|chamado)\b/.test(response);
+  const hasHumanValidationCaveat =
+    /\b(?:disponibilidade|reserva|agenda|agendamento|contratacao|pagamento).{0,80}(?:precisa|precisam|deve|devem|necessita|necessitam|dependem|depende).{0,80}(?:confirmad|validada|validado|verificada|verificado|equipe|atendente|humano|pessoa)\b/.test(response) ||
+    /\b(?:precisa|precisam|deve|devem|necessita|necessitam|dependem|depende).{0,80}(?:confirmad|validada|validado|verificada|verificado).{0,80}(?:equipe|atendente|humano|pessoa)\b/.test(response);
+
   const promisedRealAction =
-    /(?:agendamento|reserva|venda|pedido|contratacao|contrato|orcamento|chamado).{0,90}(?:confirmad|marcad|finalizad|realizad|criad|abert|registrad)/i.test(response) ||
+    !hasHumanValidationCaveat && !hasInformationalQuote && /(?:agendamento|reserva|venda|pedido|contratacao|contrato|pagamento|chamado).{0,90}(?:confirmad|marcad|finalizad|realizad|criad|abert|registrad|efetuad|aprovad)/i.test(response) ||
     /(?:esta|ficou|ja)\s+(?:agendad|marcad|confirmad|finalizad|registrad|criad|abert)/i.test(response);
 
   if (!promisedRealAction) return decision;
@@ -167,6 +174,184 @@ const applyNoToolConfirmationGuardrail = (decision: AiDecision): AiDecision => {
     ].filter(Boolean).join(" | "),
     resposta: "Para evitar confirmar algo sem validacao da equipe, vou encaminhar seu atendimento para um atendente finalizar essa etapa com seguranca."
   };
+};
+
+const isInformationalQuoteAnswer = (value = ""): boolean => {
+  const normalized = normalizeText(value);
+  return /\b(orcamento|cotacao|estimativa|valor|preco|fica|ficaria|total|calculo|r\$)\b/.test(normalized);
+};
+
+const hasExplicitNumericDetail = (value = ""): boolean => {
+  const normalized = normalizeText(value)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return (
+    /\d/.test(normalized) ||
+    /\b(um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte)\b/.test(normalized)
+  );
+};
+
+const isNewQuoteRequestMissingDetails = (message: string): boolean => {
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized || hasExplicitNumericDetail(normalized)) return false;
+
+  const asksAnotherQuote =
+    /\b(consigo|posso|pode|quero|queria|gostaria|preciso).{0,60}\b(outro|outra|novo|nova|diferente|diferentes|refazer|recalcular|simular).{0,60}\b(orcamento|cotacao|valor|preco|proposta)\b/.test(normalized) ||
+    /\b(outro|outra|novo|nova|diferente|diferentes|refazer|recalcular|simular).{0,60}\b(orcamento|cotacao|valor|preco|proposta)\b/.test(normalized);
+
+  const asksDifferentQuantity =
+    /\b(quantidade|quantidades|pessoas|itens|unidades|encontros|horas|dias|opcoes|opcao|planos|pacotes).{0,60}\b(diferente|diferentes|outra|outras|outro|outros|nova|novo)\b/.test(normalized) ||
+    /\b(diferente|diferentes|outra|outras|outro|outros|nova|novo).{0,60}\b(quantidade|quantidades|pessoas|itens|unidades|encontros|horas|dias|opcoes|opcao|planos|pacotes)\b/.test(normalized);
+
+  return asksAnotherQuote || asksDifferentQuantity;
+};
+
+const isParticipantCountQuestion = (value = ""): boolean => {
+  const normalized = normalizeText(value);
+  return /\b(quantas|quantos|qtd|quantidade|numero).{0,80}\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/.test(normalized);
+};
+
+const hasDurationOrOccurrenceDetail = (value = ""): boolean => {
+  const normalized = normalizeText(value)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return /\b(\d+\s*h|\d+\s*hora|hora|horas|encontro|encontros|dia|dias|turno|diaria|recorrente|semanal|mensal|duracao|duração|periodo|período|manha|manhã|tarde|noite)\b/.test(normalized);
+};
+
+const isDurationOrOccurrenceQuestion = (value = ""): boolean => {
+  const normalized = normalizeText(value);
+  return (
+    /\b(duracao|duração|quanto tempo|quantas horas|horas|periodo|período)\b/.test(normalized) ||
+    /\b(unico|único|mais de um|quantos|quantas).{0,80}\b(encontro|encontros|dia|dias)\b/.test(normalized) ||
+    /\b(encontro|encontros|dia|dias).{0,80}\b(unico|único|mais de um|quantos|quantas)\b/.test(normalized)
+  );
+};
+
+const answersLastDurationOrOccurrenceQuestion = (
+  message: string,
+  ticket: Ticket
+): boolean =>
+  isDurationOrOccurrenceQuestion(ticket.lastAiMessage || "") &&
+  hasDurationOrOccurrenceDetail(message);
+
+const QUESTION_TOKEN_STOPWORDS = new Set([
+  "a",
+  "as",
+  "ao",
+  "aos",
+  "o",
+  "os",
+  "de",
+  "da",
+  "das",
+  "do",
+  "dos",
+  "e",
+  "em",
+  "no",
+  "na",
+  "nos",
+  "nas",
+  "um",
+  "uma",
+  "uns",
+  "umas",
+  "para",
+  "pra",
+  "por",
+  "com",
+  "que",
+  "qual",
+  "quais",
+  "sera",
+  "serao",
+  "será",
+  "serão",
+  "voce",
+  "você",
+  "me",
+  "te",
+  "se",
+  "ja",
+  "já"
+]);
+
+const getQuestionTokens = (value = ""): string[] =>
+  Array.from(new Set(
+    normalizeText(value)
+      .replace(/[^\w\s]/g, " ")
+      .split(/\s+/)
+      .map(token => token.trim())
+      .filter(token => token.length >= 3 && !QUESTION_TOKEN_STOPWORDS.has(token))
+  ));
+
+const getQuestionSimilarity = (current = "", previous = ""): number => {
+  const currentTokens = getQuestionTokens(current);
+  const previousTokens = getQuestionTokens(previous);
+  if (!currentTokens.length || !previousTokens.length) return 0;
+
+  const previousSet = new Set(previousTokens);
+  const overlap = currentTokens.filter(token => previousSet.has(token)).length;
+  return overlap / Math.min(currentTokens.length, previousTokens.length);
+};
+
+const isQuestionLike = (value = ""): boolean =>
+  /\?/.test(value) ||
+  /\b(qual|quais|quanto|quantos|quantas|quando|onde|como|me diga|informe|voce sabe|você sabe|preciso saber)\b/i.test(normalizeText(value));
+
+const hasConcreteAnswerSignal = (value = ""): boolean => {
+  const normalized = normalizeText(value)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return false;
+
+  return (
+    hasExplicitNumericDetail(normalized) ||
+    hasDurationOrOccurrenceDetail(normalized) ||
+    /\b(sim|nao|não|recorrente|pontual|mensal|semanal|manha|manhã|tarde|noite|presencial|online|processo seletivo|reuniao|reunião|curso|treinamento|pos|pós)\b/.test(normalized) ||
+    normalized.split(/\s+/).length >= 4
+  );
+};
+
+const isRepeatedMissingInfoQuestion = (
+  decision: AiDecision,
+  message: string,
+  ticket: Ticket
+): boolean => {
+  if (decision.acao !== "pedir_mais_informacoes") return false;
+  if (ticket.lastAiQuestionType !== "missing_info") return false;
+  if (!decision.resposta || !ticket.lastAiMessage) return false;
+  if (!isQuestionLike(decision.resposta) || !isQuestionLike(ticket.lastAiMessage)) return false;
+  if (!hasConcreteAnswerSignal(message)) return false;
+
+  return getQuestionSimilarity(decision.resposta, ticket.lastAiMessage) >= 0.45;
+};
+
+const isLikelyParticipantCountAnswer = (message: string, ticket: Ticket): boolean => {
+  if (!isParticipantCountQuestion(ticket.lastAiMessage || "")) return false;
+  if (hasDurationOrOccurrenceDetail(message)) return false;
+
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return false;
+
+  return (
+    /\b\d{1,3}\b/.test(normalized) ||
+    /\b(um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte)\b/.test(normalized)
+  );
 };
 
 const parseOptions = (value: string | null | undefined): AiDecisionOption[] => {
@@ -400,6 +585,8 @@ const buildAnswerPrompt = ({
   "Use somente as INFORMACOES INTERNAS ENCONTRADAS.",
   "Nao copie a base literalmente quando puder explicar melhor. Reescreva de forma clara, humana e especifica para a pergunta do cliente.",
   "Nao invente valores, prazos, links, telefones, regras, procedimentos ou nomes que nao estejam na base.",
+  "Quando a base de conhecimento trouxer valores oficiais, eles tem prioridade sobre qualquer valor citado anteriormente no historico ou pela propria IA. Nao reutilize valor antigo se ele conflitar com a base encontrada.",
+  "Se o cliente pedir explicacao de diferenca entre modalidades, explique o funcionamento antes de orcar: o que pode ser usado no mesmo dia, o que funciona como saldo, o que exige horas consecutivas e quando deve encaminhar para humano.",
   "Pode explicar opcoes, sugerir proximos passos, listar possiveis causas, orientar uma triagem inicial, informar promocoes ou conduzir uma venda somente quando isso estiver sustentado pela base.",
   "Nao diga que consultou a base de conhecimento, banco de dados, RAG ou prompt.",
   "Nao escreva titulos como 'Base de Conhecimento', 'Manual', 'Artigo encontrado' ou 'Documento interno'. Esses blocos sao internos e nunca podem aparecer para o cliente.",
@@ -408,6 +595,12 @@ const buildAnswerPrompt = ({
   `Mensagem atual do cliente, que deve guiar a resposta: ${message}`,
   "A mensagem atual tem prioridade sobre respostas anteriores. Se ela responder uma pergunta que a IA acabou de fazer, trate como continuidade e avance a conversa.",
   "Se o cliente escolher uma opcao textual como 'por hora', 'mensal', 'pacote', '10 horas' ou informar uma quantidade como '3 horas', use essa informacao para responder. Nao pergunte novamente a mesma coisa.",
+  "Se a ultima pergunta da IA foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, trate esse numero como quantidade de pessoas. Nao liste valores ainda; pergunte duracao e se sera em um unico encontro/dia ou em mais de um encontro.",
+  "Para orcamento de sala, evento, servico por tempo, agenda ou uso recorrente, nao basta saber quantidade de pessoas. Antes de listar valores, colete duracao e quantidade de encontros/dias, salvo se esses dados ja estiverem claros na mensagem atual ou no contexto estruturado.",
+  "Se a ultima pergunta da IA pediu duracao, horas, quantidade de encontros ou dias, e a mensagem atual trouxe esses dados, nao faca a mesma pergunta novamente. Use os dados atuais para calcular, responder, ou pedir apenas outro dado que ainda falte.",
+  "Interprete respostas naturais e variadas do cliente como resposta a pergunta pendente. Exemplos: 'serao 4 dias para 6 horas cada', 'umas 6h por dia', 'de manha e tarde', '16 pessoas', 'recorrente' ou 'so um dia' podem responder a pergunta anterior mesmo sem repetir as mesmas palavras.",
+  "Nunca faca a mesma pergunta duas vezes seguidas se o cliente respondeu com um dado concreto. Se ainda faltar algo, reconheca o dado recebido e peca apenas o dado restante.",
+  "Se o cliente pedir outro orcamento, outra cotacao, outro valor ou quantidade diferente sem informar os novos numeros/dados, nao reutilize nem invente dados do historico. Peca os novos dados de forma objetiva.",
   "Se a pergunta pedir calculo simples e a base trouxer o numero necessario, calcule o resultado e mostre a conta de forma curta. Exemplo: diaria de R$ 300 por 10 dias = R$ 3.000.",
   "Se a base trouxer plano avulso de 2 horas por R$ 140 e o cliente pedir valor por hora, explique que o plano avulso cadastrado e de 2 horas por R$ 140. Se pedir 3 horas e nao houver preco de hora adicional, informe o valor cadastrado e diga que o valor exato para 3 horas precisa ser confirmado por atendente.",
   "Se a pergunta atual for complemento da resposta anterior, use o historico recente para entender a continuidade. Exemplo: depois de informar diaria, 'e para 10 dias?' pede calculo com a diaria anterior.",
@@ -782,7 +975,16 @@ const buildDecisionPrompt = ({
     "Diferencie CLIENTE, IA, ATENDENTE HUMANO e SISTEMA. Mensagens de SISTEMA/URA servem como estado, nao como pedido do cliente.",
     "Use o estado do atendimento para interpretar respostas curtas. Se a ultima pergunta foi 'Consegui te ajudar?' ou uma checagem de satisfacao e o cliente respondeu 'sim', 'certo', 'obrigado' ou 'deu certo', a intencao e encerramento. Se respondeu 'nao' ou 'nao resolveu', a intencao e encaminhar_atendente.",
     "Se a ultima pergunta foi 'Posso ajudar em algo mais?' e o cliente respondeu 'nao', 'nao obrigado' ou 'era so isso', a intencao e encerramento. Se respondeu 'sim', a intencao e continuar pedindo mais detalhes.",
+    "Se a IA ofereceu detalhes de planos, pacotes, produtos, servicos ou alternativas e o cliente respondeu apenas 'nao', 'nao obrigado', 'sem interesse', 'era so isso' ou equivalente, nao repita a mesma oferta. Interprete como recusa daquela oferta. Se a informacao principal ja foi entregue, use encerrar_atendimento; se o cliente demonstrou frustracao, preco alto, duvida nao resolvida ou quer negociar, use encaminhar_atendente.",
+    "Se o cliente pedir disponibilidade, reserva, agenda, visita, pagamento, fechamento, negociacao, desconto fora da regra ou quiser seguir/contratar, nao finalize o atendimento automaticamente. Responda brevemente que essa etapa precisa ser confirmada por uma pessoa e use encaminhar_atendente quando houver fila humana/configuracao disponivel.",
+    "Se o cliente pedir explicitamente 'falar com atendente', 'humano', 'pessoa', 'quero fechar', 'quero reservar', 'qual disponibilidade', 'pode me chamar no atendimento', use encaminhar_atendente, salvo se existir ferramenta configurada e permitida para executar a acao.",
+    "Evite looping: se a resposta que voce pretende enviar for parecida com a ultima resposta da IA, mude de acao. Para negativa curta apos oferta, encerre ou encaminhe; para pergunta nova, responda a pergunta nova; para duvida nao resolvida, encaminhe.",
     "Se a ultima pergunta foi diagnostica, como 'o erro acontece ao finalizar?', respostas como 'sim' ou 'nao' nao significam encerramento; continue o diagnostico.",
+    "Se a ultima pergunta foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, esse numero e a quantidade de pessoas. A proxima etapa e perguntar duracao e se sera em um unico encontro/dia ou em mais de um encontro. Nao liste valores ainda.",
+    "Antes de enviar orcamento de qualquer servico que dependa de tempo, uso, agenda, encontros, dias ou recorrencia, confirme os dados minimos: quantidade de pessoas/unidades quando aplicavel, duracao e quantidade de encontros/dias. Se faltar algum desses dados, use pedir_mais_informacoes.",
+    "Se a ultima pergunta foi sobre duracao, horas, dias ou encontros e a mensagem atual respondeu com esses dados, nao repita essa pergunta. Avance para resposta com base ou peca somente o proximo dado realmente ausente.",
+    "Sempre avalie se a mensagem atual responde a pergunta pendente de forma indireta, abreviada ou com erro de digitacao. Nao exija que o cliente use as mesmas palavras da pergunta.",
+    "Se for pedir_mais_informacoes depois de uma resposta do cliente, a pergunta nova deve ser diferente da ultima pergunta da IA. Reconheca explicitamente o dado recebido antes de pedir outro dado.",
     "Se a ultima pergunta foi escolher uma opcao e o cliente disse '2' ou o nome da opcao, a intencao e confirmacao_opcao.",
     "REGRA DE ESCOPO: quando a base de conhecimento relevante tiver artigos, considere que o assunto faz parte do escopo do atendimento, mesmo que o nome da empresa, fila ou tipo de atendimento pareca diferente.",
     "A base de conhecimento encontrada tem prioridade sobre qualquer suposicao pelo nome da empresa, nome da fila ou tipo de atendimento.",
@@ -792,6 +994,9 @@ const buildDecisionPrompt = ({
     "Pode conversar de forma natural e humanizada, mas sem criar informacoes comerciais, tecnicas, promocionais, financeiras, medicas, juridicas ou operacionais fora da base.",
     "Pode vender, orientar, sugerir possiveis causas, explicar promocao, informar preco, conduzir agendamento, acompanhar pedido ou tirar duvidas somente quando houver base suficiente.",
     "Pode fazer calculos simples quando a base trouxer os dados numericos necessarios, como diaria x quantidade de dias, valor unitario x unidades ou soma simples.",
+    "Orcamento, cotacao, estimativa e calculo de valor com dados da base sao respostas informativas e podem ser enviados ao cliente. Isso nao e confirmacao de reserva, agenda, pagamento ou contratacao.",
+    "So encaminhe para atendente quando o cliente pedir para reservar, fechar, pagar, confirmar agenda, negociar fora das regras, falar com humano, ou quando faltar dado essencial que a base nao permita calcular.",
+    "Se o cliente pedir outro orcamento, nova simulacao, quantidade diferente ou comparar cenarios, mas nao informar os novos numeros/dados, use pedir_mais_informacoes. Nao invente quantidade, horas, itens, dias, encontros ou unidades.",
     "Se a pergunta atual for uma continuacao da resposta anterior, use o historico recente para entender o sentido. Exemplo: depois de informar uma diaria, 'quanto fica 10 dias?' deve ser tratado como calculo.",
     "Nao use expressoes como base de conhecimento, manual, artigo encontrado, documento interno, RAG ou prompt na resposta ao cliente.",
     "Nao repita a mesma resposta se o cliente mudou de assunto. Reavalie a mensagem atual e o RAG encontrado.",
@@ -978,6 +1183,40 @@ const DecideAiTicketActionService = async ({
       respostaSegura: false,
       acao: "encaminhar_atendente",
       motivo: "Intencao contextual de transferir para atendimento humano."
+    };
+  }
+
+  if (isLikelyParticipantCountAnswer(message, ticket)) {
+    return {
+      intencao: "diagnostico_inicial",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente respondeu a quantidade de pessoas, mas ainda faltam duracao e quantidade de encontros/dias para orcar com seguranca.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Quantidade de pessoas coletada; antes de orcar, coletar duracao e recorrencia/encontros.",
+      resposta: [
+        "Perfeito, anotei a quantidade de pessoas.",
+        "Agora me diga a duracao prevista e se sera em um unico encontro/dia ou em mais de um encontro."
+      ].join("\n\n")
+    };
+  }
+
+  if (isNewQuoteRequestMissingDetails(message)) {
+    return {
+      intencao: "consulta_valor",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente quer um novo orcamento ou simulacao, mas nao informou os novos dados numericos.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Novo orcamento sem dados suficientes; nao reutilizar nem inventar dados do historico.",
+      resposta: [
+        "Claro, consigo sim.",
+        "Para fazer um novo orcamento, me envie os novos dados que voce quer simular, como quantidade, duracao, itens, dias ou recorrencia."
+      ].join("\n\n")
     };
   }
 
@@ -1252,6 +1491,48 @@ const DecideAiTicketActionService = async ({
     return applyNoToolConfirmationGuardrail(fallbackDecision);
   }
 
+  if (
+    decision.acao === "pedir_mais_informacoes" &&
+    (answersLastDurationOrOccurrenceQuestion(message, ticket) ||
+      isRepeatedMissingInfoQuestion(decision, message, ticket)) &&
+    articles.length > 0
+  ) {
+    const fallbackDecision = await withGeneratedKnowledgeAnswer({
+      decision: {
+        ...decision,
+        acao: "responder_com_base",
+        baseEncontrada: true,
+        respostaSegura: true,
+        motivo: [
+          decision.motivo,
+          "Correcao local: cliente respondeu a pergunta pendente; nao repetir a mesma pergunta."
+        ].filter(Boolean).join(" | "),
+        knowledgeIds: articles.map(article => article.id)
+      },
+      aiSetting,
+      ticket,
+      message,
+      contactName,
+      history,
+      knowledge,
+      articles
+    });
+
+    logger.info(
+      {
+        ticketId: ticket.id,
+        aiSettingId: aiSetting.id,
+        originalAction: decision.acao,
+        fallbackAction: fallbackDecision.acao,
+        knowledgeId: articles[0]?.id,
+        knowledgeTitle: articles[0]?.title
+      },
+      "[AI ACTION] Pending question answered, repeated missing-info avoided"
+    );
+
+    return applyNoToolConfirmationGuardrail(fallbackDecision);
+  }
+
   if (decision.acao === "responder_com_base" && (!decision.respostaSegura || !decision.resposta)) {
     if (articles.length > 0) {
       const fallbackDecision = await withGeneratedKnowledgeAnswer({
@@ -1330,6 +1611,22 @@ const DecideAiTicketActionService = async ({
       ...fallbackDecision,
       resposta: decision.resposta || fallbackDecision.resposta
     };
+  }
+
+  if (
+    decision.acao === "encerrar_atendimento" &&
+    decision.baseEncontrada &&
+    decision.resposta &&
+    isInformationalQuoteAnswer(decision.resposta) &&
+    !isExplicitCloseRequest(message)
+  ) {
+    decision.acao = "responder_com_base";
+    decision.respostaSegura = true;
+    decision.resposta = decision.resposta.replace(/\s*\[FECHAR TICKET\]\s*/gi, "").trim();
+    decision.motivo = [
+      decision.motivo,
+      "Correcao local: resposta de orcamento nao deve encerrar o atendimento no mesmo turno."
+    ].filter(Boolean).join(" | ");
   }
 
   if (decision.acao === "encerrar_atendimento") {

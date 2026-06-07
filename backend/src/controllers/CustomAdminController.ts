@@ -165,6 +165,18 @@ function normalizeQuestionKey(value: any): string {
     .replace(/[^\w.-]/g, "");
 }
 
+function normalizeConditionalMessages(value: any): any[] {
+  const rawMessages = Array.isArray(value) ? value : [];
+  return rawMessages
+    .map(message => ({
+      body: message?.body ? String(message.body).trim() : null,
+      mediaUrl: message?.mediaUrl ? String(message.mediaUrl).trim() : null,
+      mediaType: message?.mediaType ? String(message.mediaType).trim() : null,
+      mediaName: message?.mediaName ? String(message.mediaName).trim() : null
+    }))
+    .filter(message => message.body || message.mediaUrl);
+}
+
 function normalizeQuestionOptions(value: any): string | null {
   if (value === null || value === undefined || value === "") return null;
 
@@ -183,14 +195,26 @@ function normalizeQuestionOptions(value: any): string | null {
           return {
             value: String(item.value || item.numero || index + 1).trim(),
             label: String(item.label || item.valor || item.value || item.numero || "").trim(),
-            tagRefs: tagRefs.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+            tagRefs: tagRefs.map((tag: unknown) => String(tag).trim()).filter(Boolean),
+            nextAction: item.nextAction ? String(item.nextAction).trim() : "NEXT",
+            nextMessage: item.nextMessage ? String(item.nextMessage).trim() : null,
+            nextMessages: normalizeConditionalMessages(item.nextMessages),
+            nextQuestionId: nullableNumber(item.nextQuestionId),
+            targetQueueId: nullableNumber(item.targetQueueId),
+            uraOptionId: nullableNumber(item.uraOptionId)
           };
         }
 
         return {
           value: String(index + 1),
           label: String(item || "").trim(),
-          tagRefs: []
+          tagRefs: [],
+          nextAction: "NEXT",
+          nextMessage: null,
+          nextMessages: [],
+          nextQuestionId: null,
+          targetQueueId: null,
+          uraOptionId: null
         };
       })
       .filter(item => item.value && item.label);
@@ -646,6 +670,23 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   });
 
   return res.status(200).json(row);
+};
+
+export const uploadQualificationMessageMedia = async (req: Request, res: Response): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const file = req.file as Express.Multer.File | undefined;
+  if (!file) {
+    throw new AppError("Informe o anexo da mensagem.", 400);
+  }
+
+  return res.status(200).json({
+    mediaUrl: file.filename,
+    mediaType: file.mimetype,
+    mediaName: file.originalname
+  });
 };
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {
