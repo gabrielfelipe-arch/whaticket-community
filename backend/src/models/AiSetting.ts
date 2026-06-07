@@ -99,6 +99,15 @@ class AiSetting extends Model<AiSetting> {
   @Column(DataType.TEXT)
   confirmationFailureMessage: string;
 
+  @Column(DataType.TEXT)
+  allowedTools: string;
+
+  @Column(DataType.TEXT)
+  allowedTransferQueueIds: string;
+
+  @Column
+  calendarConnectionId: number;
+
   @Default(false)
   @Column
   active: boolean;

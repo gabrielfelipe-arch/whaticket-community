@@ -8,6 +8,7 @@ import GenerateAiResponseService, { AiProviderError } from "./GenerateAiResponse
 import SearchKnowledgeBaseService, { KnowledgeFragment } from "./SearchKnowledgeBaseService";
 import { Op } from "sequelize";
 import { htmlToWhatsAppText } from "../../utils/knowledgeFormatting";
+import { BuildAiTicketContextTextService } from "./AiTicketContextService";
 
 export type AiTicketAction =
   | "responder_com_base"
@@ -15,6 +16,7 @@ export type AiTicketAction =
   | "pedir_mais_informacoes"
   | "encaminhar_atendente"
   | "encerrar_atendimento"
+  | "executar_ferramenta"
   | "sem_resposta_segura"
   | "nao_responder";
 
@@ -35,6 +37,8 @@ export interface AiDecision {
   resposta?: string;
   perguntaConfirmacao?: string;
   opcoes?: AiDecisionOption[];
+  ferramenta?: string;
+  parametrosFerramenta?: Record<string, any>;
   knowledgeIds?: number[];
 }
 
@@ -73,6 +77,7 @@ const safeAction = (value: string): AiTicketAction => {
     "pedir_mais_informacoes",
     "encaminhar_atendente",
     "encerrar_atendimento",
+    "executar_ferramenta",
     "sem_resposta_segura",
     "nao_responder"
   ];
@@ -91,6 +96,16 @@ const getParsedTextResponse = (parsed: any): string | undefined => {
     parsed?.answer;
 
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const parseAllowedTools = (value?: string | null): string[] => {
+  if (!value) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(item => String(item)) : [];
+  } catch (err) {
+    return [];
+  }
 };
 
 const buildQualificationQuestion = (
@@ -116,6 +131,27 @@ const buildQualificationQuestion = (
       `Para eu te orientar melhor${service} e encontrar a opcao mais adequada da ${company}, me diga um pouco mais sobre o que voce precisa.`,
       "Qual atividade ou objetivo voce pretende realizar, e esse uso seria pontual ou recorrente?"
     ].join("\n\n")
+  };
+};
+
+const applyNoToolConfirmationGuardrail = (decision: AiDecision): AiDecision => {
+  const response = normalizeText(decision.resposta || "");
+  const promisedRealAction =
+    /(?:agendamento|reserva|venda|pedido|contratacao|contrato|orcamento|chamado).{0,90}(?:confirmad|marcad|finalizad|realizad|criad|abert|registrad)/i.test(response) ||
+    /(?:esta|ficou|ja)\s+(?:agendad|marcad|confirmad|finalizad|registrad|criad|abert)/i.test(response);
+
+  if (!promisedRealAction) return decision;
+
+  return {
+    ...decision,
+    confianca: "alta",
+    respostaSegura: false,
+    acao: "encaminhar_atendente",
+    motivo: [
+      decision.motivo,
+      "Guardrail: a resposta tentou confirmar uma acao real sem ferramenta executada pelo backend."
+    ].filter(Boolean).join(" | "),
+    resposta: "Para evitar confirmar algo sem validacao da equipe, vou encaminhar seu atendimento para um atendente finalizar essa etapa com seguranca."
   };
 };
 
@@ -701,7 +737,8 @@ const buildDecisionPrompt = ({
   aiSetting,
   ticket,
   queue,
-  pendingOptions
+  pendingOptions,
+  structuredContext
 }: {
   message: string;
   history: string;
@@ -710,6 +747,7 @@ const buildDecisionPrompt = ({
   ticket: Ticket;
   queue: Queue | null;
   pendingOptions: AiDecisionOption[];
+  structuredContext: string;
 }): string => {
   const pendingQuestion = pendingOptions.length
     ? `Existe uma pergunta pendente da IA. Opcoes: ${JSON.stringify(pendingOptions)}. Interprete a resposta do cliente considerando essas opcoes.`
@@ -757,7 +795,12 @@ const buildDecisionPrompt = ({
     "So use encerrar_atendimento quando a mensagem atual do cliente indicar encerramento, satisfacao final ou resposta negativa a uma pergunta anterior como 'Posso ajudar em algo mais?'.",
     "Quando decidir encerrar o atendimento, inclua obrigatoriamente [FECHAR TICKET] no final do campo resposta.",
     "Intencoes validas: consulta_valor, interesse_compra, promocao, pedido_atendente, pedido_encerramento, cliente_satisfeito, cliente_nao_satisfeito, pergunta_sobre_produto_ou_servico, agendamento, acompanhamento, reclamacao, diagnostico_inicial, cobranca, financeiro, sem_resposta_segura, confirmacao_opcao.",
-    "Acoes validas: responder_com_base, pedir_confirmacao, pedir_mais_informacoes, encaminhar_atendente, encerrar_atendimento, sem_resposta_segura, nao_responder.",
+    `Ferramentas permitidas para esta IA: ${parseAllowedTools(aiSetting.allowedTools).join(", ") || "nenhuma"}.`,
+    "A IA pode pedir ferramenta somente quando ela estiver listada como permitida. O backend valida e executa; nunca confirme ferramenta antes do retorno do backend.",
+    "Ferramentas disponiveis: registrarLead, gerarResumoParaAtendente, transferirParaFila, encerrarAtendimento, consultarAgenda, criarAgendamento.",
+    "Para transferir fila, encerrar, consultar agenda, criar agenda, registrar lead ou gerar resumo ao atendente, use acao executar_ferramenta com ferramenta e parametrosFerramenta.",
+    "Para consultar/criar agenda, parametrosFerramenta deve conter start e end em ISO 8601. Para transferir fila, informe queueId.",
+    "Acoes validas: responder_com_base, pedir_confirmacao, pedir_mais_informacoes, encaminhar_atendente, encerrar_atendimento, executar_ferramenta, sem_resposta_segura, nao_responder.",
     "Quando acao for responder_com_base, preencha resposta com uma resposta curta, objetiva e baseada somente na base.",
     "Quando acao for pedir_confirmacao, preencha perguntaConfirmacao e opcoes com numero e valor.",
     "Quando acao for pedir_mais_informacoes, preencha resposta com a pergunta de qualificacao que sera enviada ao cliente.",
@@ -767,6 +810,7 @@ const buildDecisionPrompt = ({
     `Fila atual: ${queue?.name || "sem fila"}`,
     `Ticket aiActive: ${ticket.aiActive ? "true" : "false"}`,
     `Estado do atendimento atual:\n${buildTicketStateText(ticket)}`,
+    structuredContext ? `Memoria curta estruturada deste ticket:\n${structuredContext}` : "Memoria curta estruturada deste ticket: ainda nao registrada.",
     pendingQuestion,
     `Historico recente:\n${history || "Sem historico."}`,
     `Base de conhecimento relevante:\n${knowledge || "Nenhum artigo encontrado."}`,
@@ -783,7 +827,9 @@ const buildDecisionPrompt = ({
   "motivo": "Existe informacao suficiente na base",
   "resposta": "Resposta ao cliente, quando aplicavel",
   "perguntaConfirmacao": "Pergunta de confirmacao, quando aplicavel",
-  "opcoes": [{"numero":"1","valor":"Plano mensal"}]
+  "opcoes": [{"numero":"1","valor":"Plano mensal"}],
+  "ferramenta": "registrarLead",
+  "parametrosFerramenta": {"queueId": 1, "start": "2026-06-07T14:00:00-03:00", "end": "2026-06-07T15:00:00-03:00"}
 }`
   ].join("\n\n");
 };
@@ -878,6 +924,7 @@ const DecideAiTicketActionService = async ({
 
   const pendingOptions = parseOptions(ticket.lastAiQuestionOptions);
   const history = await getRecentHistory(ticket);
+  const structuredContext = await BuildAiTicketContextTextService(ticket.id);
 
   if (isContextualClosingIntent(message, history, ticket, pendingOptions)) {
     return {
@@ -960,7 +1007,8 @@ const DecideAiTicketActionService = async ({
     aiSetting,
     ticket,
     queue,
-    pendingOptions
+    pendingOptions,
+    structuredContext
   });
 
   let rawDecision: string | null = null;
@@ -1004,7 +1052,7 @@ const DecideAiTicketActionService = async ({
           "[AI ACTION] Provider failed, formatted knowledge fallback used"
         );
 
-        return fallbackDecision;
+        return applyNoToolConfirmationGuardrail(fallbackDecision);
       }
 
       logger.warn(
@@ -1077,7 +1125,7 @@ const DecideAiTicketActionService = async ({
         "[AI ACTION] Knowledge fallback decision completed"
       );
 
-      return fallbackDecision;
+      return applyNoToolConfirmationGuardrail(fallbackDecision);
     }
 
     return buildQualificationQuestion(
@@ -1092,7 +1140,7 @@ const DecideAiTicketActionService = async ({
     parsed.acao ||
     (parsedResponse ? "pedir_mais_informacoes" : "sem_resposta_segura");
 
-  const decision: AiDecision = {
+  let decision: AiDecision = {
     intencao: String(parsed.intencao || "pergunta_sobre_produto_ou_servico"),
     confianca: ["baixa", "media", "alta"].includes(parsed.confianca)
       ? parsed.confianca
@@ -1108,8 +1156,18 @@ const DecideAiTicketActionService = async ({
       ? String(parsed.perguntaConfirmacao)
       : undefined,
     opcoes: Array.isArray(parsed.opcoes) ? parsed.opcoes : undefined,
+    ferramenta: parsed.ferramenta ? String(parsed.ferramenta) : undefined,
+    parametrosFerramenta: parsed.parametrosFerramenta && typeof parsed.parametrosFerramenta === "object"
+      ? parsed.parametrosFerramenta
+      : undefined,
     knowledgeIds: articles.map(article => article.id)
   };
+
+  if (decision.acao === "executar_ferramenta" && !decision.ferramenta) {
+    decision.acao = "pedir_mais_informacoes";
+    decision.resposta = decision.resposta || "Antes de seguir, preciso confirmar mais alguns dados.";
+    decision.motivo = decision.motivo || "Ferramenta nao informada.";
+  }
 
   if (shouldPreferKnowledgeFallback(decision, message, articles)) {
     const fallbackDecision = await withGeneratedKnowledgeAnswer({
@@ -1139,7 +1197,7 @@ const DecideAiTicketActionService = async ({
       "[AI ACTION] Knowledge fallback overrode unsafe decision"
     );
 
-    return fallbackDecision;
+    return applyNoToolConfirmationGuardrail(fallbackDecision);
   }
 
   if (decision.acao === "responder_com_base" && (!decision.respostaSegura || !decision.resposta)) {
@@ -1158,7 +1216,7 @@ const DecideAiTicketActionService = async ({
         knowledge,
         articles
       });
-      return fallbackDecision;
+      return applyNoToolConfirmationGuardrail(fallbackDecision);
     } else {
       const fallbackDecision = buildQualificationQuestion(
         aiSetting,
@@ -1184,7 +1242,7 @@ const DecideAiTicketActionService = async ({
       articles
     });
 
-    return answerDecision;
+    return applyNoToolConfirmationGuardrail(answerDecision);
   }
 
   if (decision.acao === "pedir_confirmacao" && (!decision.perguntaConfirmacao || !decision.opcoes?.length)) {
@@ -1230,6 +1288,8 @@ const DecideAiTicketActionService = async ({
       decision.resposta = `${decision.resposta} [FECHAR TICKET]`;
     }
   }
+
+  decision = applyNoToolConfirmationGuardrail(decision);
 
   logger.info(
     {

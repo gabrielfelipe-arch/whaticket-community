@@ -23,7 +23,15 @@ const resources = [
   { path: "/ura-options", resource: "uraOptions" },
   { path: "/ai-settings", resource: "aiSettings" },
   { path: "/knowledge-base", resource: "knowledgeBaseArticles" },
-  { path: "/satisfaction-surveys", resource: "satisfactionSurveys" }
+  { path: "/satisfaction-surveys", resource: "satisfactionSurveys" },
+  { path: "/qualification-forms", resource: "qualificationForms" },
+  { path: "/qualification-form-questions", resource: "qualificationFormQuestions" },
+  { path: "/qualification-form-responses", resource: "qualificationFormResponses" },
+  { path: "/qualification-form-answers", resource: "qualificationFormAnswers" },
+  { path: "/ai-ticket-contexts", resource: "aiTicketContexts" },
+  { path: "/ai-leads", resource: "aiLeads" },
+  { path: "/ai-calendar-connections", resource: "aiCalendarConnections" },
+  { path: "/ai-tool-executions", resource: "aiToolExecutions" }
 ];
 
 resources.forEach(({ path, resource }) => {

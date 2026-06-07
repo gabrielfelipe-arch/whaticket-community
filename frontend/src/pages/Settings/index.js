@@ -388,9 +388,178 @@ const resources = [
 		columns: ["id", "flowId", "parentOptionId", "optionKey", "title", "action", "targetQueueId", "active"]
 	},
 	{
+		label: "Formularios de qualificacao",
+		endpoint: "/qualification-forms",
+		title: "Formulario de qualificacao",
+		fields: [
+			{ name: "name", label: "Nome", required: true },
+			{ name: "description", label: "Descricao", multiline: true },
+			{ name: "active", label: "Ativo", type: "boolean" }
+		],
+		columns: ["id", "name", "description", "active"]
+	},
+	{
+		label: "Perguntas dos formularios",
+		endpoint: "/qualification-form-questions",
+		title: "Pergunta de qualificacao",
+		fields: [
+			{ name: "formId", label: "Formulario", type: "relation", relation: "qualificationForms", required: true },
+			{
+				name: "key",
+				label: "Chave para relatorio",
+				required: true,
+				helperText: "Use uma chave curta e sem acentos, como uso_sala, prazo, cidade ou orcamento."
+			},
+			{ name: "label", label: "Pergunta enviada ao cliente", multiline: true, required: true },
+			{
+				name: "type",
+				label: "Tipo de resposta",
+				type: "select",
+				options: [
+					{ value: "text", label: "Texto livre" },
+					{ value: "single_choice", label: "Escolha unica" },
+					{ value: "multiple_choice", label: "Multipla escolha" },
+					{ value: "number", label: "Numero" },
+					{ value: "date", label: "Data" },
+					{ value: "time", label: "Horario" },
+					{ value: "boolean", label: "Sim ou nao" },
+					{ value: "email", label: "E-mail" },
+					{ value: "phone", label: "Telefone" }
+				]
+			},
+			{
+				name: "options",
+				label: "Opcoes",
+				multiline: true,
+				showWhen: form => ["single_choice", "multiple_choice"].includes(form.type),
+				helperText: "Uma opcao por linha. Use valor|rotulo|Etiqueta 1,Etiqueta 2 para aplicar etiquetas ao contato quando a opcao for escolhida."
+			},
+			{ name: "required", label: "Obrigatoria", type: "boolean" },
+			{ name: "includeInAiContext", label: "Enviar resposta como contexto para IA", type: "boolean" },
+			{ name: "includeInReports", label: "Disponivel para relatorios", type: "boolean" },
+			{ name: "maxInvalidAttempts", label: "Tentativas invalidas antes de aceitar texto livre", type: "number" },
+			{ name: "order", label: "Ordem", type: "number" },
+			{ name: "active", label: "Ativo", type: "boolean" }
+		],
+		columns: ["id", "formId", "key", "type", "required", "order", "active"]
+	},
+	{
+		label: "Respostas dos formularios",
+		endpoint: "/qualification-form-responses",
+		title: "Resposta de formulario",
+		readOnly: true,
+		fields: [
+			{ name: "formId", label: "Formulario", type: "relation", relation: "qualificationForms" },
+			{ name: "ticketId", label: "Ticket" },
+			{ name: "contactId", label: "Contato" },
+			{ name: "queueId", label: "Fila" },
+			{ name: "uraOptionId", label: "Opcao da URA" },
+			{ name: "status", label: "Status" },
+			{ name: "afterAction", label: "Acao apos formulario" },
+			{ name: "createdAt", label: "Criado em" },
+			{ name: "completedAt", label: "Concluido em" }
+		],
+		columns: ["id", "formId", "ticketId", "contactId", "status", "afterAction", "createdAt", "completedAt"]
+	},
+	{
+		label: "Relatorio das respostas",
+		endpoint: "/qualification-form-answers",
+		title: "Resposta por pergunta",
+		readOnly: true,
+		fields: [
+			{ name: "responseId", label: "Resposta" },
+			{ name: "questionId", label: "Pergunta" },
+			{ name: "key", label: "Chave" },
+			{ name: "label", label: "Pergunta" },
+			{ name: "value", label: "Valor" },
+			{ name: "optionLabel", label: "Resposta tratada" },
+			{ name: "rawValue", label: "Resposta original" },
+			{ name: "includeInReports", label: "Usar em relatorios", type: "boolean" },
+			{ name: "createdAt", label: "Criado em" }
+		],
+		columns: ["id", "responseId", "key", "optionLabel", "value", "rawValue", "includeInReports", "createdAt"]
+	},
+	{
+		label: "Memoria curta da IA",
+		endpoint: "/ai-ticket-contexts",
+		title: "Memoria curta da IA",
+		readOnly: true,
+		fields: [
+			{ name: "ticketId", label: "Ticket" },
+			{ name: "summary", label: "Resumo", multiline: true },
+			{ name: "collectedData", label: "Dados coletados", multiline: true },
+			{ name: "missingData", label: "Dados faltantes", multiline: true },
+			{ name: "contradictions", label: "Contradicoes", multiline: true },
+			{ name: "currentObjective", label: "Objetivo atual", multiline: true },
+			{ name: "nextQuestion", label: "Proxima pergunta", multiline: true },
+			{ name: "lastSource", label: "Ultima origem" },
+			{ name: "lastAiIntent", label: "Ultima intencao" },
+			{ name: "lastAiAction", label: "Ultima acao" },
+			{ name: "lastUpdatedAt", label: "Atualizado em" }
+		],
+		columns: ["id", "ticketId", "summary", "lastSource", "lastAiIntent", "lastAiAction", "lastUpdatedAt"]
+	},
+	{
+		label: "Conexoes de agenda",
+		endpoint: "/ai-calendar-connections",
+		title: "Conexao de agenda",
+		fields: [
+			{ name: "name", label: "Nome", required: true },
+			{
+				name: "provider",
+				label: "Provedor",
+				type: "select",
+				options: [
+					{ value: "google", label: "Google Agenda" },
+					{ value: "microsoft", label: "Microsoft Agenda" }
+				]
+			},
+			{ name: "calendarId", label: "Calendar ID" },
+			{ name: "userPrincipalName", label: "Usuario Microsoft" },
+			{ name: "accessToken", label: "Access token", multiline: true },
+			{ name: "refreshToken", label: "Refresh token", multiline: true },
+			{ name: "timezone", label: "Fuso horario" },
+			{ name: "active", label: "Ativo", type: "boolean" }
+		],
+		columns: ["id", "name", "provider", "calendarId", "timezone", "active"]
+	},
+	{
+		label: "Leads da IA",
+		endpoint: "/ai-leads",
+		title: "Lead da IA",
+		readOnly: true,
+		fields: [
+			{ name: "ticketId", label: "Ticket" },
+			{ name: "contactId", label: "Contato" },
+			{ name: "queueId", label: "Fila" },
+			{ name: "status", label: "Status" },
+			{ name: "summary", label: "Resumo", multiline: true },
+			{ name: "collectedData", label: "Dados coletados", multiline: true },
+			{ name: "tagIds", label: "Etiquetas" }
+		],
+		columns: ["id", "ticketId", "contactId", "queueId", "status", "summary", "createdAt"]
+	},
+	{
+		label: "Execucoes de ferramentas",
+		endpoint: "/ai-tool-executions",
+		title: "Execucao de ferramenta",
+		readOnly: true,
+		fields: [
+			{ name: "ticketId", label: "Ticket" },
+			{ name: "aiSettingId", label: "IA" },
+			{ name: "toolName", label: "Ferramenta" },
+			{ name: "status", label: "Status" },
+			{ name: "input", label: "Entrada", multiline: true },
+			{ name: "output", label: "Saida", multiline: true },
+			{ name: "errorMessage", label: "Erro", multiline: true },
+			{ name: "executedAt", label: "Executada em" }
+		],
+		columns: ["id", "ticketId", "toolName", "status", "errorMessage", "executedAt"]
+	},
+	{
 		label: "IA",
 		endpoint: "/ai-settings",
-		title: "Configuracao de IA",
+		title: "Agente / Configuracao de IA",
 		fields: [
 			{
 				name: "name",
@@ -447,6 +616,35 @@ const resources = [
 				nullable: true,
 				helperText: "Escolha a fila onde ficarao os atendimentos respondidos pela IA. Quando a URA acionar IA, use essa fila como destino."
 			},
+			{
+				name: "allowedTools",
+				label: "Ferramentas permitidas",
+				type: "multiSelect",
+				options: [
+					{ value: "registrarLead", label: "Registrar lead" },
+					{ value: "gerarResumoParaAtendente", label: "Gerar resumo para atendente" },
+					{ value: "transferirParaFila", label: "Transferir para fila" },
+					{ value: "encerrarAtendimento", label: "Encerrar atendimento" },
+					{ value: "consultarAgenda", label: "Consultar agenda" },
+					{ value: "criarAgendamento", label: "Criar agendamento" }
+				],
+				helperText: "O backend so executa ferramentas marcadas aqui. A IA pode pedir, mas nao executa livremente."
+			},
+			{
+				name: "allowedTransferQueueIds",
+				label: "Filas permitidas para ferramenta transferirParaFila",
+				type: "multiRelation",
+				relation: "queues",
+				helperText: "Limita quais filas este agente pode usar quando pedir a ferramenta transferirParaFila."
+			},
+			{
+				name: "calendarConnectionId",
+				label: "Conexao de agenda",
+				type: "relation",
+				relation: "aiCalendarConnections",
+				nullable: true,
+				helperText: "Obrigatoria para consultarAgenda e criarAgendamento."
+			},
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
 		columns: ["id", "name", "companyName", "serviceType", "provider", "model", "active"]
@@ -498,12 +696,33 @@ const groupedSettingsTabs = [
 		type: "group",
 		groupKey: "ia",
 		children: [
-			{ label: "Provedor de IA", resource: getResourceByEndpoint("/ai-settings") },
-			{ label: "Base de conhecimento", resource: getResourceByEndpoint("/knowledge-base") }
+			{ label: "Agentes / IA", resource: getResourceByEndpoint("/ai-settings") },
+			{ label: "Base de conhecimento", resource: getResourceByEndpoint("/knowledge-base") },
+			{ label: "Agenda", resource: getResourceByEndpoint("/ai-calendar-connections") }
+		]
+	},
+	{
+		label: "Auditoria IA",
+		type: "group",
+		groupKey: "aiAudit",
+		children: [
+			{ label: "Memoria curta", resource: getResourceByEndpoint("/ai-ticket-contexts") },
+			{ label: "Leads da IA", resource: getResourceByEndpoint("/ai-leads") },
+			{ label: "Execucoes de ferramentas", resource: getResourceByEndpoint("/ai-tool-executions") }
+		]
+	},
+	{
+		label: "Formularios",
+		type: "group",
+		groupKey: "forms",
+		children: [
+			{ label: "Construtor", type: "qualificationForms" },
+			{ label: "Respostas", resource: getResourceByEndpoint("/qualification-form-responses") },
+			{ label: "Relatorio", resource: getResourceByEndpoint("/qualification-form-answers") }
 		]
 	},
 	{ label: "Logs de auditoria", type: "resource", resource: getResourceByEndpoint("/audit-logs") }
-].filter(tab => ["general", "uraTree"].includes(tab.type) || tab.resource || tab.children?.every(child => child.resource));
+].filter(tab => ["general", "uraTree"].includes(tab.type) || tab.resource || tab.children?.every(child => child.resource || child.type));
 
 const defaultModelsByProvider = {
 	openai: "gpt-4o-mini",
@@ -534,8 +753,18 @@ const defaultValue = field => {
 	if (field.name === "aiAutoCloseOnlyIfNotHandedOff") return true;
 	if (field.name === "aiAutoCloseReasonId") return "";
 	if (field.name === "aiQueueId") return "";
+	if (field.name === "calendarConnectionId") return "";
+	if (field.name === "timezone") return "America/Sao_Paulo";
+	if (field.name === "qualificationFormId") return "";
+	if (field.name === "runQualificationFormBeforeAction") return false;
+	if (field.name === "allowQualificationFormSkip") return false;
+	if (field.name === "required") return true;
+	if (field.name === "includeInAiContext") return true;
+	if (field.name === "includeInReports") return true;
+	if (field.name === "maxInvalidAttempts") return 2;
 	if (field.name === "confirmationMaxAttempts") return 2;
 	if (field.type === "boolean") return true;
+	if (field.type === "multiSelect" || field.type === "multiRelation") return [];
 	if (field.type === "number") return "";
 	if (field.type === "richtext") return "";
 	if (field.name === "fallbackQueueId") return "";
@@ -545,6 +774,7 @@ const defaultValue = field => {
 	if (field.name === "provider") return "openai";
 	if (field.name === "model") return defaultModelsByProvider.openai;
 	if (field.name === "action") return "SEND_MESSAGE";
+	if (field.name === "type") return "text";
 	if (field.name === "scaleType") return "1_5";
 	if (field.name === "sendMode") return "optional";
 	if (field.name === "color") return "#607d8b";
@@ -576,6 +806,14 @@ const relationConfigs = {
 	closingReasons: {
 		endpoint: "/closing-reasons",
 		getLabel: item => item.name
+	},
+	qualificationForms: {
+		endpoint: "/qualification-forms",
+		getLabel: item => item.name
+	},
+	aiCalendarConnections: {
+		endpoint: "/ai-calendar-connections",
+		getLabel: item => `${item.name} (${item.provider})`
 	}
 };
 
@@ -735,6 +973,9 @@ const emptyUraOption = flowId => ({
 	action: "SEND_MESSAGE",
 	targetQueueId: "",
 	closingReasonId: "",
+	qualificationFormId: "",
+	runQualificationFormBeforeAction: false,
+	allowQualificationFormSkip: false,
 	aiHumanHandoffEnabled: false,
 	aiHumanHandoffQueueId: "",
 	aiHumanHandoffMessage: "",
@@ -757,6 +998,7 @@ const UraTreePanel = ({ classes }) => {
 	const [options, setOptions] = useState([]);
 	const [queues, setQueues] = useState([]);
 	const [closingReasons, setClosingReasons] = useState([]);
+	const [qualificationForms, setQualificationForms] = useState([]);
 	const [selectedFlowId, setSelectedFlowId] = useState("");
 	const [flowForm, setFlowForm] = useState(emptyUraFlow);
 	const [optionForm, setOptionForm] = useState(null);
@@ -784,10 +1026,11 @@ const UraTreePanel = ({ classes }) => {
 	const load = async () => {
 		setLoading(true);
 		try {
-			const [{ data: flowData }, { data: optionData }, { data: queueData }] = await Promise.all([
+			const [{ data: flowData }, { data: optionData }, { data: queueData }, { data: qualificationFormData }] = await Promise.all([
 				api.get("/ura-flows"),
 				api.get("/ura-options"),
-				api.get("/queue")
+				api.get("/queue"),
+				api.get("/qualification-forms").catch(() => ({ data: [] }))
 			]);
 			const { data: closingReasonData } = await api.get("/closing-reasons").catch(() => ({ data: [] }));
 			const nextFlows = Array.isArray(flowData) ? flowData : [];
@@ -796,6 +1039,7 @@ const UraTreePanel = ({ classes }) => {
 			setOptions(nextOptions);
 			setQueues(Array.isArray(queueData) ? queueData : []);
 			setClosingReasons(Array.isArray(closingReasonData) ? closingReasonData : []);
+			setQualificationForms(Array.isArray(qualificationFormData) ? qualificationFormData : []);
 			if (!selectedFlowId && nextFlows.length) {
 				setSelectedFlowId(nextFlows[0].id);
 				setFlowForm({
@@ -852,6 +1096,7 @@ const UraTreePanel = ({ classes }) => {
 			parentOptionId: option.parentOptionId || "",
 			targetQueueId: option.targetQueueId || "",
 			closingReasonId: option.closingReasonId || "",
+			qualificationFormId: option.qualificationFormId || "",
 			aiHumanHandoffQueueId: option.aiHumanHandoffQueueId || "",
 			aiAutoCloseReasonId: option.aiAutoCloseReasonId || ""
 		});
@@ -914,6 +1159,9 @@ const UraTreePanel = ({ classes }) => {
 				parentOptionId: optionForm.parentOptionId || null,
 				targetQueueId: optionForm.targetQueueId || null,
 				closingReasonId: optionForm.closingReasonId || null,
+				runQualificationFormBeforeAction: !!optionForm.runQualificationFormBeforeAction,
+				qualificationFormId: optionForm.runQualificationFormBeforeAction ? (optionForm.qualificationFormId || null) : null,
+				allowQualificationFormSkip: !!optionForm.allowQualificationFormSkip,
 				aiHumanHandoffEnabled: !!optionForm.aiHumanHandoffEnabled,
 				aiHumanHandoffQueueId: optionForm.aiHumanHandoffEnabled ? (optionForm.aiHumanHandoffQueueId || null) : null,
 				aiHumanHandoffMessage: optionForm.aiHumanHandoffEnabled ? optionForm.aiHumanHandoffMessage : "",
@@ -992,6 +1240,7 @@ const UraTreePanel = ({ classes }) => {
 							<Typography variant="caption" color="textSecondary">
 								{actionLabel(option.action)}
 								{option.action === "OPEN_SUBMENU" ? " · submenu" : ""}
+								{option.runQualificationFormBeforeAction ? " · formulario" : ""}
 							</Typography>
 						</Grid>
 						<Grid item>
@@ -1162,6 +1411,31 @@ const UraTreePanel = ({ classes }) => {
 									{closingReasons.map(reason => <MenuItem key={reason.id} value={reason.id}>{textValue(reason.name)}</MenuItem>)}
 								</TextField>
 							)}
+							<Paper variant="outlined" style={{ padding: 12, marginTop: 12, marginBottom: 8 }}>
+								<Typography variant="subtitle2">Formulario antes da acao principal</Typography>
+								<Typography variant="caption" color="textSecondary">
+									Use quando a URA precisar coletar contexto estruturado antes de transferir, encerrar ou acionar a IA.
+								</Typography>
+								<FormControlLabel
+									control={<Switch color="primary" checked={!!optionForm.runQualificationFormBeforeAction} onChange={event => setOptionField("runQualificationFormBeforeAction", event.target.checked)} />}
+									label="Executar formulario antes da acao"
+								/>
+								{optionForm.runQualificationFormBeforeAction && (
+									<>
+										<TextField select fullWidth margin="dense" variant="outlined" label="Formulario" value={optionForm.qualificationFormId || ""} onChange={event => setOptionField("qualificationFormId", event.target.value)}>
+											<MenuItem value="">Selecione</MenuItem>
+											{qualificationForms.map(form => <MenuItem key={form.id} value={form.id}>{textValue(form.name)}</MenuItem>)}
+										</TextField>
+										<FormControlLabel
+											control={<Switch color="primary" checked={!!optionForm.allowQualificationFormSkip} onChange={event => setOptionField("allowQualificationFormSkip", event.target.checked)} />}
+											label="Permitir pular perguntas opcionais"
+										/>
+										<Typography variant="caption" display="block" color="textSecondary">
+											Ao concluir, a acao principal configurada acima sera executada com as respostas como contexto.
+										</Typography>
+									</>
+								)}
+							</Paper>
 							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={textValue(optionForm.responseMessage)} rows={5} onChange={event => setOptionField("responseMessage", event.target.value)} />
 							<input
 								accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
@@ -1306,6 +1580,597 @@ const parseTagText = value => {
 };
 
 const formatTagText = value => parseTagText(value).join(", ");
+
+const formatListText = value => {
+	if (Array.isArray(value)) return value.join("\n");
+	const text = String(value || "").trim();
+	if (!text) return "";
+
+	try {
+		const parsed = JSON.parse(text);
+		if (Array.isArray(parsed)) return parsed.map(item => String(item)).join("\n");
+	} catch (err) {
+		return text;
+	}
+
+	return text;
+};
+
+const parseListValue = value => {
+	if (Array.isArray(value)) return value.map(item => String(item));
+	const text = String(value || "").trim();
+	if (!text) return [];
+
+	try {
+		const parsed = JSON.parse(text);
+		if (Array.isArray(parsed)) return parsed.map(item => String(item));
+	} catch (err) {
+		return text.split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+	}
+
+	return [];
+};
+
+const questionTypeOptions = [
+	{ value: "text", label: "Texto livre" },
+	{ value: "single_choice", label: "Escolha unica" },
+	{ value: "multiple_choice", label: "Multipla escolha" },
+	{ value: "number", label: "Numero" },
+	{ value: "date", label: "Data" },
+	{ value: "time", label: "Horario" },
+	{ value: "boolean", label: "Sim ou nao" },
+	{ value: "email", label: "E-mail" },
+	{ value: "phone", label: "Telefone" }
+];
+
+const normalizeFormKey = value =>
+	String(value || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim()
+		.replace(/\s+/g, "_")
+		.replace(/[^\w.-]/g, "");
+
+const emptyQualificationForm = {
+	name: "",
+	description: "",
+	active: true
+};
+
+const emptyQualificationQuestion = formId => ({
+	formId: formId || "",
+	key: "",
+	label: "",
+	type: "text",
+	options: [],
+	required: true,
+	includeInAiContext: true,
+	includeInReports: true,
+	maxInvalidAttempts: 2,
+	order: 0,
+	active: true
+});
+
+const parseQuestionOptions = value => {
+	if (Array.isArray(value)) {
+		return value.map((item, index) => ({
+			value: String(item?.value || index + 1),
+			label: String(item?.label || item?.value || ""),
+			tagRefs: parseListValue(item?.tagRefs || item?.tagIds || [])
+		})).filter(item => item.label);
+	}
+
+	const text = String(value || "").trim();
+	if (!text) return [];
+
+	try {
+		const parsed = JSON.parse(text);
+		return parseQuestionOptions(parsed);
+	} catch (err) {
+		return text
+			.split(/\r?\n|;/)
+			.map((line, index) => {
+				const parts = line.split("|").map(part => part.trim());
+				return {
+					value: parts[1] ? parts[0] : String(index + 1),
+					label: parts[1] || parts[0],
+					tagRefs: parseListValue(parts.slice(2).join(","))
+				};
+			})
+			.filter(item => item.label);
+	}
+};
+
+const QualificationFormsPanel = ({ classes }) => {
+	const [forms, setForms] = useState([]);
+	const [questions, setQuestions] = useState([]);
+	const [tags, setTags] = useState([]);
+	const [selectedFormId, setSelectedFormId] = useState("");
+	const [form, setForm] = useState(emptyQualificationForm);
+	const [questionForm, setQuestionForm] = useState(null);
+	const [loading, setLoading] = useState(false);
+
+	const selectedFormQuestions = questions
+		.filter(question => Number(question.formId) === Number(selectedFormId))
+		.sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || Number(a.id || 0) - Number(b.id || 0));
+
+	const choiceQuestion = ["single_choice", "multiple_choice"].includes(questionForm?.type);
+
+	const load = async () => {
+		setLoading(true);
+		try {
+			const [{ data: formData }, { data: questionData }, { data: tagData }] = await Promise.all([
+				api.get("/qualification-forms"),
+				api.get("/qualification-form-questions"),
+				api.get("/tags")
+			]);
+
+			const nextForms = Array.isArray(formData) ? formData : [];
+			setForms(nextForms);
+			setQuestions(Array.isArray(questionData) ? questionData : []);
+			setTags(Array.isArray(tagData) ? tagData : []);
+
+			if (!selectedFormId && nextForms.length) {
+				setSelectedFormId(nextForms[0].id);
+				setForm({
+					...emptyQualificationForm,
+					...nextForms[0]
+				});
+			}
+		} catch (err) {
+			toastError(err);
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		load();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	const selectForm = nextForm => {
+		setSelectedFormId(nextForm.id);
+		setForm({
+			...emptyQualificationForm,
+			...nextForm
+		});
+		setQuestionForm(null);
+	};
+
+	const newForm = () => {
+		setSelectedFormId("");
+		setForm(emptyQualificationForm);
+		setQuestionForm(null);
+	};
+
+	const saveForm = async () => {
+		try {
+			const payload = {
+				name: form.name,
+				description: form.description,
+				active: form.active !== false
+			};
+			const { data } = form.id
+				? await api.put(`/qualification-forms/${form.id}`, payload)
+				: await api.post("/qualification-forms", payload);
+
+			toast.success("Formulario salvo.");
+			await load();
+			selectForm(data);
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const newQuestion = () => {
+		if (!selectedFormId) {
+			toast.info("Salve ou selecione um formulario antes de criar perguntas.");
+			return;
+		}
+
+		setQuestionForm({
+			...emptyQualificationQuestion(selectedFormId),
+			order: selectedFormQuestions.length + 1
+		});
+	};
+
+	const editQuestion = question => {
+		setQuestionForm({
+			...emptyQualificationQuestion(selectedFormId),
+			...question,
+			options: parseQuestionOptions(question.options)
+		});
+	};
+
+	const setQuestionField = (name, value) => {
+		setQuestionForm(prev => {
+			const next = {
+				...emptyQualificationQuestion(selectedFormId),
+				...(prev || {}),
+				[name]: value
+			};
+
+			if (name === "label" && !prev?.id && !prev?.key) {
+				next.key = normalizeFormKey(value);
+			}
+
+			if (name === "type" && !["single_choice", "multiple_choice"].includes(value)) {
+				next.options = [];
+			}
+
+			if (name === "type" && ["single_choice", "multiple_choice"].includes(value) && !parseQuestionOptions(next.options).length) {
+				next.options = [
+					{ value: "1", label: "", tagRefs: [] },
+					{ value: "2", label: "", tagRefs: [] }
+				];
+			}
+
+			return next;
+		});
+	};
+
+	const addOption = () => {
+		setQuestionForm(prev => {
+			const options = parseQuestionOptions(prev?.options || []);
+			return {
+				...emptyQualificationQuestion(selectedFormId),
+				...(prev || {}),
+				options: [
+					...options,
+					{ value: String(options.length + 1), label: "", tagRefs: [] }
+				]
+			};
+		});
+	};
+
+	const updateOption = (index, changes) => {
+		setQuestionForm(prev => {
+			const options = parseQuestionOptions(prev?.options || []);
+			return {
+				...emptyQualificationQuestion(selectedFormId),
+				...(prev || {}),
+				options: options.map((option, optionIndex) =>
+					optionIndex === index ? { ...option, ...changes } : option
+				)
+			};
+		});
+	};
+
+	const removeOption = index => {
+		setQuestionForm(prev => ({
+			...emptyQualificationQuestion(selectedFormId),
+			...(prev || {}),
+			options: parseQuestionOptions(prev?.options || []).filter((_, optionIndex) => optionIndex !== index)
+		}));
+	};
+
+	const saveQuestion = async () => {
+		if (!questionForm) return;
+
+		try {
+			const options = parseQuestionOptions(questionForm.options)
+				.map((option, index) => ({
+					value: textValue(option.value || index + 1),
+					label: textValue(option.label).trim(),
+					tagRefs: parseListValue(option.tagRefs)
+				}))
+				.filter(option => option.label);
+
+			const payload = {
+				...questionForm,
+				formId: selectedFormId,
+				key: normalizeFormKey(questionForm.key || questionForm.label),
+				options: choiceQuestion ? options : null,
+				required: questionForm.required !== false,
+				includeInAiContext: questionForm.includeInAiContext !== false,
+				includeInReports: questionForm.includeInReports !== false,
+				maxInvalidAttempts: Number(questionForm.maxInvalidAttempts || 2),
+				order: Number(questionForm.order || 0),
+				active: questionForm.active !== false
+			};
+
+			if (questionForm.id) {
+				await api.put(`/qualification-form-questions/${questionForm.id}`, payload);
+			} else {
+				await api.post("/qualification-form-questions", payload);
+			}
+
+			toast.success("Pergunta salva.");
+			setQuestionForm(null);
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const deleteQuestion = async question => {
+		if (!window.confirm("Deseja excluir esta pergunta?")) return;
+
+		try {
+			await api.delete(`/qualification-form-questions/${question.id}`);
+			toast.success("Pergunta excluida.");
+			if (questionForm?.id === question.id) setQuestionForm(null);
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const renderOptionTags = option => {
+		const selected = parseListValue(option.tagRefs);
+		if (!selected.length) return "Sem etiquetas";
+
+		return selected
+			.map(tagId => tags.find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
+			.join(", ");
+	};
+
+	return (
+		<Grid container spacing={2}>
+			<Grid item xs={12} md={3}>
+				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+					<Grid container alignItems="center" spacing={1}>
+						<Grid item xs>
+							<Typography variant="h6">Formularios</Typography>
+						</Grid>
+						<Grid item>
+							<Button size="small" variant="outlined" color="primary" onClick={newForm}>
+								Novo
+							</Button>
+						</Grid>
+					</Grid>
+					<Typography variant="caption" color="textSecondary">
+						Crie blocos de perguntas e vincule depois na opcao da URA.
+					</Typography>
+					<div style={{ marginTop: 12 }}>
+						{forms.map(item => (
+							<Paper
+								key={item.id}
+								variant="outlined"
+								style={{
+									padding: 12,
+									marginBottom: 8,
+									cursor: "pointer",
+									borderColor: Number(item.id) === Number(selectedFormId) ? "#1976d2" : undefined
+								}}
+								onClick={() => selectForm(item)}
+							>
+								<Typography variant="subtitle2">{textValue(item.name)}</Typography>
+								<Typography variant="caption" color="textSecondary">
+									{item.active === false ? "Inativo" : "Ativo"} - {questions.filter(question => Number(question.formId) === Number(item.id)).length} pergunta(s)
+								</Typography>
+							</Paper>
+						))}
+						{!forms.length && (
+							<Typography variant="body2" color="textSecondary">
+								Nenhum formulario cadastrado.
+							</Typography>
+						)}
+					</div>
+				</Paper>
+			</Grid>
+
+			<Grid item xs={12} md={5}>
+				<Paper variant="outlined" style={{ padding: 16, marginBottom: 16 }}>
+					<Typography variant="h6">Configuracao do formulario</Typography>
+					<TextField fullWidth margin="dense" variant="outlined" label="Nome do formulario" value={textValue(form.name)} onChange={event => setForm(prev => ({ ...prev, name: event.target.value }))} />
+					<TextField fullWidth margin="dense" variant="outlined" multiline rows={3} label="Descricao interna" value={textValue(form.description)} onChange={event => setForm(prev => ({ ...prev, description: event.target.value }))} />
+					<FormControlLabel
+						control={<Switch color="primary" checked={form.active !== false} onChange={event => setForm(prev => ({ ...prev, active: event.target.checked }))} />}
+						label="Formulario ativo"
+					/>
+					<Button variant="contained" color="primary" onClick={saveForm} disabled={loading}>
+						Salvar formulario
+					</Button>
+				</Paper>
+
+				<Paper variant="outlined" style={{ padding: 16 }}>
+					<Grid container alignItems="center" spacing={1}>
+						<Grid item xs>
+							<Typography variant="h6">Perguntas</Typography>
+						</Grid>
+						<Grid item>
+							<Button size="small" variant="outlined" color="primary" onClick={newQuestion}>
+								Adicionar pergunta
+							</Button>
+						</Grid>
+					</Grid>
+					<Typography variant="caption" color="textSecondary">
+						A ordem define a sequencia enviada no WhatsApp.
+					</Typography>
+					<div style={{ marginTop: 12 }}>
+						{selectedFormQuestions.map(question => {
+							const options = parseQuestionOptions(question.options);
+							return (
+								<Paper key={question.id} variant="outlined" style={{ padding: 12, marginBottom: 10 }}>
+									<Grid container spacing={1} alignItems="flex-start">
+										<Grid item xs>
+											<Typography variant="subtitle2">
+												{Number(question.order || 0)}. {textValue(question.label)}
+											</Typography>
+											<Typography variant="caption" color="textSecondary">
+												{questionTypeOptions.find(item => item.value === question.type)?.label || question.type} - chave: {question.key}
+											</Typography>
+											{options.length > 0 && (
+												<div style={{ marginTop: 8 }}>
+													{options.map(option => (
+														<Chip
+															key={`${question.id}-${option.value}`}
+															size="small"
+															label={`${option.value} - ${option.label}`}
+															style={{ marginRight: 6, marginBottom: 6 }}
+														/>
+													))}
+												</div>
+											)}
+										</Grid>
+										<Grid item>
+											<IconButton size="small" onClick={() => editQuestion(question)}>
+												<EditIcon fontSize="small" />
+											</IconButton>
+											<IconButton size="small" onClick={() => deleteQuestion(question)}>
+												<DeleteOutlineIcon fontSize="small" />
+											</IconButton>
+										</Grid>
+									</Grid>
+								</Paper>
+							);
+						})}
+						{selectedFormId && !selectedFormQuestions.length && (
+							<Typography variant="body2" color="textSecondary">
+								Este formulario ainda nao tem perguntas.
+							</Typography>
+						)}
+						{!selectedFormId && (
+							<Typography variant="body2" color="textSecondary">
+								Selecione ou salve um formulario para criar perguntas.
+							</Typography>
+						)}
+					</div>
+				</Paper>
+			</Grid>
+
+			<Grid item xs={12} md={4}>
+				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+					<Typography variant="h6">Editor da pergunta</Typography>
+					{!questionForm ? (
+						<Typography variant="body2" color="textSecondary">
+							Clique em Adicionar pergunta ou edite uma pergunta existente.
+						</Typography>
+					) : (
+						<>
+							<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Pergunta enviada ao cliente" value={textValue(questionForm.label)} onChange={event => setQuestionField("label", event.target.value)} />
+							<Grid container spacing={1}>
+								<Grid item xs={7}>
+									<TextField fullWidth margin="dense" variant="outlined" label="Chave para relatorio" value={textValue(questionForm.key)} onChange={event => setQuestionField("key", normalizeFormKey(event.target.value))} />
+								</Grid>
+								<Grid item xs={5}>
+									<TextField fullWidth margin="dense" variant="outlined" type="number" label="Ordem" value={textValue(questionForm.order)} onChange={event => setQuestionField("order", event.target.value)} />
+								</Grid>
+							</Grid>
+							<TextField select fullWidth margin="dense" variant="outlined" label="Tipo de resposta" value={questionForm.type || "text"} onChange={event => setQuestionField("type", event.target.value)}>
+								{questionTypeOptions.map(option => (
+									<MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+								))}
+							</TextField>
+
+							{choiceQuestion && (
+								<Paper variant="outlined" style={{ padding: 12, marginTop: 12 }}>
+									<Typography variant="subtitle2">Opcoes de resposta</Typography>
+									<Typography variant="caption" color="textSecondary">
+										No WhatsApp o cliente vera a lista numerada. Em escolha unica ele responde um numero. Em multipla escolha ele pode responder, por exemplo, 1,3.
+									</Typography>
+									{parseQuestionOptions(questionForm.options).map((option, index) => (
+										<Paper key={index} variant="outlined" style={{ padding: 10, marginTop: 10 }}>
+											<Grid container spacing={1} alignItems="center">
+												<Grid item xs={3}>
+													<TextField fullWidth margin="dense" variant="outlined" label="Valor" value={textValue(option.value)} onChange={event => updateOption(index, { value: event.target.value })} />
+												</Grid>
+												<Grid item xs={9}>
+													<TextField fullWidth margin="dense" variant="outlined" label="Texto da opcao" value={textValue(option.label)} onChange={event => updateOption(index, { label: event.target.value })} />
+												</Grid>
+												<Grid item xs={12}>
+													<TextField
+														select
+														fullWidth
+														margin="dense"
+														variant="outlined"
+														label="Etiquetas aplicadas se escolher esta opcao"
+														value={parseListValue(option.tagRefs)}
+														onChange={event => updateOption(index, { tagRefs: event.target.value })}
+														SelectProps={{
+															multiple: true,
+															renderValue: selected => (selected || [])
+																.map(tagId => tags.find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
+																.join(", ")
+														}}
+														helperText={renderOptionTags(option)}
+													>
+														{tags.map(tag => (
+															<MenuItem key={tag.id} value={String(tag.id)}>
+																<Checkbox checked={parseListValue(option.tagRefs).includes(String(tag.id))} />
+																{textValue(tag.name)}
+															</MenuItem>
+														))}
+													</TextField>
+												</Grid>
+												<Grid item xs={12}>
+													<Button size="small" color="secondary" variant="outlined" onClick={() => removeOption(index)}>
+														Remover opcao
+													</Button>
+												</Grid>
+											</Grid>
+										</Paper>
+									))}
+									<Button size="small" variant="outlined" color="primary" onClick={addOption} style={{ marginTop: 10 }}>
+										Adicionar opcao
+									</Button>
+								</Paper>
+							)}
+
+							<Grid container spacing={1} style={{ marginTop: 8 }}>
+								<Grid item xs={12}>
+									<FormControlLabel
+										control={<Switch color="primary" checked={questionForm.required !== false} onChange={event => setQuestionField("required", event.target.checked)} />}
+										label="Obrigatoria"
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<FormControlLabel
+										control={<Switch color="primary" checked={questionForm.includeInAiContext !== false} onChange={event => setQuestionField("includeInAiContext", event.target.checked)} />}
+										label="Enviar resposta como contexto para IA"
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<FormControlLabel
+										control={<Switch color="primary" checked={questionForm.includeInReports !== false} onChange={event => setQuestionField("includeInReports", event.target.checked)} />}
+										label="Disponivel para relatorios"
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<TextField fullWidth margin="dense" variant="outlined" type="number" label="Tentativas invalidas antes de aceitar texto livre" value={textValue(questionForm.maxInvalidAttempts)} onChange={event => setQuestionField("maxInvalidAttempts", event.target.value)} />
+								</Grid>
+								<Grid item xs={12}>
+									<FormControlLabel
+										control={<Switch color="primary" checked={questionForm.active !== false} onChange={event => setQuestionField("active", event.target.checked)} />}
+										label="Pergunta ativa"
+									/>
+								</Grid>
+							</Grid>
+
+							<Paper variant="outlined" style={{ padding: 12, marginTop: 12, background: "#fafafa" }}>
+								<Typography variant="subtitle2">Previa no WhatsApp</Typography>
+								<Typography variant="body2">
+									{textValue(questionForm.label) || "Pergunta ainda nao preenchida"}
+								</Typography>
+								{choiceQuestion && parseQuestionOptions(questionForm.options).map(option => (
+									<Typography key={option.value} variant="body2">
+										<strong>{option.value}</strong> - {option.label || "Opcao sem texto"}
+									</Typography>
+								))}
+							</Paper>
+
+							<Grid container spacing={1} style={{ marginTop: 12 }}>
+								<Grid item xs>
+									<Button fullWidth variant="contained" color="primary" onClick={saveQuestion}>
+										Salvar pergunta
+									</Button>
+								</Grid>
+								<Grid item>
+									<Button variant="outlined" onClick={() => setQuestionForm(null)}>
+										Cancelar
+									</Button>
+								</Grid>
+							</Grid>
+						</>
+					)}
+				</Paper>
+			</Grid>
+		</Grid>
+	);
+};
 
 const SettingTextField = ({ name, getSettingValue, onChangeSetting, ...props }) => {
 	const [value, setValue] = useState("");
@@ -1753,7 +2618,11 @@ const ResourcePanel = ({ resource, classes }) => {
 	const openCreate = () => {
 		const nextForm = {};
 		resource.fields.forEach(field => {
-			nextForm[field.name] = field.type === "tags" ? "" : defaultValue(field);
+			nextForm[field.name] = field.type === "tags" || field.type === "list"
+				? ""
+				: field.type === "multiSelect" || field.type === "multiRelation"
+					? []
+					: defaultValue(field);
 		});
 		setForm(nextForm);
 		setMediaFile(null);
@@ -1769,7 +2638,13 @@ const ResourcePanel = ({ resource, classes }) => {
 			const value = rawValue === null || rawValue === undefined
 				? defaultValue(field)
 				: rawValue;
-			nextForm[field.name] = field.type === "tags" ? formatTagText(value) : value;
+			nextForm[field.name] = field.type === "tags"
+				? formatTagText(value)
+				: field.type === "list"
+					? formatListText(value)
+					: field.type === "multiSelect" || field.type === "multiRelation"
+						? parseListValue(value)
+						: value;
 		});
 		nextForm.id = row.id;
 		setForm(nextForm);
@@ -1899,6 +2774,23 @@ const ResourcePanel = ({ resource, classes }) => {
 			const item = items.find(option => Number(option.id) === Number(value));
 			return item && config ? config.getLabel(item) : `#${value}`;
 		}
+		if (field?.type === "multiSelect") {
+			const selected = parseListValue(value);
+			return selected
+				.map(item => (field.options || []).find(option => option.value === item)?.label || item)
+				.join(", ");
+		}
+		if (field?.type === "multiRelation") {
+			const selected = parseListValue(value).map(Number);
+			const items = relations[field.relation] || [];
+			const config = relationConfigs[field.relation];
+			return selected
+				.map(id => {
+					const item = items.find(option => Number(option.id) === Number(id));
+					return item && config ? config.getLabel(item) : `#${id}`;
+				})
+				.join(", ");
+		}
 		if (field?.type === "tags") return parseTagText(value).join(", ");
 		if (String(value).length > 80) return String(value).slice(0, 80) + "...";
 
@@ -1976,6 +2868,48 @@ const ResourcePanel = ({ resource, classes }) => {
 											}
 											label={field.label}
 										/>
+										{fieldHelper(field)}
+									</>
+								) : field.type === "multiSelect" || field.type === "multiRelation" ? (
+									<>
+										<TextField
+											select
+											fullWidth
+											margin="dense"
+											variant="outlined"
+											label={field.label}
+											value={Array.isArray(form[field.name]) ? form[field.name] : parseListValue(form[field.name])}
+											onChange={event => handleChange(field.name, event.target.value)}
+											SelectProps={{
+												multiple: true,
+												renderValue: selected => (
+													(Array.isArray(selected) ? selected : [])
+														.map(value => {
+															if (field.type === "multiSelect") {
+																return (field.options || []).find(option => option.value === value)?.label || value;
+															}
+															const config = relationConfigs[field.relation];
+															const item = (relations[field.relation] || []).find(option => Number(option.id) === Number(value));
+															return item && config ? config.getLabel(item) : `#${value}`;
+														})
+														.join(", ")
+												)
+											}}
+										>
+											{field.type === "multiSelect"
+												? (field.options || []).map(option => (
+													<MenuItem key={option.value} value={option.value}>
+														<Checkbox checked={(form[field.name] || []).indexOf(option.value) > -1} />
+														{option.label}
+													</MenuItem>
+												))
+												: (relations[field.relation] || []).map(option => (
+													<MenuItem key={option.id} value={String(option.id)}>
+														<Checkbox checked={(form[field.name] || []).map(String).indexOf(String(option.id)) > -1} />
+														{relationConfigs[field.relation]?.getLabel(option) || option.id}
+													</MenuItem>
+												))}
+										</TextField>
 										{fieldHelper(field)}
 									</>
 								) : field.type === "select" || field.type === "relation" ? (
@@ -2127,7 +3061,7 @@ const Settings = () => {
 
 	const [settings, setSettings] = useState([]);
 	const [tab, setTab] = useState(0);
-	const [groupTabs, setGroupTabs] = useState({ ura: 0, ia: 0 });
+	const [groupTabs, setGroupTabs] = useState({ ura: 0, ia: 0, aiAudit: 0, forms: 0 });
 
 	useEffect(() => {
 		const fetchSession = async () => {
@@ -2258,7 +3192,11 @@ const Settings = () => {
 								<Tab key={child.label} label={child.label} />
 							))}
 						</Tabs>
-						<ResourcePanel resource={activeResource} classes={classes} />
+						{activeGroupChild?.type === "qualificationForms" ? (
+							<QualificationFormsPanel classes={classes} />
+						) : (
+							<ResourcePanel resource={activeResource} classes={classes} />
+						)}
 					</>
 				) : (
 					<ResourcePanel resource={activeResource} classes={classes} />

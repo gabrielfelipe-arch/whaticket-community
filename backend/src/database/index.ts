@@ -30,6 +30,14 @@ import AiInteractionLog from "../models/AiInteractionLog";
 import CampaignRecipientLog from "../models/CampaignRecipientLog";
 import ScheduledMessageExecution from "../models/ScheduledMessageExecution";
 import QueueDistributionLog from "../models/QueueDistributionLog";
+import QualificationForm from "../models/QualificationForm";
+import QualificationFormQuestion from "../models/QualificationFormQuestion";
+import QualificationFormResponse from "../models/QualificationFormResponse";
+import QualificationFormAnswer from "../models/QualificationFormAnswer";
+import AiTicketContext from "../models/AiTicketContext";
+import AiLead from "../models/AiLead";
+import AiCalendarConnection from "../models/AiCalendarConnection";
+import AiToolExecution from "../models/AiToolExecution";
 
 
 // eslint-disable-next-line
@@ -69,7 +77,15 @@ const models = [
   AiInteractionLog,
   CampaignRecipientLog,
   ScheduledMessageExecution,
-  QueueDistributionLog
+  QueueDistributionLog,
+  QualificationForm,
+  QualificationFormQuestion,
+  QualificationFormResponse,
+  QualificationFormAnswer,
+  AiTicketContext,
+  AiLead,
+  AiCalendarConnection,
+  AiToolExecution
 ];
 
 sequelize.addModels(models);

@@ -9,6 +9,14 @@ import UraOption from "../models/UraOption";
 import AiSetting from "../models/AiSetting";
 import KnowledgeBaseArticle from "../models/KnowledgeBaseArticle";
 import SatisfactionSurvey from "../models/SatisfactionSurvey";
+import QualificationForm from "../models/QualificationForm";
+import QualificationFormQuestion from "../models/QualificationFormQuestion";
+import QualificationFormResponse from "../models/QualificationFormResponse";
+import QualificationFormAnswer from "../models/QualificationFormAnswer";
+import AiTicketContext from "../models/AiTicketContext";
+import AiLead from "../models/AiLead";
+import AiCalendarConnection from "../models/AiCalendarConnection";
+import AiToolExecution from "../models/AiToolExecution";
 import CreateAuditLogService from "../services/AuditLogServices/CreateAuditLogService";
 import GenerateAiResponseService, { AiProviderError } from "../services/AiServices/GenerateAiResponseService";
 import {
@@ -26,7 +34,15 @@ const modelMap: Record<string, AnyModel> = {
   uraOptions: UraOption,
   aiSettings: AiSetting,
   knowledgeBaseArticles: KnowledgeBaseArticle,
-  satisfactionSurveys: SatisfactionSurvey
+  satisfactionSurveys: SatisfactionSurvey,
+  qualificationForms: QualificationForm,
+  qualificationFormQuestions: QualificationFormQuestion,
+  qualificationFormResponses: QualificationFormResponse,
+  qualificationFormAnswers: QualificationFormAnswer,
+  aiTicketContexts: AiTicketContext,
+  aiLeads: AiLead,
+  aiCalendarConnections: AiCalendarConnection,
+  aiToolExecutions: AiToolExecution
 };
 
 function getModel(resource: string): AnyModel {
@@ -97,6 +113,24 @@ function isEnabled(value: any): boolean {
   return value === true || value === "true" || value === "enabled";
 }
 
+function normalizeJsonArray(value: any): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  if (Array.isArray(value)) return JSON.stringify(value.map(item => String(item).trim()).filter(Boolean));
+
+  const text = String(value || "").trim();
+  if (!text) return null;
+
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return JSON.stringify(parsed.map(item => String(item).trim()).filter(Boolean));
+  } catch (err) {
+    // fall through to comma/newline parser
+  }
+
+  const items = text.split(/\r?\n|,/).map(item => item.trim()).filter(Boolean);
+  return items.length ? JSON.stringify(items) : null;
+}
+
 function applyMediaUpload(data: any, req: Request, fields: { url: string; type: string; name: string }): void {
   const file = req.file as Express.Multer.File | undefined;
   if (!file) return;
@@ -122,6 +156,79 @@ function normalizeKeywordText(value: any): string | null {
     );
 
   return normalized.length ? normalized.join(", ") : null;
+}
+
+function normalizeQuestionKey(value: any): string {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "_")
+    .replace(/[^\w.-]/g, "");
+}
+
+function normalizeQuestionOptions(value: any): string | null {
+  if (value === null || value === undefined || value === "") return null;
+
+  if (Array.isArray(value)) {
+    const normalized = value
+      .map((item, index) => {
+        if (typeof item === "object" && item !== null) {
+          const tagRefs = Array.isArray(item.tagRefs)
+            ? item.tagRefs
+            : Array.isArray(item.tagIds)
+              ? item.tagIds
+              : Array.isArray(item.tags)
+                ? item.tags
+                : [];
+
+          return {
+            value: String(item.value || item.numero || index + 1).trim(),
+            label: String(item.label || item.valor || item.value || item.numero || "").trim(),
+            tagRefs: tagRefs.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+          };
+        }
+
+        return {
+          value: String(index + 1),
+          label: String(item || "").trim(),
+          tagRefs: []
+        };
+      })
+      .filter(item => item.value && item.label);
+
+    return normalized.length ? JSON.stringify(normalized) : null;
+  }
+
+  const trimmed = String(value || "").trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return normalizeQuestionOptions(parsed);
+  } catch (error) {
+    const normalized = trimmed
+      .split(/\r?\n|;/)
+      .map((item, index) => item.trim())
+      .filter(Boolean)
+      .map((item, index) => {
+        const parts = item.split("|").map(part => part.trim());
+        const value = parts[0];
+        const label = parts[1];
+        const tagRefs = parts
+          .slice(2)
+          .join("|")
+          .split(",")
+          .map(tag => tag.trim())
+          .filter(Boolean);
+
+        return {
+          value: label ? value : String(index + 1),
+          label: label || value,
+          tagRefs
+        };
+      });
+
+    return normalized.length ? JSON.stringify(normalized) : null;
+  }
 }
 
 async function normalizeBody(resource: string, body: any): Promise<any> {
@@ -205,6 +312,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     const aiHumanHandoffEnabled = isEnabled(data.aiHumanHandoffEnabled);
     const aiHandoffAlertEnabled = isEnabled(data.aiHandoffAlertEnabled);
     const action = data.action || "SEND_MESSAGE";
+    const runQualificationFormBeforeAction = isEnabled(data.runQualificationFormBeforeAction);
 
     if (action === "SEND_MESSAGE") {
       requireField(data.responseMessage, "Informe a mensagem que sera enviada ao cliente.");
@@ -222,6 +330,10 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
 
     if (action === "CLOSE_TICKET" && !nullableNumber(data.closingReasonId)) {
       throw new AppError("Escolha o motivo de encerramento desta opcao.", 400);
+    }
+
+    if (runQualificationFormBeforeAction && !nullableNumber(data.qualificationFormId)) {
+      throw new AppError("Escolha o formulario de qualificacao desta opcao.", 400);
     }
 
     if (aiHumanHandoffEnabled) {
@@ -280,6 +392,9 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       action,
       targetQueueId: nullableNumber(data.targetQueueId),
       closingReasonId: nullableNumber(data.closingReasonId),
+      qualificationFormId: nullableNumber(data.qualificationFormId),
+      runQualificationFormBeforeAction,
+      allowQualificationFormSkip: data.allowQualificationFormSkip === true || data.allowQualificationFormSkip === "true",
       aiHumanHandoffEnabled,
       aiHumanHandoffQueueId: nullableNumber(data.aiHumanHandoffQueueId),
       aiHumanHandoffMessage: data.aiHumanHandoffMessage || null,
@@ -323,7 +438,30 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       aiQueueId: nullableNumber(data.aiQueueId),
       confirmationMaxAttempts: Number(data.confirmationMaxAttempts || 2),
       confirmationFailureMessage: data.confirmationFailureMessage || null,
+      allowedTools: normalizeJsonArray(data.allowedTools),
+      allowedTransferQueueIds: normalizeJsonArray(data.allowedTransferQueueIds),
+      calendarConnectionId: nullableNumber(data.calendarConnectionId),
       active
+    };
+  }
+
+  if (resource === "aiCalendarConnections") {
+    requireField(data.name, "Informe o nome da conexao de agenda.");
+    const provider = String(data.provider || "").trim().toLowerCase();
+    if (!["google", "microsoft"].includes(provider)) {
+      throw new AppError("Escolha o provedor da agenda.", 400);
+    }
+
+    return {
+      name: data.name,
+      provider,
+      calendarId: data.calendarId || null,
+      userPrincipalName: data.userPrincipalName || null,
+      accessToken: data.accessToken || null,
+      refreshToken: data.refreshToken || null,
+      tokenExpiresAt: data.tokenExpiresAt || null,
+      timezone: data.timezone || "America/Sao_Paulo",
+      active: data.active === true || data.active === "true"
     };
   }
 
@@ -361,6 +499,46 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       scaleType: allowedScales.includes(data.scaleType) ? data.scaleType : "1_5",
       sendMode,
       active
+    };
+  }
+
+  if (resource === "qualificationForms") {
+    requireField(data.name, "Informe o nome do formulario.");
+
+    return {
+      name: data.name,
+      description: data.description || null,
+      active: data.active !== false && data.active !== "false"
+    };
+  }
+
+  if (resource === "qualificationFormQuestions") {
+    requireField(data.formId, "Escolha o formulario.");
+    requireField(data.label, "Informe a pergunta.");
+
+    const allowedTypes = ["text", "single_choice", "multiple_choice", "number", "date", "time", "boolean", "email", "phone"];
+    const type = allowedTypes.includes(data.type) ? data.type : "text";
+    const key = normalizeQuestionKey(data.key || data.label);
+
+    requireField(key, "Informe uma chave valida para a pergunta.");
+
+    const options = normalizeQuestionOptions(data.options);
+    if (["single_choice", "multiple_choice"].includes(type) && !options) {
+      throw new AppError("Informe as opcoes da pergunta, uma por linha ou no formato valor|rotulo.", 400);
+    }
+
+    return {
+      formId: Number(data.formId),
+      key,
+      label: data.label,
+      type,
+      options,
+      required: data.required !== false && data.required !== "false",
+      includeInAiContext: data.includeInAiContext !== false && data.includeInAiContext !== "false",
+      includeInReports: data.includeInReports !== false && data.includeInReports !== "false",
+      maxInvalidAttempts: Number(data.maxInvalidAttempts || 2),
+      order: Number(data.order || 0),
+      active: data.active !== false && data.active !== "false"
     };
   }
 

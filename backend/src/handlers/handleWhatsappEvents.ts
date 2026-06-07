@@ -17,6 +17,13 @@ import AiSetting from "../models/AiSetting";
 import Setting from "../models/Setting";
 import ClosingReason from "../models/ClosingReason";
 import UraOption from "../models/UraOption";
+import Tag from "../models/Tag";
+import ContactTag from "../models/ContactTag";
+import QualificationForm from "../models/QualificationForm";
+import QualificationFormQuestion from "../models/QualificationFormQuestion";
+import QualificationFormResponse from "../models/QualificationFormResponse";
+import QualificationFormAnswer from "../models/QualificationFormAnswer";
+import { UpdateAiTicketContextService } from "../services/AiServices/AiTicketContextService";
 
 import CreateMessageService from "../services/MessageServices/CreateMessageService";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
@@ -26,7 +33,8 @@ import UpdateTicketService from "../services/TicketServices/UpdateTicketService"
 import CreateContactService from "../services/ContactServices/CreateContactService";
 import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
 import { tryRegisterSatisfactionResponse } from "../services/SatisfactionSurveyServices/SatisfactionSurveyService";
-import DecideAiTicketActionService from "../services/AiServices/DecideAiTicketActionService";
+import DecideAiTicketActionService, { AiDecision } from "../services/AiServices/DecideAiTicketActionService";
+import ExecuteAiToolService, { AiToolName } from "../services/AiServices/AiToolService";
 import uploadConfig from "../config/upload";
 import RenderMessageVariables from "../helpers/RenderMessageVariables";
 
@@ -595,6 +603,26 @@ const buildAiStateUpdate = (
   };
 };
 
+const updateContextFromAiDecision = async (
+  ticket: Ticket,
+  aiDecision: AiDecision,
+  aiMessage?: string | null
+): Promise<void> => {
+  await UpdateAiTicketContextService({
+    ticket,
+    source: "ai_decision",
+    summary: ticket.aiConversationSummary || undefined,
+    currentObjective: aiDecision.contexto || null,
+    nextQuestion: aiDecision.acao === "pedir_mais_informacoes"
+      ? aiMessage || aiDecision.resposta || null
+      : null,
+    lastAiIntent: aiDecision.intencao,
+    lastAiAction: aiDecision.acao,
+    lastAiDecisionReason: aiDecision.motivo,
+    lastKnowledgeIds: aiDecision.knowledgeIds || null
+  });
+};
+
 const handleAiReply = async (
   whatsappId: number,
   messageBody: string,
@@ -673,6 +701,45 @@ const handleAiReply = async (
       await ticket.update({ lastAiQuestionAttempts: attempts });
     }
 
+    if (aiDecision.acao === "executar_ferramenta") {
+      const aiSetting = aiSettingId ? await AiSetting.findByPk(aiSettingId) : null;
+      if (!aiSetting || !aiDecision.ferramenta) {
+        await handoffToHuman(whatsappId, messageBody, ticket, contactPayload, aiSettingId);
+        return true;
+      }
+
+      const result = await ExecuteAiToolService({
+        ticket,
+        aiSetting,
+        toolName: aiDecision.ferramenta as AiToolName,
+        params: aiDecision.parametrosFerramenta || {}
+      });
+
+      const body = result.ok
+        ? result.customerMessage || aiDecision.resposta || "Pronto, executei essa etapa."
+        : result.errorMessage?.includes("nao permitida")
+          ? "Essa acao nao esta permitida para este atendimento. Vou encaminhar para um atendente."
+          : "Nao consegui executar essa acao automaticamente. Vou encaminhar para um atendente confirmar com seguranca.";
+
+      if (!result.ok) {
+        await handoffToHuman(whatsappId, messageBody, ticket, contactPayload, aiSettingId, body);
+      } else {
+        await sendTextMessage(whatsappId, contactPayload, body, ticket);
+        await ticket.update(buildAiStateUpdate(
+          ticket,
+          messageBody,
+          body,
+          aiDecision.acao,
+          aiDecision.intencao,
+          aiDecision.motivo,
+          aiDecision.knowledgeIds
+        ));
+      }
+
+      await updateContextFromAiDecision(ticket, aiDecision, body);
+      return true;
+    }
+
     if (aiDecision.acao === "encaminhar_atendente" || aiDecision.acao === "sem_resposta_segura") {
       logger.info(
         {
@@ -716,6 +783,7 @@ const handleAiReply = async (
         });
       }
 
+      await updateContextFromAiDecision(ticket, aiDecision, aiDecision.resposta || null);
       return true;
     }
 
@@ -773,6 +841,7 @@ const handleAiReply = async (
         ticket,
         "Atendimento encerrado pela IA conforme contexto da conversa."
       );
+      await updateContextFromAiDecision(ticket, aiDecision, closingMessage);
       return true;
     }
 
@@ -806,6 +875,7 @@ const handleAiReply = async (
           aiDecision.acao
         )
       });
+      await updateContextFromAiDecision(ticket, aiDecision, body);
       return true;
     }
 
@@ -829,6 +899,7 @@ const handleAiReply = async (
           lastAiQuestionAt: new Date()
         }
       ));
+      await updateContextFromAiDecision(ticket, aiDecision, body);
       return true;
     }
 
@@ -872,6 +943,7 @@ const handleAiReply = async (
             )
           }
         });
+        await updateContextFromAiDecision(ticket, aiDecision, body);
         return true;
       }
 
@@ -884,6 +956,7 @@ const handleAiReply = async (
         aiDecision.motivo,
         aiDecision.knowledgeIds
       ));
+      await updateContextFromAiDecision(ticket, aiDecision, body);
       return true;
     }
 
@@ -982,6 +1055,465 @@ const getUraAiAutoCloseConfig = (flow: any, selectedOption: any) => {
   };
 };
 
+type QualificationOption = { value: string; label: string; tagRefs?: string[] };
+
+const parseQualificationOptions = (value?: string | null): QualificationOption[] => {
+  if (!value) return [];
+
+  try {
+    const parsed = JSON.parse(value);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item, index) => ({
+        value: String(item?.value || index + 1).trim(),
+        label: String(item?.label || item?.value || "").trim(),
+        tagRefs: Array.isArray(item?.tagRefs)
+          ? item.tagRefs.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+          : Array.isArray(item?.tagIds)
+            ? item.tagIds.map((tag: unknown) => String(tag).trim()).filter(Boolean)
+            : []
+      }))
+      .filter(item => item.value && item.label);
+  } catch (error) {
+    return [];
+  }
+};
+
+const buildQualificationQuestionMessage = (
+  question: QualificationFormQuestion,
+  allowSkip: boolean
+): string => {
+  const options = parseQualificationOptions(question.options);
+  const optionText = options.length
+    ? `\n\n${options.map(option => `*${option.value}* - ${option.label}`).join("\n")}`
+    : "";
+  const skipText = allowSkip || !question.required
+    ? "\n\nSe preferir, digite *pular*."
+    : "";
+
+  return `${question.label}${optionText}${skipText}`;
+};
+
+const getQualificationQuestions = async (formId: number): Promise<QualificationFormQuestion[]> => {
+  return QualificationFormQuestion.findAll({
+    where: { formId, active: true },
+    order: [["order", "ASC"], ["id", "ASC"]]
+  });
+};
+
+const buildQualificationSummary = async (responseId: number): Promise<string> => {
+  const answers = await QualificationFormAnswer.findAll({
+    where: { responseId, includeInAiContext: true },
+    order: [["id", "ASC"]]
+  });
+
+  if (!answers.length) return "";
+
+  return [
+    "Contexto coletado antes da IA:",
+    ...answers.map(answer => `- ${answer.label}: ${answer.optionLabel || answer.value || answer.rawValue || "nao informado"}`)
+  ].join("\n");
+};
+
+const getQualificationCollectedData = async (
+  responseId: number
+): Promise<Record<string, { label: string; value: string | null; rawValue?: string | null }>> => {
+  const answers = await QualificationFormAnswer.findAll({
+    where: { responseId, includeInAiContext: true },
+    order: [["id", "ASC"]]
+  });
+
+  return answers.reduce((acc, answer) => {
+    acc[answer.key] = {
+      label: answer.label,
+      value: answer.optionLabel || answer.value || null,
+      rawValue: answer.rawValue || null
+    };
+    return acc;
+  }, {} as Record<string, { label: string; value: string | null; rawValue?: string | null }>);
+};
+
+const applyQualificationTags = async (
+  ticket: Ticket,
+  tagRefs: string[] = []
+): Promise<void> => {
+  const contactId = ticket.contactId;
+  const refs = Array.from(new Set(tagRefs.map(ref => String(ref || "").trim()).filter(Boolean)));
+  if (!contactId || !refs.length) return;
+
+  const numericIds = refs
+    .map(ref => Number(ref))
+    .filter(id => Number.isInteger(id) && id > 0);
+  const names = refs.filter(ref => !numericIds.includes(Number(ref)));
+
+  const tags = await Tag.findAll({
+    where: {
+      [Op.or]: [
+        numericIds.length ? { id: { [Op.in]: numericIds } } : null,
+        ...names.map(name => ({ name: { [Op.iLike]: name } }))
+      ].filter(Boolean) as any
+    }
+  });
+
+  for (const tag of tags) {
+    const [contactTag] = await ContactTag.findOrCreate({
+      where: { contactId, tagId: tag.id },
+      defaults: {
+        contactId,
+        tagId: tag.id,
+        appliedAt: new Date()
+      }
+    });
+    await contactTag.update({ appliedAt: new Date() });
+  }
+
+  logger.info(
+    {
+      ticketId: ticket.id,
+      contactId,
+      requestedTags: refs,
+      appliedTagIds: tags.map(tag => tag.id),
+      missingTags: refs.filter(ref =>
+        !tags.some(tag => String(tag.id) === ref || normalizeText(tag.name) === normalizeText(ref))
+      )
+    },
+    "[QUALIFICATION FORM] Tags applied from answer"
+  );
+};
+
+const parseQualificationAnswer = (
+  question: QualificationFormQuestion,
+  messageBody: string,
+  allowSkip: boolean
+): { ok: boolean; value?: string | null; optionLabel?: string | null; skipped?: boolean; tagRefs?: string[] } => {
+  const raw = String(messageBody || "").trim();
+  const normalized = normalizeText(raw);
+
+  if ((allowSkip || !question.required) && ["pular", "skip", "nao sei", "não sei"].includes(normalized)) {
+    return { ok: true, value: null, optionLabel: "Nao informado", skipped: true };
+  }
+
+  const options = parseQualificationOptions(question.options);
+  if (["single_choice", "multiple_choice"].includes(question.type)) {
+    if (!options.length) return { ok: true, value: raw, optionLabel: raw };
+
+    if (question.type === "multiple_choice") {
+      const parts = raw.split(/[,\s]+/).map(part => part.trim()).filter(Boolean);
+      const selected = options.filter(option =>
+        parts.includes(option.value) || parts.some(part => normalizeText(part) === normalizeText(option.label))
+      );
+      if (!selected.length) return { ok: false };
+      return {
+        ok: true,
+        value: selected.map(option => option.value).join(","),
+        optionLabel: selected.map(option => option.label).join(", "),
+        tagRefs: selected.reduce<string[]>(
+          (acc, option) => acc.concat(option.tagRefs || []),
+          []
+        )
+      };
+    }
+
+    const selected = options.find(option =>
+      option.value === raw || normalizeText(option.label) === normalized
+    );
+
+    if (!selected) return { ok: false };
+    return { ok: true, value: selected.value, optionLabel: selected.label, tagRefs: selected.tagRefs || [] };
+  }
+
+  if (question.required && !raw) return { ok: false };
+
+  return { ok: true, value: raw, optionLabel: null };
+};
+
+const executeQualificationAfterAction = async (
+  whatsappId: number,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  flow: any,
+  selectedOption: UraOption,
+  initialSummary: string
+): Promise<void> => {
+  if (selectedOption.action === "TRANSFER_QUEUE" && selectedOption.targetQueueId) {
+    const queue = await Queue.findByPk(selectedOption.targetQueueId);
+    if (queue && await sendQueueUnavailableIfNeeded(whatsappId, contactPayload, ticket, queue)) return;
+
+    await UpdateTicketService({
+      ticketData: {
+        queueId: selectedOption.targetQueueId,
+        aiActive: false,
+        aiSettingId: null,
+        uraActive: false,
+        currentUraOptionId: null,
+        aiConversationSummary: initialSummary || ticket.aiConversationSummary || null
+      },
+      ticketId: ticket.id
+    });
+    return;
+  }
+
+  if (selectedOption.action === "CLOSE_TICKET") {
+    await UpdateTicketService({
+      ticketData: {
+        status: "closed",
+        queueId: ticket.queueId,
+        aiActive: false,
+        aiHandled: true,
+        aiSettingId: null,
+        closingReasonId: selectedOption.closingReasonId,
+        closingNote: "Encerrado pela URA apos formulario de qualificacao",
+        uraActive: false,
+        currentUraOptionId: null,
+        aiConversationSummary: initialSummary || ticket.aiConversationSummary || null
+      },
+      ticketId: ticket.id
+    });
+    return;
+  }
+
+  if (selectedOption.action === "START_AI") {
+    const autoCloseConfig = getUraAiAutoCloseConfig(flow, selectedOption);
+    const queue = selectedOption.targetQueueId ? await Queue.findByPk(selectedOption.targetQueueId) : null;
+    if (queue && await sendQueueUnavailableIfNeeded(whatsappId, contactPayload, ticket, queue)) return;
+    const aiSettingId = queue?.aiSettingId || null;
+
+    await UpdateTicketService({
+      ticketData: {
+        queueId: selectedOption.targetQueueId || ticket.queueId,
+        aiActive: true,
+        aiHandled: true,
+        aiQueueId: selectedOption.targetQueueId || null,
+        aiStartedAt: new Date(),
+        aiFinishedAt: null,
+        aiAutoClosed: false,
+        aiAutoClosedAt: null,
+        aiHumanHandoffAt: null,
+        aiHumanHandoffAlertSent: false,
+        lastAiQuestionType: null,
+        lastAiQuestionOptions: null,
+        lastAiQuestionAt: null,
+        lastAiQuestionAttempts: 0,
+        lastAiInteractionAt: null,
+        lastAiMessage: null,
+        lastAiExpectedReply: null,
+        lastAiIntent: null,
+        lastAiAction: null,
+        lastAiKnowledgeIds: null,
+        lastAiDecisionReason: null,
+        lastAiAskedMoreHelp: false,
+        aiInteractionCount: 0,
+        aiConversationSummary: initialSummary || null,
+        ...autoCloseConfig,
+        aiHumanHandoffQueueId: selectedOption.aiHumanHandoffQueueId || null,
+        aiHumanHandoffMessage: selectedOption.aiHumanHandoffMessage || null,
+        aiHandoffAlertEnabled: selectedOption.aiHandoffAlertEnabled ? true : false,
+        aiHandoffAlertTo: selectedOption.aiHandoffAlertTo || null,
+        aiHandoffAlertMessage: selectedOption.aiHandoffAlertMessage || null,
+        aiSettingId,
+        uraActive: false,
+        currentUraOptionId: null
+      },
+      ticketId: ticket.id
+    });
+    return;
+  }
+
+  if (selectedOption.action === "HUMAN" && flow.fallbackQueueId) {
+    await UpdateTicketService({
+      ticketData: {
+        queueId: flow.fallbackQueueId,
+        aiActive: false,
+        aiSettingId: null,
+        uraActive: false,
+        currentUraOptionId: null,
+        aiConversationSummary: initialSummary || ticket.aiConversationSummary || null
+      },
+      ticketId: ticket.id
+    });
+    return;
+  }
+
+  await ticket.update({
+    uraActive: false,
+    currentUraOptionId: null,
+    aiConversationSummary: initialSummary || ticket.aiConversationSummary || null
+  });
+};
+
+const beginQualificationForm = async (
+  whatsappId: number,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  selectedOption: UraOption
+): Promise<boolean> => {
+  if (!selectedOption.qualificationFormId) return false;
+
+  const form = await QualificationForm.findByPk(selectedOption.qualificationFormId);
+  if (!form || !form.active) return false;
+
+  const questions = await getQualificationQuestions(form.id);
+  const firstQuestion = questions[0];
+  if (!firstQuestion) return false;
+
+  const response = await QualificationFormResponse.create({
+    formId: form.id,
+    ticketId: ticket.id,
+    contactId: ticket.contactId || null,
+    whatsappId: ticket.whatsappId || null,
+    queueId: selectedOption.targetQueueId || ticket.queueId || null,
+    uraOptionId: selectedOption.id,
+    status: "in_progress",
+    currentQuestionId: firstQuestion.id,
+    invalidAttempts: 0,
+    afterAction: selectedOption.action,
+    afterQueueId: selectedOption.targetQueueId || null
+  });
+
+  logger.info(
+    { ticketId: ticket.id, formId: form.id, responseId: response.id },
+    "[QUALIFICATION FORM] Started"
+  );
+
+  await sendTextMessage(
+    whatsappId,
+    contactPayload,
+    buildQualificationQuestionMessage(firstQuestion, selectedOption.allowQualificationFormSkip),
+    ticket,
+    "ura"
+  );
+
+  await ticket.update({
+    uraActive: true,
+    currentUraOptionId: selectedOption.id,
+    lastUraInteractionAt: new Date()
+  });
+
+  return true;
+};
+
+const handleActiveQualificationForm = async (
+  whatsappId: number,
+  messageBody: string,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  flow: any
+): Promise<boolean> => {
+  const response = await QualificationFormResponse.findOne({
+    where: { ticketId: ticket.id, status: "in_progress" },
+    order: [["id", "DESC"]]
+  });
+
+  if (!response) return false;
+
+  const selectedOption = response.uraOptionId
+    ? await UraOption.findByPk(response.uraOptionId)
+    : null;
+  const question = response.currentQuestionId
+    ? await QualificationFormQuestion.findByPk(response.currentQuestionId)
+    : null;
+
+  if (!selectedOption || !question) {
+    await response.update({ status: "canceled" });
+    return false;
+  }
+
+  const answer = parseQualificationAnswer(
+    question,
+    messageBody,
+    selectedOption.allowQualificationFormSkip
+  );
+
+  if (!answer.ok) {
+    const invalidAttempts = Number(response.invalidAttempts || 0) + 1;
+    if (invalidAttempts >= Number(question.maxInvalidAttempts || 2)) {
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        "Nao consegui registrar essa resposta com seguranca. Vou seguir com o atendimento e a IA pode pedir esse detalhe novamente se precisar.",
+        ticket,
+        "ura"
+      );
+      await response.update({ invalidAttempts: 0 });
+    } else {
+      await response.update({ invalidAttempts });
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        `Nao consegui identificar uma resposta valida.\n\n${buildQualificationQuestionMessage(question, selectedOption.allowQualificationFormSkip)}`,
+        ticket,
+        "ura"
+      );
+      return true;
+    }
+  } else {
+    await QualificationFormAnswer.create({
+      responseId: response.id,
+      questionId: question.id,
+      key: question.key,
+      label: question.label,
+      value: answer.value || null,
+      rawValue: messageBody,
+      optionLabel: answer.optionLabel || null,
+      includeInAiContext: question.includeInAiContext,
+      includeInReports: question.includeInReports
+    });
+    await applyQualificationTags(ticket, answer.tagRefs || []);
+    await response.update({ invalidAttempts: 0 });
+  }
+
+  const questions = await getQualificationQuestions(response.formId);
+  const currentIndex = questions.findIndex(item => Number(item.id) === Number(question.id));
+  const nextQuestion = questions[currentIndex + 1];
+
+  if (nextQuestion) {
+    await response.update({ currentQuestionId: nextQuestion.id });
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      buildQualificationQuestionMessage(nextQuestion, selectedOption.allowQualificationFormSkip),
+      ticket,
+      "ura"
+    );
+    return true;
+  }
+
+  await response.update({
+    status: "completed",
+    currentQuestionId: null,
+    completedAt: new Date()
+  });
+
+  const summary = await buildQualificationSummary(response.id);
+  const collectedData = await getQualificationCollectedData(response.id);
+  await ticket.update({
+    aiConversationSummary: summary || ticket.aiConversationSummary || null,
+    lastUraInteractionAt: new Date()
+  });
+  await UpdateAiTicketContextService({
+    ticket,
+    source: "qualification_form",
+    summary: summary || ticket.aiConversationSummary || null,
+    collectedData
+  });
+
+  logger.info(
+    { ticketId: ticket.id, responseId: response.id, afterAction: selectedOption.action },
+    "[QUALIFICATION FORM] Completed"
+  );
+
+  await executeQualificationAfterAction(
+    whatsappId,
+    ticket,
+    contactPayload,
+    flow,
+    selectedOption,
+    summary
+  );
+
+  return true;
+};
+
 const findUraOption = (options: any[], messageBody: string): any | undefined => {
   const normalizedMessage = (messageBody || "").trim().toLowerCase();
   return options.find(
@@ -1001,6 +1533,10 @@ const handleUraLogic = async (
   const flow = whatsapp.uraFlow;
 
   if (!flow || !flow.active) return false;
+
+  if (await handleActiveQualificationForm(whatsappId, messageBody, ticket, contactPayload, flow)) {
+    return true;
+  }
 
   const currentParentOption = await getCurrentUraParentOption(ticket);
   const currentOptions = getUraOptionsByParent(
@@ -1209,6 +1745,14 @@ const handleUraLogic = async (
     uraInvalidAttempts: 0,
     lastUraInteractionAt: new Date()
   });
+
+  if (
+    selectedOption.runQualificationFormBeforeAction &&
+    selectedOption.qualificationFormId &&
+    await beginQualificationForm(whatsappId, ticket, contactPayload, selectedOption)
+  ) {
+    return true;
+  }
 
   if (selectedOption.action === "OPEN_SUBMENU") {
     const submenuOptions = getUraOptionsByParent(flow, Number(selectedOption.id));

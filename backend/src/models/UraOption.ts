@@ -3,6 +3,7 @@
   AutoIncrement, AllowNull, Default, DataType, ForeignKey, BelongsTo
 } from "sequelize-typescript";
 import UraFlow from "./UraFlow";
+import QualificationForm from "./QualificationForm";
 
 @Table({ tableName: "UraOptions" })
 class UraOption extends Model<UraOption> {
@@ -55,6 +56,21 @@ class UraOption extends Model<UraOption> {
 
   @Column
   closingReasonId: number;
+
+  @ForeignKey(() => QualificationForm)
+  @Column
+  qualificationFormId: number;
+
+  @BelongsTo(() => QualificationForm)
+  qualificationForm: QualificationForm;
+
+  @Default(false)
+  @Column
+  runQualificationFormBeforeAction: boolean;
+
+  @Default(false)
+  @Column
+  allowQualificationFormSkip: boolean;
 
   @Default(false)
   @Column
