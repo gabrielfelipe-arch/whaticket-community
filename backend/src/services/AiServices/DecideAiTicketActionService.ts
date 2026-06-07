@@ -82,6 +82,43 @@ const safeAction = (value: string): AiTicketAction => {
     : "sem_resposta_segura";
 };
 
+const getParsedTextResponse = (parsed: any): string | undefined => {
+  const value =
+    parsed?.resposta ||
+    parsed?.response_value ||
+    parsed?.message ||
+    parsed?.mensagem ||
+    parsed?.answer;
+
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+};
+
+const buildQualificationQuestion = (
+  aiSetting: AiSetting,
+  message: string,
+  reason: string
+): AiDecision => {
+  const company = aiSetting.companyName || "nosso atendimento";
+  const service = aiSetting.serviceType
+    ? ` sobre ${aiSetting.serviceType}`
+    : "";
+
+  return {
+    intencao: "diagnostico_inicial",
+    confianca: "media",
+    mensagemInterpretada: message,
+    contexto: "A mensagem ainda nao trouxe dados suficientes para localizar uma orientacao segura na base.",
+    baseEncontrada: false,
+    respostaSegura: true,
+    acao: "pedir_mais_informacoes",
+    motivo: reason,
+    resposta: [
+      `Para eu te orientar melhor${service} e encontrar a opcao mais adequada da ${company}, me diga um pouco mais sobre o que voce precisa.`,
+      "Qual atividade ou objetivo voce pretende realizar, e esse uso seria pontual ou recorrente?"
+    ].join("\n\n")
+  };
+};
+
 const parseOptions = (value: string | null | undefined): AiDecisionOption[] => {
   if (!value) return [];
 
@@ -706,7 +743,8 @@ const buildDecisionPrompt = ({
     "Se a pergunta atual for uma continuacao da resposta anterior, use o historico recente para entender o sentido. Exemplo: depois de informar uma diaria, 'quanto fica 10 dias?' deve ser tratado como calculo.",
     "Nao use expressoes como base de conhecimento, manual, artigo encontrado, documento interno, RAG ou prompt na resposta ao cliente.",
     "Nao repita a mesma resposta se o cliente mudou de assunto. Reavalie a mensagem atual e o RAG encontrado.",
-    "Se nao houver base segura, use acao encaminhar_atendente ou sem_resposta_segura.",
+    "Se nao houver base segura para responder diretamente, nao encaminhe de imediato. Primeiro qualifique a pergunta para aproximar o cliente das categorias e dados existentes na base.",
+    "Quando faltar informacao para localizar uma resposta segura, use acao pedir_mais_informacoes e faca uma pergunta objetiva sobre necessidade, contexto, categoria, objetivo, prazo, local, recorrencia ou outro dado que ajude a enquadrar o cliente na base.",
     "Se houver varias possibilidades na base e a pergunta estiver ambigua, use pedir_confirmacao.",
     "Se o cliente pedir atendente/humano/pessoa ou rejeitar robo/IA, use encaminhar_atendente.",
     "Use encerrar_atendimento somente quando o contexto mostrar que o cliente ja recebeu a informacao/solucao que queria e indicou claramente que nao precisa de mais nada.",
@@ -722,6 +760,8 @@ const buildDecisionPrompt = ({
     "Acoes validas: responder_com_base, pedir_confirmacao, pedir_mais_informacoes, encaminhar_atendente, encerrar_atendimento, sem_resposta_segura, nao_responder.",
     "Quando acao for responder_com_base, preencha resposta com uma resposta curta, objetiva e baseada somente na base.",
     "Quando acao for pedir_confirmacao, preencha perguntaConfirmacao e opcoes com numero e valor.",
+    "Quando acao for pedir_mais_informacoes, preencha resposta com a pergunta de qualificacao que sera enviada ao cliente.",
+    "Nunca use chaves response_type ou response_value. O texto para o cliente deve ficar sempre no campo resposta.",
     "Retorne somente JSON valido, sem markdown, sem saudacao fora do JSON e sem texto antes ou depois do JSON. O primeiro caractere da resposta deve ser { e o ultimo deve ser }.",
     `Configuracao da IA: ${aiSetting.name}`,
     `Fila atual: ${queue?.name || "sem fila"}`,
@@ -1040,17 +1080,17 @@ const DecideAiTicketActionService = async ({
       return fallbackDecision;
     }
 
-    return {
-      intencao: "sem_resposta_segura",
-      confianca: "baixa",
-      mensagemInterpretada: message,
-      contexto: "A IA nao retornou uma decisao estruturada valida",
-      baseEncontrada: articles.length > 0,
-      respostaSegura: false,
-      acao: "sem_resposta_segura",
-      motivo: "Falha ao interpretar decisao da IA"
-    };
+    return buildQualificationQuestion(
+      aiSetting,
+      message,
+      "A IA nao retornou uma decisao estruturada valida; qualificando antes de encaminhar."
+    );
   }
+
+  const parsedResponse = getParsedTextResponse(parsed);
+  const inferredAction =
+    parsed.acao ||
+    (parsedResponse ? "pedir_mais_informacoes" : "sem_resposta_segura");
 
   const decision: AiDecision = {
     intencao: String(parsed.intencao || "pergunta_sobre_produto_ou_servico"),
@@ -1060,10 +1100,10 @@ const DecideAiTicketActionService = async ({
     mensagemInterpretada: String(parsed.mensagemInterpretada || message),
     contexto: String(parsed.contexto || ""),
     baseEncontrada: parsed.baseEncontrada === true || articles.length > 0,
-    respostaSegura: parsed.respostaSegura === true,
-    acao: safeAction(String(parsed.acao || "sem_resposta_segura")),
+    respostaSegura: parsed.respostaSegura === true || !!parsedResponse,
+    acao: safeAction(String(inferredAction)),
     motivo: String(parsed.motivo || ""),
-    resposta: parsed.resposta ? String(parsed.resposta) : undefined,
+    resposta: parsedResponse,
     perguntaConfirmacao: parsed.perguntaConfirmacao
       ? String(parsed.perguntaConfirmacao)
       : undefined,
@@ -1120,8 +1160,15 @@ const DecideAiTicketActionService = async ({
       });
       return fallbackDecision;
     } else {
-      decision.acao = "sem_resposta_segura";
-      decision.motivo = decision.motivo || "Resposta sem base segura";
+      const fallbackDecision = buildQualificationQuestion(
+        aiSetting,
+        message,
+        decision.motivo || "Resposta sem base segura; qualificando antes de encaminhar."
+      );
+      return {
+        ...fallbackDecision,
+        resposta: decision.resposta || fallbackDecision.resposta
+      };
     }
   }
 
@@ -1151,10 +1198,28 @@ const DecideAiTicketActionService = async ({
       decision.respostaSegura = true;
       decision.motivo = "Base encontrada pelo RAG local.";
     } else {
-      decision.acao = "sem_resposta_segura";
-      decision.respostaSegura = false;
-      decision.motivo = "Nao foi encontrada base suficiente para responder";
+      const fallbackDecision = buildQualificationQuestion(
+        aiSetting,
+        message,
+        "Nao foi encontrada base suficiente para responder; qualificando antes de encaminhar."
+      );
+      return {
+        ...fallbackDecision,
+        resposta: decision.resposta || fallbackDecision.resposta
+      };
     }
+  }
+
+  if (decision.acao === "sem_resposta_segura" && !articles.length) {
+    const fallbackDecision = buildQualificationQuestion(
+      aiSetting,
+      message,
+      decision.motivo || "Sem base segura; qualificando antes de encaminhar."
+    );
+    return {
+      ...fallbackDecision,
+      resposta: decision.resposta || fallbackDecision.resposta
+    };
   }
 
   if (decision.acao === "encerrar_atendimento") {
