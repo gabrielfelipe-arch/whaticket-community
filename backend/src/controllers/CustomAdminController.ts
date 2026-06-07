@@ -376,7 +376,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       }
     });
 
-    if (duplicatedOption) {
+    if (duplicatedOption && Number(duplicatedOption.id) !== Number(data.id)) {
       throw new AppError("Ja existe uma opcao com esse numero neste menu/submenu.", 400);
     }
 
@@ -395,6 +395,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       qualificationFormId: nullableNumber(data.qualificationFormId),
       runQualificationFormBeforeAction,
       allowQualificationFormSkip: data.allowQualificationFormSkip === true || data.allowQualificationFormSkip === "true",
+      showMainMenuAfterMessage: data.showMainMenuAfterMessage === true || data.showMainMenuAfterMessage === "true",
       aiHumanHandoffEnabled,
       aiHumanHandoffQueueId: nullableNumber(data.aiHumanHandoffQueueId),
       aiHumanHandoffMessage: data.aiHumanHandoffMessage || null,
@@ -508,6 +509,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     return {
       name: data.name,
       description: data.description || null,
+      greetingMessage: data.greetingMessage || null,
       active: data.active !== false && data.active !== "false"
     };
   }

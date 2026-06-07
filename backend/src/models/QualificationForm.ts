@@ -17,6 +17,9 @@ class QualificationForm extends Model<QualificationForm> {
   @Column(DataType.TEXT)
   description: string;
 
+  @Column(DataType.TEXT)
+  greetingMessage: string;
+
   @Default(true)
   @Column
   active: boolean;

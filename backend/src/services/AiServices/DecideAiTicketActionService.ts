@@ -98,6 +98,20 @@ const getParsedTextResponse = (parsed: any): string | undefined => {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
 };
 
+const hasDecisionContract = (parsed: any): boolean => {
+  if (!parsed || typeof parsed !== "object") return false;
+
+  return Boolean(
+    parsed.acao ||
+    parsed.intencao ||
+    parsed.resposta ||
+    parsed.perguntaConfirmacao ||
+    parsed.ferramenta ||
+    parsed.baseEncontrada !== undefined ||
+    parsed.respostaSegura !== undefined
+  );
+};
+
 const parseAllowedTools = (value?: string | null): string[] => {
   if (!value) return [];
   try {
@@ -1132,6 +1146,44 @@ const DecideAiTicketActionService = async ({
       aiSetting,
       message,
       "A IA nao retornou uma decisao estruturada valida; qualificando antes de encaminhar."
+    );
+  }
+
+  if (!hasDecisionContract(parsed)) {
+    logger.warn(
+      {
+        ticketId: ticket.id,
+        aiSettingId: aiSetting.id,
+        rawDecisionPreview: rawDecision?.slice(0, 500) || null,
+        parsedKeys: Object.keys(parsed || {}),
+        knowledgeFound: articles.length
+      },
+      "[AI PARSER] Structured decision ignored because it missed the required contract"
+    );
+
+    if (articles.length > 0) {
+      const fallbackDecision = await withGeneratedKnowledgeAnswer({
+        decision: buildKnowledgeFallbackDecision(
+          message,
+          articles,
+          "Fallback local: IA retornou JSON fora do contrato esperado."
+        ),
+        aiSetting,
+        ticket,
+        message,
+        contactName,
+        history,
+        knowledge,
+        articles
+      });
+
+      return applyNoToolConfirmationGuardrail(fallbackDecision);
+    }
+
+    return buildQualificationQuestion(
+      aiSetting,
+      message,
+      "A IA retornou uma estrutura sem acao valida; qualificando antes de encaminhar."
     );
   }
 

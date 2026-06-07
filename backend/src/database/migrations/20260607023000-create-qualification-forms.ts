@@ -18,10 +18,15 @@ export default {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },
       name: { type: DataTypes.STRING, allowNull: false },
       description: { type: DataTypes.TEXT, allowNull: true },
+      greetingMessage: { type: DataTypes.TEXT, allowNull: true },
       active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
       createdAt: { type: DataTypes.DATE, allowNull: false },
       updatedAt: { type: DataTypes.DATE, allowNull: false }
     }).catch(() => {});
+    await addColumnIfMissing(queryInterface, "QualificationForms", "greetingMessage", {
+      type: DataTypes.TEXT,
+      allowNull: true
+    });
 
     await queryInterface.createTable("QualificationFormQuestions", {
       id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true, allowNull: false },

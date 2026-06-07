@@ -22,6 +22,7 @@ module.exports = {
       title: { type: DataTypes.STRING, allowNull: false },
       responseMessage: { type: DataTypes.TEXT, allowNull: true },
       action: { type: DataTypes.STRING, allowNull: false, defaultValue: "SEND_MESSAGE" },
+      showMainMenuAfterMessage: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       targetQueueId: { type: DataTypes.INTEGER, allowNull: true, references: { model: "Queues", key: "id" }, onUpdate: "CASCADE", onDelete: "SET NULL" },
       order: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
       active: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },

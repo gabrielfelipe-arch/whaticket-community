@@ -74,6 +74,10 @@ class UraOption extends Model<UraOption> {
 
   @Default(false)
   @Column
+  showMainMenuAfterMessage: boolean;
+
+  @Default(false)
+  @Column
   aiHumanHandoffEnabled: boolean;
 
   @Column

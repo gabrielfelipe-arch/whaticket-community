@@ -337,7 +337,7 @@ const GenerateAiResponseService = async ({
   const temperature = getProviderTemperature(provider, aiSetting.temperature, jsonMode);
   const maxTokens = getProviderMaxTokens(provider, aiSetting.maxTokens);
   const isInternalAiEnginePrompt = skipKnowledgeSearch === true;
-  const userMessage = truncateByApproxTokens(message, isInternalAiEnginePrompt ? 1800 : 700);
+  const userMessage = truncateByApproxTokens(message, isInternalAiEnginePrompt ? 6000 : 700);
   const safeSystemPrompt = truncateByApproxTokens(systemPrompt, isInternalAiEnginePrompt ? 900 : 1400);
   const promptTokensEstimate =
     estimateTokens(safeSystemPrompt) +

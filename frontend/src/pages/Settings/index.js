@@ -161,6 +161,89 @@ const useStyles = makeStyles(theme => ({
 		boxShadow: theme.custom?.cardShadow,
 		borderColor: theme.palette.divider
 	},
+	formBuilderPanel: {
+		padding: theme.spacing(2),
+		height: "100%",
+		borderRadius: 8,
+		borderColor: theme.palette.divider
+	},
+	formBuilderStack: {
+		display: "flex",
+		flexDirection: "column",
+		gap: theme.spacing(2)
+	},
+	formBuilderCompactPanel: {
+		padding: theme.spacing(2),
+		borderRadius: 8,
+		borderColor: theme.palette.divider
+	},
+	formBuilderHeader: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: theme.spacing(1),
+		marginBottom: theme.spacing(1)
+	},
+	formBuilderMuted: {
+		color: theme.palette.text.secondary
+	},
+	formBuilderItem: {
+		padding: theme.spacing(1.5),
+		marginBottom: theme.spacing(1),
+		cursor: "pointer",
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper
+	},
+	formBuilderItemActive: {
+		borderColor: theme.palette.primary.main,
+		boxShadow: `0 0 0 1px ${theme.palette.primary.main}`
+	},
+	questionTypeGrid: {
+		display: "grid",
+		gridTemplateColumns: "repeat(auto-fit, minmax(136px, 1fr))",
+		gap: theme.spacing(1),
+		marginTop: theme.spacing(1)
+	},
+	questionTypeButton: {
+		justifyContent: "flex-start",
+		textTransform: "none",
+		minHeight: 44
+	},
+	optionEditorRow: {
+		padding: theme.spacing(1.25),
+		marginTop: theme.spacing(1),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper
+	},
+	questionEmptyState: {
+		padding: theme.spacing(3),
+		marginTop: theme.spacing(1.5),
+		borderRadius: 8,
+		border: `1px dashed ${theme.palette.divider}`,
+		background: theme.palette.type === "dark" ? theme.palette.background.default : "#f8fafc",
+		textAlign: "center"
+	},
+	questionMetaRow: {
+		display: "flex",
+		flexWrap: "wrap",
+		gap: theme.spacing(1),
+		marginTop: theme.spacing(0.75)
+	},
+	previewBox: {
+		padding: theme.spacing(1.5),
+		marginTop: theme.spacing(1.5),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.type === "dark" ? theme.palette.background.default : "#f7fafc"
+	},
+	inlineChips: {
+		display: "flex",
+		flexWrap: "wrap",
+		gap: theme.spacing(0.75),
+		marginTop: theme.spacing(1)
+	},
 	sectionSubtitle: {
 		color: theme.palette.text.secondary,
 		marginTop: theme.spacing(0.5)
@@ -394,9 +477,10 @@ const resources = [
 		fields: [
 			{ name: "name", label: "Nome", required: true },
 			{ name: "description", label: "Descricao", multiline: true },
+			{ name: "greetingMessage", label: "Mensagem de saudacao", multiline: true },
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
-		columns: ["id", "name", "description", "active"]
+		columns: ["id", "name", "description", "greetingMessage", "active"]
 	},
 	{
 		label: "Perguntas dos formularios",
@@ -976,6 +1060,7 @@ const emptyUraOption = flowId => ({
 	qualificationFormId: "",
 	runQualificationFormBeforeAction: false,
 	allowQualificationFormSkip: false,
+	showMainMenuAfterMessage: false,
 	aiHumanHandoffEnabled: false,
 	aiHumanHandoffQueueId: "",
 	aiHumanHandoffMessage: "",
@@ -1162,6 +1247,7 @@ const UraTreePanel = ({ classes }) => {
 				runQualificationFormBeforeAction: !!optionForm.runQualificationFormBeforeAction,
 				qualificationFormId: optionForm.runQualificationFormBeforeAction ? (optionForm.qualificationFormId || null) : null,
 				allowQualificationFormSkip: !!optionForm.allowQualificationFormSkip,
+				showMainMenuAfterMessage: optionForm.action === "SEND_MESSAGE" && !!optionForm.showMainMenuAfterMessage,
 				aiHumanHandoffEnabled: !!optionForm.aiHumanHandoffEnabled,
 				aiHumanHandoffQueueId: optionForm.aiHumanHandoffEnabled ? (optionForm.aiHumanHandoffQueueId || null) : null,
 				aiHumanHandoffMessage: optionForm.aiHumanHandoffEnabled ? optionForm.aiHumanHandoffMessage : "",
@@ -1437,6 +1523,18 @@ const UraTreePanel = ({ classes }) => {
 								)}
 							</Paper>
 							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={textValue(optionForm.responseMessage)} rows={5} onChange={event => setOptionField("responseMessage", event.target.value)} />
+							{optionForm.action === "SEND_MESSAGE" && (
+								<Paper variant="outlined" style={{ padding: 12, marginTop: 12, marginBottom: 8 }}>
+									<Typography variant="subtitle2">Depois de enviar a mensagem</Typography>
+									<FormControlLabel
+										control={<Switch color="primary" checked={!!optionForm.showMainMenuAfterMessage} onChange={event => setOptionField("showMainMenuAfterMessage", event.target.checked)} />}
+										label="Mostrar comandos de navegacao"
+									/>
+									<Typography variant="caption" display="block" color="textSecondary">
+										Adiciona M para menu principal, S para encerrar e V para voltar quando existir menu anterior.
+									</Typography>
+								</Paper>
+							)}
 							<input
 								accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
 								id="ura-option-media"
@@ -1623,6 +1721,21 @@ const questionTypeOptions = [
 	{ value: "phone", label: "Telefone" }
 ];
 
+const getQuestionTypeOption = type =>
+	questionTypeOptions.find(item => item.value === type) || questionTypeOptions[0];
+
+const getQuestionTypeHelp = type => ({
+	text: "O cliente digita uma resposta livre.",
+	single_choice: "O cliente escolhe uma unica opcao pelo numero enviado.",
+	multiple_choice: "O cliente pode informar mais de uma opcao, como 1,3.",
+	number: "Use quando a resposta precisa ser numerica.",
+	date: "Use para datas, como nascimento, vencimento ou agendamento.",
+	time: "Use para horarios, como melhor periodo de contato.",
+	boolean: "Use para respostas simples de sim ou nao.",
+	email: "Use quando precisa capturar um endereco de e-mail.",
+	phone: "Use quando precisa capturar ou confirmar um telefone."
+}[type || "text"] || "Escolha como o cliente deve responder no WhatsApp.");
+
 const normalizeFormKey = value =>
 	String(value || "")
 		.normalize("NFD")
@@ -1635,6 +1748,7 @@ const normalizeFormKey = value =>
 const emptyQualificationForm = {
 	name: "",
 	description: "",
+	greetingMessage: "",
 	active: true
 };
 
@@ -1652,9 +1766,11 @@ const emptyQualificationQuestion = formId => ({
 	active: true
 });
 
+const safeArray = value => Array.isArray(value) ? value.filter(Boolean) : [];
+
 const parseQuestionOptions = value => {
 	if (Array.isArray(value)) {
-		return value.map((item, index) => ({
+		return safeArray(value).map((item, index) => ({
 			value: String(item?.value || index + 1),
 			label: String(item?.label || item?.value || ""),
 			tagRefs: parseListValue(item?.tagRefs || item?.tagIds || [])
@@ -1682,16 +1798,52 @@ const parseQuestionOptions = value => {
 	}
 };
 
+class QualificationFormsBoundary extends React.Component {
+	constructor(props) {
+		super(props);
+		this.state = { error: null };
+	}
+
+	static getDerivedStateFromError(error) {
+		return { error };
+	}
+
+	componentDidCatch(error) {
+		// eslint-disable-next-line no-console
+		console.error("[QualificationFormsPanel]", error);
+	}
+
+	render() {
+		if (this.state.error) {
+			return (
+				<Paper variant="outlined" style={{ padding: 16 }}>
+					<Typography variant="h6">Construtor de formularios</Typography>
+					<Typography variant="body2" color="textSecondary">
+						O construtor encontrou um erro ao renderizar. Atualize a pagina e tente novamente.
+					</Typography>
+					<Typography variant="caption" color="error">
+						{this.state.error.message || String(this.state.error)}
+					</Typography>
+				</Paper>
+			);
+		}
+
+		return this.props.children;
+	}
+}
+
 const QualificationFormsPanel = ({ classes }) => {
 	const [forms, setForms] = useState([]);
 	const [questions, setQuestions] = useState([]);
 	const [tags, setTags] = useState([]);
+	const [uraOptions, setUraOptions] = useState([]);
 	const [selectedFormId, setSelectedFormId] = useState("");
 	const [form, setForm] = useState(emptyQualificationForm);
 	const [questionForm, setQuestionForm] = useState(null);
+	const [showAdvancedQuestion, setShowAdvancedQuestion] = useState(false);
 	const [loading, setLoading] = useState(false);
 
-	const selectedFormQuestions = questions
+	const selectedFormQuestions = safeArray(questions)
 		.filter(question => Number(question.formId) === Number(selectedFormId))
 		.sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || Number(a.id || 0) - Number(b.id || 0));
 
@@ -1700,16 +1852,18 @@ const QualificationFormsPanel = ({ classes }) => {
 	const load = async () => {
 		setLoading(true);
 		try {
-			const [{ data: formData }, { data: questionData }, { data: tagData }] = await Promise.all([
+			const [{ data: formData }, { data: questionData }, { data: tagData }, { data: uraOptionData }] = await Promise.all([
 				api.get("/qualification-forms"),
 				api.get("/qualification-form-questions"),
-				api.get("/tags")
+				api.get("/tags"),
+				api.get("/ura-options").catch(() => ({ data: [] }))
 			]);
 
-			const nextForms = Array.isArray(formData) ? formData : [];
+			const nextForms = safeArray(formData);
 			setForms(nextForms);
-			setQuestions(Array.isArray(questionData) ? questionData : []);
-			setTags(Array.isArray(tagData) ? tagData : []);
+			setQuestions(safeArray(questionData));
+			setTags(safeArray(tagData));
+			setUraOptions(safeArray(uraOptionData));
 
 			if (!selectedFormId && nextForms.length) {
 				setSelectedFormId(nextForms[0].id);
@@ -1737,12 +1891,14 @@ const QualificationFormsPanel = ({ classes }) => {
 			...nextForm
 		});
 		setQuestionForm(null);
+		setShowAdvancedQuestion(false);
 	};
 
 	const newForm = () => {
 		setSelectedFormId("");
-		setForm(emptyQualificationForm);
+		setForm({ ...emptyQualificationForm });
 		setQuestionForm(null);
+		setShowAdvancedQuestion(false);
 	};
 
 	const saveForm = async () => {
@@ -1750,6 +1906,7 @@ const QualificationFormsPanel = ({ classes }) => {
 			const payload = {
 				name: form.name,
 				description: form.description,
+				greetingMessage: form.greetingMessage,
 				active: form.active !== false
 			};
 			const { data } = form.id
@@ -1774,6 +1931,7 @@ const QualificationFormsPanel = ({ classes }) => {
 			...emptyQualificationQuestion(selectedFormId),
 			order: selectedFormQuestions.length + 1
 		});
+		setShowAdvancedQuestion(false);
 	};
 
 	const editQuestion = question => {
@@ -1782,6 +1940,7 @@ const QualificationFormsPanel = ({ classes }) => {
 			...question,
 			options: parseQuestionOptions(question.options)
 		});
+		setShowAdvancedQuestion(false);
 	};
 
 	const setQuestionField = (name, value) => {
@@ -1832,7 +1991,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				...emptyQualificationQuestion(selectedFormId),
 				...(prev || {}),
 				options: options.map((option, optionIndex) =>
-					optionIndex === index ? { ...option, ...changes } : option
+					optionIndex === index ? { ...option, ...changes, value: String(optionIndex + 1) } : { ...option, value: String(optionIndex + 1) }
 				)
 			};
 		});
@@ -1842,7 +2001,9 @@ const QualificationFormsPanel = ({ classes }) => {
 		setQuestionForm(prev => ({
 			...emptyQualificationQuestion(selectedFormId),
 			...(prev || {}),
-			options: parseQuestionOptions(prev?.options || []).filter((_, optionIndex) => optionIndex !== index)
+			options: parseQuestionOptions(prev?.options || [])
+				.filter((_, optionIndex) => optionIndex !== index)
+				.map((option, optionIndex) => ({ ...option, value: String(optionIndex + 1) }))
 		}));
 	};
 
@@ -1852,7 +2013,7 @@ const QualificationFormsPanel = ({ classes }) => {
 		try {
 			const options = parseQuestionOptions(questionForm.options)
 				.map((option, index) => ({
-					value: textValue(option.value || index + 1),
+					value: textValue(index + 1),
 					label: textValue(option.label).trim(),
 					tagRefs: parseListValue(option.tagRefs)
 				}))
@@ -1903,47 +2064,51 @@ const QualificationFormsPanel = ({ classes }) => {
 		if (!selected.length) return "Sem etiquetas";
 
 		return selected
-			.map(tagId => tags.find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
+			.map(tagId => safeArray(tags).find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
 			.join(", ");
 	};
+
+	const getFormUsage = formId =>
+		safeArray(uraOptions).filter(option =>
+			Number(option.qualificationFormId) === Number(formId) &&
+			(option.runQualificationFormBeforeAction === true || option.runQualificationFormBeforeAction === "true")
+		);
+
+	const selectedFormUsage = selectedFormId ? getFormUsage(selectedFormId) : [];
 
 	return (
 		<Grid container spacing={2}>
 			<Grid item xs={12} md={3}>
-				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
-					<Grid container alignItems="center" spacing={1}>
-						<Grid item xs>
+				<Paper variant="outlined" className={classes.formBuilderPanel}>
+					<div className={classes.formBuilderHeader}>
+						<div>
 							<Typography variant="h6">Formularios</Typography>
-						</Grid>
-						<Grid item>
-							<Button size="small" variant="outlined" color="primary" onClick={newForm}>
-								Novo
-							</Button>
-						</Grid>
-					</Grid>
-					<Typography variant="caption" color="textSecondary">
-						Crie blocos de perguntas e vincule depois na opcao da URA.
-					</Typography>
+							<Typography variant="caption" className={classes.formBuilderMuted}>
+								Selecione um formulario para editar as perguntas.
+							</Typography>
+						</div>
+						<Button size="small" variant="outlined" color="primary" onClick={newForm}>
+							Novo
+						</Button>
+					</div>
 					<div style={{ marginTop: 12 }}>
-						{forms.map(item => (
-							<Paper
-								key={item.id}
-								variant="outlined"
-								style={{
-									padding: 12,
-									marginBottom: 8,
-									cursor: "pointer",
-									borderColor: Number(item.id) === Number(selectedFormId) ? "#1976d2" : undefined
-								}}
-								onClick={() => selectForm(item)}
-							>
-								<Typography variant="subtitle2">{textValue(item.name)}</Typography>
-								<Typography variant="caption" color="textSecondary">
-									{item.active === false ? "Inativo" : "Ativo"} - {questions.filter(question => Number(question.formId) === Number(item.id)).length} pergunta(s)
-								</Typography>
-							</Paper>
-						))}
-						{!forms.length && (
+						{safeArray(forms).map(item => {
+							const usage = getFormUsage(item.id);
+							const questionCount = safeArray(questions).filter(question => Number(question.formId) === Number(item.id)).length;
+							return (
+								<div
+									key={item.id}
+									className={`${classes.formBuilderItem} ${Number(item.id) === Number(selectedFormId) ? classes.formBuilderItemActive : ""}`}
+									onClick={() => selectForm(item)}
+								>
+									<Typography variant="subtitle2">{textValue(item.name)}</Typography>
+									<Typography variant="caption" color="textSecondary">
+										{item.active === false ? "Inativo" : "Ativo"} - {questionCount} pergunta(s) - {usage.length ? `${usage.length} vinculo(s) na URA` : "sem vinculo na URA"}
+									</Typography>
+								</div>
+							);
+						})}
+						{!safeArray(forms).length && (
 							<Typography variant="body2" color="textSecondary">
 								Nenhum formulario cadastrado.
 							</Typography>
@@ -1952,55 +2117,136 @@ const QualificationFormsPanel = ({ classes }) => {
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={5}>
-				<Paper variant="outlined" style={{ padding: 16, marginBottom: 16 }}>
-					<Typography variant="h6">Configuracao do formulario</Typography>
-					<TextField fullWidth margin="dense" variant="outlined" label="Nome do formulario" value={textValue(form.name)} onChange={event => setForm(prev => ({ ...prev, name: event.target.value }))} />
-					<TextField fullWidth margin="dense" variant="outlined" multiline rows={3} label="Descricao interna" value={textValue(form.description)} onChange={event => setForm(prev => ({ ...prev, description: event.target.value }))} />
-					<FormControlLabel
-						control={<Switch color="primary" checked={form.active !== false} onChange={event => setForm(prev => ({ ...prev, active: event.target.checked }))} />}
-						label="Formulario ativo"
-					/>
-					<Button variant="contained" color="primary" onClick={saveForm} disabled={loading}>
-						Salvar formulario
-					</Button>
-				</Paper>
-
-				<Paper variant="outlined" style={{ padding: 16 }}>
-					<Grid container alignItems="center" spacing={1}>
-						<Grid item xs>
-							<Typography variant="h6">Perguntas</Typography>
+			<Grid item xs={12} md={9}>
+				<div className={classes.formBuilderStack}>
+				<Paper variant="outlined" className={classes.formBuilderCompactPanel}>
+					<div className={classes.formBuilderHeader}>
+						<div>
+							<Typography variant="h6">Configuracao do formulario</Typography>
+							<Typography variant="caption" className={classes.formBuilderMuted}>
+								Nomeie o formulario para ficar claro quando ele for vinculado na URA.
+							</Typography>
+						</div>
+						<Typography variant="caption" color="textSecondary">
+							{form.active === false ? "Inativo" : "Ativo"}
+						</Typography>
+					</div>
+					<Grid container spacing={2} alignItems="flex-start">
+						<Grid item xs={12} md={5}>
+							<TextField
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								label="Nome do formulario"
+								value={textValue(form.name)}
+								onChange={event => {
+									const value = event.target.value;
+									setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), name: value }));
+								}}
+							/>
 						</Grid>
-						<Grid item>
-							<Button size="small" variant="outlined" color="primary" onClick={newQuestion}>
-								Adicionar pergunta
+						<Grid item xs={12} md={7}>
+							<TextField
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								multiline
+								rows={2}
+								label="Descricao interna"
+								value={textValue(form.description)}
+								onChange={event => {
+									const value = event.target.value;
+									setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), description: value }));
+								}}
+							/>
+						</Grid>
+						<Grid item xs={12}>
+							<TextField
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								multiline
+								rows={3}
+								label="Mensagem de saudacao antes das perguntas"
+								placeholder="Antes de iniciarmos seu atendimento, precisamos fazer algumas perguntas para entender seu perfil."
+								helperText="Opcional. Quando preenchida, esta mensagem sera enviada antes da primeira pergunta do formulario."
+								value={textValue(form.greetingMessage)}
+								onChange={event => {
+									const value = event.target.value;
+									setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), greetingMessage: value }));
+								}}
+							/>
+						</Grid>
+						<Grid item xs={12} md={8}>
+							<FormControlLabel
+								control={
+									<Switch
+										color="primary"
+										checked={form.active !== false}
+										onChange={event => {
+											const checked = event.target.checked;
+											setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), active: checked }));
+										}}
+									/>
+								}
+								label="Formulario ativo"
+							/>
+							<Typography variant="caption" display="block" color="textSecondary">
+								{selectedFormQuestions.length} pergunta(s). {selectedFormUsage.length ? `${selectedFormUsage.length} vinculo(s) na URA.` : "Sem vinculo na URA."}
+							</Typography>
+							{selectedFormUsage.length > 0 && (
+								<Typography variant="caption" display="block" color="textSecondary" style={{ marginTop: 8 }}>
+									Usado em: {selectedFormUsage.map(option => `${option.optionKey} - ${option.title}`).join(", ")}
+								</Typography>
+							)}
+						</Grid>
+						<Grid item xs={12} md={4}>
+							<Button fullWidth variant="contained" color="primary" onClick={saveForm} disabled={loading}>
+								Salvar formulario
 							</Button>
 						</Grid>
 					</Grid>
-					<Typography variant="caption" color="textSecondary">
-						A ordem define a sequencia enviada no WhatsApp.
-					</Typography>
+				</Paper>
+
+				<Grid container spacing={2} alignItems="stretch">
+					<Grid item xs={12} md={7}>
+				<Paper variant="outlined" className={classes.formBuilderPanel}>
+					<div className={classes.formBuilderHeader}>
+						<div>
+							<Typography variant="h6">Perguntas deste formulario</Typography>
+							<Typography variant="caption" className={classes.formBuilderMuted}>
+								A ordem define a sequencia enviada no WhatsApp.
+							</Typography>
+						</div>
+						<Button variant="contained" color="primary" onClick={newQuestion} disabled={!selectedFormId}>
+							Adicionar pergunta
+						</Button>
+					</div>
 					<div style={{ marginTop: 12 }}>
 						{selectedFormQuestions.map(question => {
 							const options = parseQuestionOptions(question.options);
+							const typeOption = getQuestionTypeOption(question.type);
 							return (
-								<Paper key={question.id} variant="outlined" style={{ padding: 12, marginBottom: 10 }}>
+								<div key={question.id} className={classes.formBuilderItem}>
 									<Grid container spacing={1} alignItems="flex-start">
 										<Grid item xs>
 											<Typography variant="subtitle2">
 												{Number(question.order || 0)}. {textValue(question.label)}
 											</Typography>
 											<Typography variant="caption" color="textSecondary">
-												{questionTypeOptions.find(item => item.value === question.type)?.label || question.type} - chave: {question.key}
+												{typeOption.label} - chave: {question.key}
 											</Typography>
+											<div className={classes.questionMetaRow}>
+												<Chip size="small" variant="outlined" label={["single_choice", "multiple_choice"].includes(question.type) ? "Respostas configuradas" : "Resposta livre do cliente"} />
+												<Chip size="small" variant="outlined" label={question.required === false ? "Opcional" : "Obrigatoria"} />
+											</div>
 											{options.length > 0 && (
-												<div style={{ marginTop: 8 }}>
+												<div className={classes.inlineChips}>
 													{options.map(option => (
 														<Chip
 															key={`${question.id}-${option.value}`}
 															size="small"
-															label={`${option.value} - ${option.label}`}
-															style={{ marginRight: 6, marginBottom: 6 }}
+															label={`Opcao ${option.value}: ${option.label}`}
 														/>
 													))}
 												</div>
@@ -2015,61 +2261,108 @@ const QualificationFormsPanel = ({ classes }) => {
 											</IconButton>
 										</Grid>
 									</Grid>
-								</Paper>
+								</div>
 							);
 						})}
 						{selectedFormId && !selectedFormQuestions.length && (
-							<Typography variant="body2" color="textSecondary">
-								Este formulario ainda nao tem perguntas.
-							</Typography>
+							<div className={classes.questionEmptyState}>
+								<Typography variant="subtitle2">Este formulario ainda nao tem perguntas.</Typography>
+								<Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
+									Crie a primeira pergunta para montar a sequencia enviada na URA.
+								</Typography>
+								<Button variant="contained" color="primary" onClick={newQuestion} style={{ marginTop: 16 }}>
+									Adicionar primeira pergunta
+								</Button>
+							</div>
 						)}
 						{!selectedFormId && (
-							<Typography variant="body2" color="textSecondary">
-								Selecione ou salve um formulario para criar perguntas.
-							</Typography>
+							<div className={classes.questionEmptyState}>
+								<Typography variant="subtitle2">Salve ou selecione um formulario.</Typography>
+								<Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
+									Depois disso voce podera adicionar perguntas e respostas.
+								</Typography>
+							</div>
 						)}
 					</div>
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={4}>
-				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
-					<Typography variant="h6">Editor da pergunta</Typography>
+			<Grid item xs={12} md={5}>
+				<Paper variant="outlined" className={classes.formBuilderPanel}>
+					<div className={classes.formBuilderHeader}>
+						<div>
+							<Typography variant="h6">Editor da pergunta</Typography>
+							<Typography variant="caption" className={classes.formBuilderMuted}>
+								Monte a pergunta como o cliente vera no WhatsApp.
+							</Typography>
+						</div>
+					</div>
 					{!questionForm ? (
-						<Typography variant="body2" color="textSecondary">
-							Clique em Adicionar pergunta ou edite uma pergunta existente.
-						</Typography>
+						<div className={classes.questionEmptyState}>
+							<Typography variant="subtitle2">Nenhuma pergunta selecionada.</Typography>
+							<Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
+								Clique em Adicionar pergunta ou edite uma pergunta existente.
+							</Typography>
+						</div>
 					) : (
 						<>
-							<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Pergunta enviada ao cliente" value={textValue(questionForm.label)} onChange={event => setQuestionField("label", event.target.value)} />
-							<Grid container spacing={1}>
-								<Grid item xs={7}>
-									<TextField fullWidth margin="dense" variant="outlined" label="Chave para relatorio" value={textValue(questionForm.key)} onChange={event => setQuestionField("key", normalizeFormKey(event.target.value))} />
-								</Grid>
-								<Grid item xs={5}>
-									<TextField fullWidth margin="dense" variant="outlined" type="number" label="Ordem" value={textValue(questionForm.order)} onChange={event => setQuestionField("order", event.target.value)} />
-								</Grid>
-							</Grid>
-							<TextField select fullWidth margin="dense" variant="outlined" label="Tipo de resposta" value={questionForm.type || "text"} onChange={event => setQuestionField("type", event.target.value)}>
+							<TextField
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								multiline
+								rows={2}
+								label="Pergunta enviada ao cliente"
+								value={textValue(questionForm.label)}
+								onChange={event => {
+									const value = event.target.value;
+									setQuestionField("label", value);
+								}}
+							/>
+							<Typography variant="subtitle2" style={{ marginTop: 12 }}>
+								Tipo de resposta
+							</Typography>
+							<div className={classes.questionTypeGrid}>
 								{questionTypeOptions.map(option => (
-									<MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+									<Button
+										key={option.value}
+										variant={(questionForm.type || "text") === option.value ? "contained" : "outlined"}
+										color={(questionForm.type || "text") === option.value ? "primary" : "default"}
+										className={classes.questionTypeButton}
+										onClick={() => setQuestionField("type", option.value)}
+									>
+										{option.label}
+									</Button>
 								))}
-							</TextField>
+							</div>
+							<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+								{getQuestionTypeHelp(questionForm.type)}
+							</Typography>
 
 							{choiceQuestion && (
-								<Paper variant="outlined" style={{ padding: 12, marginTop: 12 }}>
-									<Typography variant="subtitle2">Opcoes de resposta</Typography>
+								<div className={classes.previewBox}>
+									<Typography variant="subtitle2">Respostas como opcoes da URA</Typography>
 									<Typography variant="caption" color="textSecondary">
-										No WhatsApp o cliente vera a lista numerada. Em escolha unica ele responde um numero. Em multipla escolha ele pode responder, por exemplo, 1,3.
+										Cada linha vira Opcao 1, Opcao 2... e pode aplicar uma etiqueta quando escolhida.
 									</Typography>
 									{parseQuestionOptions(questionForm.options).map((option, index) => (
-										<Paper key={index} variant="outlined" style={{ padding: 10, marginTop: 10 }}>
+										<div key={index} className={classes.optionEditorRow}>
 											<Grid container spacing={1} alignItems="center">
-												<Grid item xs={3}>
-													<TextField fullWidth margin="dense" variant="outlined" label="Valor" value={textValue(option.value)} onChange={event => updateOption(index, { value: event.target.value })} />
+												<Grid item xs={12} sm={3}>
+													<Chip color="primary" size="small" label={`Opcao ${index + 1}`} />
 												</Grid>
-												<Grid item xs={9}>
-													<TextField fullWidth margin="dense" variant="outlined" label="Texto da opcao" value={textValue(option.label)} onChange={event => updateOption(index, { label: event.target.value })} />
+												<Grid item xs={12} sm={9}>
+													<TextField
+														fullWidth
+														margin="dense"
+														variant="outlined"
+														label="Resposta"
+														value={textValue(option.label)}
+														onChange={event => {
+															const value = event.target.value;
+															updateOption(index, { value: String(index + 1), label: value });
+														}}
+													/>
 												</Grid>
 												<Grid item xs={12}>
 													<TextField
@@ -2079,16 +2372,19 @@ const QualificationFormsPanel = ({ classes }) => {
 														variant="outlined"
 														label="Etiquetas aplicadas se escolher esta opcao"
 														value={parseListValue(option.tagRefs)}
-														onChange={event => updateOption(index, { tagRefs: event.target.value })}
+														onChange={event => {
+															const value = event.target.value;
+															updateOption(index, { tagRefs: value });
+														}}
 														SelectProps={{
 															multiple: true,
 															renderValue: selected => (selected || [])
-																.map(tagId => tags.find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
+																.map(tagId => safeArray(tags).find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
 																.join(", ")
 														}}
 														helperText={renderOptionTags(option)}
 													>
-														{tags.map(tag => (
+														{safeArray(tags).map(tag => (
 															<MenuItem key={tag.id} value={String(tag.id)}>
 																<Checkbox checked={parseListValue(option.tagRefs).includes(String(tag.id))} />
 																{textValue(tag.name)}
@@ -2102,55 +2398,125 @@ const QualificationFormsPanel = ({ classes }) => {
 													</Button>
 												</Grid>
 											</Grid>
-										</Paper>
+										</div>
 									))}
-									<Button size="small" variant="outlined" color="primary" onClick={addOption} style={{ marginTop: 10 }}>
+									<Button variant="outlined" color="primary" onClick={addOption} style={{ marginTop: 10 }}>
 										Adicionar opcao
 									</Button>
-								</Paper>
+								</div>
+							)}
+							{!choiceQuestion && (
+								<div className={classes.previewBox}>
+									<Typography variant="subtitle2">Resposta livre</Typography>
+									<Typography variant="body2" color="textSecondary">
+										Este tipo nao usa opcoes. A pergunta fica fixa e o cliente digita a resposta no WhatsApp.
+									</Typography>
+								</div>
 							)}
 
-							<Grid container spacing={1} style={{ marginTop: 8 }}>
-								<Grid item xs={12}>
-									<FormControlLabel
-										control={<Switch color="primary" checked={questionForm.required !== false} onChange={event => setQuestionField("required", event.target.checked)} />}
-										label="Obrigatoria"
-									/>
+							<div style={{ marginTop: 12 }}>
+								<Button size="small" variant="outlined" onClick={() => setShowAdvancedQuestion(prev => !prev)}>
+									{showAdvancedQuestion ? "Ocultar avancado" : "Mostrar avancado"}
+								</Button>
+							</div>
+							{showAdvancedQuestion && (
+								<Grid container spacing={1} style={{ marginTop: 8 }}>
+									<Grid item xs={7}>
+										<TextField
+											fullWidth
+											margin="dense"
+											variant="outlined"
+											label="Chave para relatorio"
+											value={textValue(questionForm.key)}
+											onChange={event => {
+												const value = event.target.value;
+												setQuestionField("key", normalizeFormKey(value));
+											}}
+										/>
+									</Grid>
+									<Grid item xs={5}>
+										<TextField
+											fullWidth
+											margin="dense"
+											variant="outlined"
+											type="number"
+											label="Ordem"
+											value={textValue(questionForm.order)}
+											onChange={event => {
+												const value = event.target.value;
+												setQuestionField("order", value);
+											}}
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.required !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("required", checked);
+											}} />}
+											label="Obrigatoria"
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.includeInAiContext !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("includeInAiContext", checked);
+											}} />}
+											label="Enviar resposta como contexto para IA"
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.includeInReports !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("includeInReports", checked);
+											}} />}
+											label="Disponivel para relatorios"
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<TextField
+											fullWidth
+											margin="dense"
+											variant="outlined"
+											type="number"
+											label="Tentativas invalidas antes de aceitar texto livre"
+											value={textValue(questionForm.maxInvalidAttempts)}
+											onChange={event => {
+												const value = event.target.value;
+												setQuestionField("maxInvalidAttempts", value);
+											}}
+										/>
+									</Grid>
+									<Grid item xs={12}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.active !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("active", checked);
+											}} />}
+											label="Pergunta ativa"
+										/>
+									</Grid>
 								</Grid>
-								<Grid item xs={12}>
-									<FormControlLabel
-										control={<Switch color="primary" checked={questionForm.includeInAiContext !== false} onChange={event => setQuestionField("includeInAiContext", event.target.checked)} />}
-										label="Enviar resposta como contexto para IA"
-									/>
-								</Grid>
-								<Grid item xs={12}>
-									<FormControlLabel
-										control={<Switch color="primary" checked={questionForm.includeInReports !== false} onChange={event => setQuestionField("includeInReports", event.target.checked)} />}
-										label="Disponivel para relatorios"
-									/>
-								</Grid>
-								<Grid item xs={12}>
-									<TextField fullWidth margin="dense" variant="outlined" type="number" label="Tentativas invalidas antes de aceitar texto livre" value={textValue(questionForm.maxInvalidAttempts)} onChange={event => setQuestionField("maxInvalidAttempts", event.target.value)} />
-								</Grid>
-								<Grid item xs={12}>
-									<FormControlLabel
-										control={<Switch color="primary" checked={questionForm.active !== false} onChange={event => setQuestionField("active", event.target.checked)} />}
-										label="Pergunta ativa"
-									/>
-								</Grid>
-							</Grid>
+							)}
 
-							<Paper variant="outlined" style={{ padding: 12, marginTop: 12, background: "#fafafa" }}>
+							<div className={classes.previewBox}>
 								<Typography variant="subtitle2">Previa no WhatsApp</Typography>
 								<Typography variant="body2">
 									{textValue(questionForm.label) || "Pergunta ainda nao preenchida"}
 								</Typography>
-								{choiceQuestion && parseQuestionOptions(questionForm.options).map(option => (
+								{choiceQuestion && parseQuestionOptions(questionForm.options).map((option, index) => (
 									<Typography key={option.value} variant="body2">
-										<strong>{option.value}</strong> - {option.label || "Opcao sem texto"}
+										<strong>{index + 1}</strong> - {option.label || "Opcao sem texto"}
 									</Typography>
 								))}
-							</Paper>
+								{!choiceQuestion && (
+									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+										Resposta do cliente: digitada livremente no WhatsApp.
+									</Typography>
+								)}
+							</div>
 
 							<Grid container spacing={1} style={{ marginTop: 12 }}>
 								<Grid item xs>
@@ -2168,6 +2534,9 @@ const QualificationFormsPanel = ({ classes }) => {
 					)}
 				</Paper>
 			</Grid>
+				</Grid>
+				</div>
+		</Grid>
 		</Grid>
 	);
 };
@@ -3193,7 +3562,9 @@ const Settings = () => {
 							))}
 						</Tabs>
 						{activeGroupChild?.type === "qualificationForms" ? (
-							<QualificationFormsPanel classes={classes} />
+							<QualificationFormsBoundary>
+								<QualificationFormsPanel classes={classes} />
+							</QualificationFormsBoundary>
 						) : (
 							<ResourcePanel resource={activeResource} classes={classes} />
 						)}

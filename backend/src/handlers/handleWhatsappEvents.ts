@@ -623,6 +623,73 @@ const updateContextFromAiDecision = async (
   });
 };
 
+const buildQualificationAiOpeningMessage = (
+  contactPayload: ContactPayload,
+  aiSetting: AiSetting | null,
+  summary: string
+): string => {
+  const aiName = aiSetting?.name || "Mari";
+  const company = aiSetting?.companyName || "nosso atendimento";
+  const contactFirstName = String(contactPayload.name || "").trim().split(/\s+/)[0];
+  const collectedLines = String(summary || "")
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.startsWith("- "))
+    .slice(0, 3);
+
+  return [
+    `Ola${contactFirstName ? `, ${contactFirstName}` : ""}! Sou a ${aiName}, assistente da ${company}.`,
+    collectedLines.length
+      ? `Ja recebi suas respostas:\n${collectedLines.join("\n")}`
+      : "Ja recebi suas respostas do formulario.",
+    "Com isso em mente, vou te ajudar a encontrar a melhor opcao. Para eu te orientar melhor, voce ja sabe quantas pessoas vao participar?"
+  ].join("\n\n");
+};
+
+const sendQualificationAiOpening = async (
+  whatsappId: number,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  aiSettingId: number | null,
+  summary: string
+): Promise<void> => {
+  const aiSetting = aiSettingId ? await AiSetting.findByPk(aiSettingId) : await AiSetting.findOne({ where: { active: true } });
+  const openingMessage = buildQualificationAiOpeningMessage(contactPayload, aiSetting, summary);
+
+  await sendTextMessage(
+    whatsappId,
+    contactPayload,
+    openingMessage,
+    ticket,
+    "ai"
+  );
+
+  await ticket.update(buildAiStateUpdate(
+    ticket,
+    "Formulario de qualificacao concluido",
+    openingMessage,
+    "saudacao_pos_formulario",
+    "diagnostico_inicial",
+    "IA iniciada automaticamente apos formulario de qualificacao com contexto coletado.",
+    [],
+    {
+      lastAiQuestionType: "missing_info",
+      lastAiExpectedReply: "free_text",
+      lastAiQuestionAt: new Date()
+    }
+  ));
+
+  await UpdateAiTicketContextService({
+    ticket,
+    source: "ai_decision",
+    summary: ticket.aiConversationSummary || summary || undefined,
+    nextQuestion: openingMessage,
+    lastAiIntent: "diagnostico_inicial",
+    lastAiAction: "saudacao_pos_formulario",
+    lastAiDecisionReason: "IA iniciada automaticamente apos formulario de qualificacao."
+  });
+};
+
 const handleAiReply = async (
   whatsappId: number,
   messageBody: string,
@@ -1278,7 +1345,7 @@ const executeQualificationAfterAction = async (
     if (queue && await sendQueueUnavailableIfNeeded(whatsappId, contactPayload, ticket, queue)) return;
     const aiSettingId = queue?.aiSettingId || null;
 
-    await UpdateTicketService({
+    const { ticket: updatedTicket } = await UpdateTicketService({
       ticketData: {
         queueId: selectedOption.targetQueueId || ticket.queueId,
         aiActive: true,
@@ -1316,6 +1383,14 @@ const executeQualificationAfterAction = async (
       },
       ticketId: ticket.id
     });
+
+    await sendQualificationAiOpening(
+      whatsappId,
+      updatedTicket,
+      contactPayload,
+      aiSettingId,
+      initialSummary
+    );
     return;
   }
 
@@ -1374,6 +1449,17 @@ const beginQualificationForm = async (
     { ticketId: ticket.id, formId: form.id, responseId: response.id },
     "[QUALIFICATION FORM] Started"
   );
+
+  const greetingMessage = String(form.greetingMessage || "").trim();
+  if (greetingMessage) {
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      greetingMessage,
+      ticket,
+      "ura"
+    );
+  }
 
   await sendTextMessage(
     whatsappId,
@@ -1544,7 +1630,7 @@ const handleUraLogic = async (
     currentParentOption?.id ? Number(currentParentOption.id) : null
   );
 
-  const navigationCommand = currentParentOption
+  const navigationCommand = ticket.uraActive
     ? getUraNavigationCommand(messageBody)
     : null;
 
@@ -1574,7 +1660,7 @@ const handleUraLogic = async (
     return true;
   }
 
-  if (navigationCommand === "back") {
+  if (navigationCommand === "back" && currentParentOption) {
     const parent = currentParentOption?.parentOptionId
       ? await UraOption.findByPk(currentParentOption.parentOptionId)
       : null;
@@ -1827,7 +1913,8 @@ const handleUraLogic = async (
 
   if (selectedOption.responseMessage || selectedOption.responseMediaUrl) {
     const shouldShowNavigationFooter =
-      !!currentParentOption && selectedOption.action === "SEND_MESSAGE";
+      selectedOption.action === "SEND_MESSAGE" &&
+      (!!currentParentOption || selectedOption.showMainMenuAfterMessage);
 
     await sendConfiguredMessage({
       whatsappId,
@@ -1843,6 +1930,10 @@ const handleUraLogic = async (
 
     if (selectedOption.action === "SEND_MESSAGE") {
       await ticket.update({
+        currentUraOptionId: currentParentOption?.id || null,
+        uraMenuSentAt: new Date(),
+        uraActive: true,
+        uraInvalidAttempts: 0,
         lastUraInteractionAt: new Date(),
         aiAutoCloseEnabled: selectedOption.aiAutoCloseEnabled === true,
         aiAutoCloseMinutes: selectedOption.aiAutoCloseEnabled
