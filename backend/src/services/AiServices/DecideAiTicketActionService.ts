@@ -916,6 +916,68 @@ const stripIncludedSection = (answer = ""): string => {
     .trim();
 };
 
+const answerHasIncludedSection = (answer = ""): boolean =>
+  /\b(?:incluso|inclusos|inclui)\s*:/i.test(normalizeText(answer));
+
+const isQuoteAnswer = (answer = ""): boolean => {
+  const normalized = normalizeText(answer);
+  return /\br\$\s*\d/.test(normalized) ||
+    /\b(orcamento|valor|preco|total|desconto|bloco|pacote|diaria|turno|melhor custo)\b/.test(normalized);
+};
+
+const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
+  const structureMatch = knowledge.match(
+    /(?:estrutura inclusa|o valor da contratacao inclui|o valor da contratação inclui|inclui:)([\s\S]*?)(?:\n\s*(?:\d+\.\s+|#{1,6}\s+|===)|$)/i
+  );
+  const source = structureMatch?.[1] || "";
+  if (!source.trim()) return [];
+
+  const stopWords = /\b(usos indicados|capacidade|valores oficiais|observacoes|observações|pacotes|planos|educacao|educação|corporativo|rh e selecao|rh e seleção)\b/i;
+  const items: string[] = [];
+
+  for (const line of source.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    if (stopWords.test(trimmed)) break;
+
+    const bullet = trimmed.match(/^[-*•]\s*(.+?)\s*[.;:]?$/);
+    if (!bullet?.[1]) continue;
+
+    const item = bullet[1].trim();
+    if (!item || stopWords.test(item)) continue;
+    items.push(item);
+  }
+
+  return Array.from(new Set(items));
+};
+
+const appendIncludedSectionIfNeeded = ({
+  answer,
+  knowledge,
+  activeHistory,
+  message
+}: {
+  answer: string;
+  knowledge: string;
+  activeHistory: string;
+  message: string;
+}): string => {
+  if (!isQuoteAnswer(answer)) return answer;
+  if (isIncludedItemsQuestion(message)) return answer;
+  if (answerHasIncludedSection(answer)) return answer;
+  if (historyHasIncludedSection(activeHistory)) return answer;
+
+  const includedItems = extractIncludedItemsFromKnowledge(knowledge);
+  if (!includedItems.length) return answer;
+
+  return [
+    answer.trim(),
+    "",
+    "*Incluso:*",
+    ...includedItems.map(item => `- ${item}`)
+  ].join("\n");
+};
+
 const buildKnowledgeFallbackDecision = (
   message: string,
   articles: KnowledgeFragment[],
@@ -1146,8 +1208,14 @@ const generateAnswerFromKnowledge = async ({
       historyHasIncludedSection(activeHistory) && !isIncludedItemsQuestion(message)
         ? stripIncludedSection(cleaned)
         : cleaned;
+    const withIncludedFallback = appendIncludedSectionIfNeeded({
+      answer: withoutRepeatedIncluded,
+      knowledge,
+      activeHistory,
+      message
+    });
 
-    return stripRepeatedGreeting(withoutRepeatedIncluded, ticket, activeHistory, contactName) || null;
+    return stripRepeatedGreeting(withIncludedFallback, ticket, activeHistory, contactName) || null;
   } catch (error) {
     if (error instanceof AiProviderError) {
       throw error;
