@@ -8,7 +8,10 @@ import GenerateAiResponseService, { AiProviderError } from "./GenerateAiResponse
 import SearchKnowledgeBaseService, { KnowledgeFragment } from "./SearchKnowledgeBaseService";
 import { Op } from "sequelize";
 import { htmlToWhatsAppText } from "../../utils/knowledgeFormatting";
-import { BuildAiTicketContextTextService } from "./AiTicketContextService";
+import {
+  AnalyzeAndUpdateAiTicketContextService,
+  BuildAiTicketContextTextService
+} from "./AiTicketContextService";
 
 export type AiTicketAction =
   | "responder_com_base"
@@ -149,7 +152,12 @@ const buildQualificationQuestion = (
 };
 
 const applyNoToolConfirmationGuardrail = (decision: AiDecision): AiDecision => {
-  const response = normalizeText(decision.resposta || "");
+  const alignedDecision = alignActionWithPromisedHandoff(decision);
+  if (alignedDecision.acao === "encaminhar_atendente" && decision.acao !== "encaminhar_atendente") {
+    return alignedDecision;
+  }
+
+  const response = normalizeText(alignedDecision.resposta || "");
   const hasInformationalQuote =
     /\b(orcamento|cotacao|estimativa|valor|preco|fica|ficaria|total|calculo)\b/.test(response) &&
     !/\b(reserva|agendamento|contratacao|contrato|pagamento|pedido|chamado)\b/.test(response);
@@ -161,10 +169,10 @@ const applyNoToolConfirmationGuardrail = (decision: AiDecision): AiDecision => {
     !hasHumanValidationCaveat && !hasInformationalQuote && /(?:agendamento|reserva|venda|pedido|contratacao|contrato|pagamento|chamado).{0,90}(?:confirmad|marcad|finalizad|realizad|criad|abert|registrad|efetuad|aprovad)/i.test(response) ||
     /(?:esta|ficou|ja)\s+(?:agendad|marcad|confirmad|finalizad|registrad|criad|abert)/i.test(response);
 
-  if (!promisedRealAction) return decision;
+  if (!promisedRealAction) return alignedDecision;
 
   return {
-    ...decision,
+    ...alignedDecision,
     confianca: "alta",
     respostaSegura: false,
     acao: "encaminhar_atendente",
@@ -787,6 +795,21 @@ const isExplicitHumanRequest = (message: string): boolean => {
   );
 };
 
+const isOperationalHandoffRequest = (message: string): boolean => {
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return false;
+
+  return (
+    /\b(quero|queria|gostaria|posso|pode|vamos|bora|preciso|desejo|vou).{0,80}\b(reservar|reserva|agendar|agenda|fechar|finalizar|contratar|contratacao|pagar|pagamento|sinal|disponibilidade)\b/.test(normalized) ||
+    /\b(seguir|prosseguir|continuar|avancar|avançar).{0,80}\b(com|para|pra).{0,40}\b(reserva|agendamento|contratacao|contratação|pagamento)\b/.test(normalized) ||
+    /\b(reservar|agendar|fechar|contratar|pagar|disponibilidade)\b/.test(normalized)
+  );
+};
+
 const isExplicitCloseRequest = (message: string): boolean => {
   const normalized = normalizeText(message)
     .replace(/[^\w\s]/g, " ")
@@ -809,6 +832,7 @@ const shouldPreferKnowledgeFallback = (
 ): boolean => {
   if (!articles.length) return false;
   if (isExplicitHumanRequest(message)) return false;
+  if (decision.acao === "encaminhar_atendente" && isOperationalHandoffRequest(message)) return false;
   if (decision.acao === "encerrar_atendimento" || decision.acao === "nao_responder") return false;
   if (decision.acao === "pedir_confirmacao" && decision.perguntaConfirmacao && decision.opcoes?.length) return false;
 
@@ -817,6 +841,33 @@ const shouldPreferKnowledgeFallback = (
     decision.acao === "encaminhar_atendente" ||
     (decision.acao === "responder_com_base" && (!decision.respostaSegura || !decision.resposta))
   );
+};
+
+const responsePromisesImmediateHandoff = (value = ""): boolean => {
+  const normalized = normalizeText(value);
+  const promisesHandoff =
+    /\b(vou|irei|vamos).{0,40}\b(encaminhar|transferir|passar).{0,80}\b(atendente|humano|equipe|pessoa|suporte)\b/.test(normalized) ||
+    /\b(encaminharei|transferirei).{0,80}\b(atendente|humano|equipe|pessoa|suporte)\b/.test(normalized);
+
+  const onlyOffersHandoff =
+    /\b(posso|podemos|consigo).{0,40}\b(encaminhar|transferir|passar).{0,80}\b(atendente|humano|equipe|pessoa|suporte)\b/.test(normalized);
+
+  return promisesHandoff && !onlyOffersHandoff;
+};
+
+const alignActionWithPromisedHandoff = (decision: AiDecision): AiDecision => {
+  if (decision.acao !== "responder_com_base") return decision;
+  if (!responsePromisesImmediateHandoff(decision.resposta || "")) return decision;
+
+  return {
+    ...decision,
+    acao: "encaminhar_atendente",
+    respostaSegura: false,
+    motivo: [
+      decision.motivo,
+      "Correcao local: resposta prometeu encaminhamento imediato; executar handoff real."
+    ].filter(Boolean).join(" | ")
+  };
 };
 
 const historyHasRecentAiAnswer = (history: string): boolean => {
@@ -900,6 +951,8 @@ const isContextualClosingIntent = (
     return false;
   }
 
+  return false;
+
   const isSatisfactionAfterAnswer =
     historyHasRecentAiAnswer(history) &&
     /\b(certo|ok|okay|ta bom|esta bom|beleza|blz|perfeito|show|entendi|combinado|obrigado|obrigada|obg|valeu|agradeco|agradeço)\b/.test(normalized) &&
@@ -973,6 +1026,9 @@ const buildDecisionPrompt = ({
     "Analise contexto, erros de digitacao, abreviacoes, historico recente, estado atual do ticket e a base de conhecimento.",
     "Use somente o historico mostrado deste ticket atual. Nunca suponha mensagens de atendimentos anteriores do mesmo contato.",
     "Diferencie CLIENTE, IA, ATENDENTE HUMANO e SISTEMA. Mensagens de SISTEMA/URA servem como estado, nao como pedido do cliente.",
+    "Use a memoria curta estruturada como fonte de estado do atendimento. Ela indica dados ja coletados, dados faltantes, pergunta pendente e se a mensagem atual respondeu algo que a IA perguntou.",
+    "Se a memoria estruturada disser que a mensagem atual respondeu a pergunta pendente, e proibido repetir a mesma pergunta. Reconheca o dado recebido e avance para responder, calcular, transferir, encerrar ou perguntar somente o que ainda falta.",
+    "A memoria estruturada e generica: vale para orcamento, pagamento, desconto, fotos, reserva, suporte, encerramento, atendimento humano e qualquer outro contexto.",
     "Use o estado do atendimento para interpretar respostas curtas. Se a ultima pergunta foi 'Consegui te ajudar?' ou uma checagem de satisfacao e o cliente respondeu 'sim', 'certo', 'obrigado' ou 'deu certo', a intencao e encerramento. Se respondeu 'nao' ou 'nao resolveu', a intencao e encaminhar_atendente.",
     "Se a ultima pergunta foi 'Posso ajudar em algo mais?' e o cliente respondeu 'nao', 'nao obrigado' ou 'era so isso', a intencao e encerramento. Se respondeu 'sim', a intencao e continuar pedindo mais detalhes.",
     "Se a IA ofereceu detalhes de planos, pacotes, produtos, servicos ou alternativas e o cliente respondeu apenas 'nao', 'nao obrigado', 'sem interesse', 'era so isso' ou equivalente, nao repita a mesma oferta. Interprete como recusa daquela oferta. Se a informacao principal ja foi entregue, use encerrar_atendimento; se o cliente demonstrou frustracao, preco alto, duvida nao resolvida ou quer negociar, use encaminhar_atendente.",
@@ -1143,6 +1199,7 @@ const DecideAiTicketActionService = async ({
 
   const pendingOptions = parseOptions(ticket.lastAiQuestionOptions);
   const history = await getRecentHistory(ticket);
+  await AnalyzeAndUpdateAiTicketContextService({ ticket, message });
   const structuredContext = await BuildAiTicketContextTextService(ticket.id);
 
   if (isContextualClosingIntent(message, history, ticket, pendingOptions)) {

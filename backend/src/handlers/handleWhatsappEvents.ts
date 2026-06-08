@@ -247,21 +247,23 @@ const handoffToHuman = async (
   const aiSetting = aiSettingId ? await AiSetting.findByPk(aiSettingId) : null;
   if (!aiSetting) return false;
 
-  if (!ticket.aiHumanHandoffQueueId) {
-    logger.warn({ ticketId: ticket.id }, "AI handoff requested without URA human queue");
+  const humanHandoffQueueId = ticket.aiHumanHandoffQueueId || aiSetting.humanHandoffQueueId;
+  if (!humanHandoffQueueId) {
+    logger.warn({ ticketId: ticket.id, aiSettingId: aiSetting.id }, "AI handoff requested without human queue");
     return false;
   }
 
-  const queue = await Queue.findByPk(ticket.aiHumanHandoffQueueId);
+  const queue = await Queue.findByPk(humanHandoffQueueId);
   const customerMessage =
     customerMessageOverride ||
     ticket.aiHumanHandoffMessage ||
+    aiSetting.humanHandoffMessage ||
     "O servico de IA se encontra indisponivel no momento. Vou transferir seu atendimento para um atendente.";
 
   await sendTextMessage(whatsappId, contactPayload, customerMessage, ticket);
   await UpdateTicketService({
       ticketData: {
-      queueId: ticket.aiHumanHandoffQueueId,
+      queueId: humanHandoffQueueId,
       aiActive: false,
       aiHandled: true,
       aiHumanHandoffAt: new Date(),
@@ -830,7 +832,7 @@ const handleAiReply = async (
           ? aiDecision.resposta
           : aiDecision.acao === "sem_resposta_segura"
             ? AI_NO_SAFE_ANSWER_HANDOFF_MESSAGE
-            : null
+            : aiDecision.resposta || null
       );
 
       if (!handedOff) {

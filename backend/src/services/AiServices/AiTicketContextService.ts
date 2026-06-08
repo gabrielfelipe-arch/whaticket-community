@@ -51,6 +51,211 @@ const truncate = (value: string | null | undefined, max = 2500): string | null =
   return text.length <= max ? text : text.slice(text.length - max);
 };
 
+const normalizeText = (value = ""): string =>
+  value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+const cleanText = (value = ""): string =>
+  normalizeText(value)
+    .replace(/[^\w\s/:-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const firstMatch = (value: string, patterns: RegExp[]): string | null => {
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match?.[1]) return match[1];
+    if (match?.[0]) return match[0];
+  }
+  return null;
+};
+
+const hasAny = (value: string, pattern: RegExp): boolean => pattern.test(value);
+
+const classifyQuestion = (question = ""): string | null => {
+  const normalized = cleanText(question);
+  if (!normalized) return null;
+
+  if (hasAny(normalized, /\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/)) {
+    return "participant_count";
+  }
+  if (hasAny(normalized, /\b(duracao|quanto tempo|horas|periodo|encontro|encontros|dia|dias|recorrente|pontual)\b/)) {
+    return "duration_occurrence";
+  }
+  if (hasAny(normalized, /\b(data|dia|periodo|quando|agenda|disponibilidade)\b/)) {
+    return "date_or_availability";
+  }
+  if (hasAny(normalized, /\b(pagamento|pagar|cartao|pix|dinheiro|parcel)\b/)) {
+    return "payment";
+  }
+  if (hasAny(normalized, /\b(desconto|promocao|condicao)\b/)) {
+    return "discount";
+  }
+  if (hasAny(normalized, /\b(foto|video|imagem|catalogo|material)\b/)) {
+    return "media";
+  }
+
+  return "generic";
+};
+
+const classifyIntent = (message = ""): string => {
+  const normalized = cleanText(message);
+  if (!normalized) return "mensagem_vazia";
+
+  if (hasAny(normalized, /\b(atendente|humano|pessoa|transferir|transfere|encaminhar|encaminha|falar com)\b/)) {
+    return "pedido_atendente";
+  }
+  if (hasAny(normalized, /\b(reservar|reserva|agendar|fechar|contratar|seguir com|prosseguir|disponibilidade)\b/)) {
+    return "acao_operacional";
+  }
+  if (hasAny(normalized, /\b(encerrar|finalizar|fechar atendimento|era so isso|nada mais|nao preciso de mais nada)\b/)) {
+    return "pedido_encerramento";
+  }
+  if (hasAny(normalized, /\b(desconto|promocao|condicao|com desconto)\b/)) {
+    return "desconto";
+  }
+  if (hasAny(normalized, /\b(pagamento|pagar|cartao|pix|parcela|parcelar|taxa)\b/)) {
+    return "pagamento";
+  }
+  if (hasAny(normalized, /\b(foto|video|imagem|catalogo|ver a sala|conhecer o espaco|conhecer a sala)\b/)) {
+    return "midia_ou_estrutura";
+  }
+  if (hasAny(normalized, /\b(orcamento|valor|preco|cotacao|quanto fica|quanto custa|simular)\b/)) {
+    return "orcamento";
+  }
+  if (hasAny(normalized, /\b(ja falei|acabei de responder|ja respondi|eu disse|falei agora)\b/)) {
+    return "reclamacao_repeticao";
+  }
+
+  return "continuidade";
+};
+
+const extractCollectedData = (
+  message: string,
+  lastQuestion?: string | null
+): Record<string, { label: string; value: string | null; rawValue?: string | null }> => {
+  const normalized = cleanText(message);
+  const questionType = classifyQuestion(lastQuestion || "");
+  const collected: Record<string, { label: string; value: string | null; rawValue?: string | null }> = {};
+
+  const number = firstMatch(normalized, [/\b(\d{1,3})\b/]);
+  if (questionType === "participant_count" && number) {
+    collected.participant_count = {
+      label: "Quantidade de pessoas/participantes",
+      value: number,
+      rawValue: message
+    };
+  }
+
+  const hour = firstMatch(normalized, [
+    /\b(\d{1,2})\s*h\b/,
+    /\b(\d{1,2})\s*horas?\b/,
+    /\b(\d{1,2})\s*(?:hora|horas)\s*(?:cada|por|ao|a)\b/
+  ]);
+  if (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro)\b/)) {
+    collected.duration = {
+      label: "Duracao/tempo informado",
+      value: hour ? `${hour}h` : firstMatch(normalized, [/\b(manha|tarde|noite|turno|diaria|dia inteiro)\b/]),
+      rawValue: message
+    };
+  }
+
+  const occurrences = firstMatch(normalized, [
+    /\b(\d{1,3})\s*(?:dias|dia)\b/,
+    /\b(\d{1,3})\s*(?:encontros|encontro)\b/,
+    /\b(\d{1,3})\s*(?:turnos|turno)\b/
+  ]);
+  if (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/)) {
+    collected.occurrences = {
+      label: "Quantidade de encontros/dias/recorrencia",
+      value: occurrences || firstMatch(normalized, [/\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/]),
+      rawValue: message
+    };
+  }
+
+  const date = firstMatch(normalized, [
+    /\b(\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\b/,
+    /\b(dia\s+\d{1,2}(?:\/\d{1,2})?)\b/
+  ]);
+  if (date) {
+    collected.date_or_period = {
+      label: "Data ou periodo",
+      value: date,
+      rawValue: message
+    };
+  }
+
+  const payment = firstMatch(normalized, [/\b(cartao|credito|debito|pix|dinheiro|parcela|parcelar)\b/]);
+  if (payment) {
+    collected.payment_topic = {
+      label: "Assunto de pagamento",
+      value: payment,
+      rawValue: message
+    };
+  }
+
+  if (hasAny(normalized, /\b(desconto|promocao|condicao|com desconto)\b/)) {
+    collected.discount_requested = {
+      label: "Cliente perguntou sobre desconto",
+      value: "sim",
+      rawValue: message
+    };
+  }
+
+  if (hasAny(normalized, /\b(foto|video|imagem|catalogo|material)\b/)) {
+    collected.media_requested = {
+      label: "Cliente pediu midia/material",
+      value: "sim",
+      rawValue: message
+    };
+  }
+
+  if (hasAny(normalized, /\b(ja falei|acabei de responder|ja respondi|eu disse|falei agora)\b/)) {
+    collected.context_repetition_complaint = {
+      label: "Cliente indicou que ja respondeu",
+      value: "sim",
+      rawValue: message
+    };
+  }
+
+  return collected;
+};
+
+const getValue = (data: CollectedData, key: string): string | null =>
+  data[key]?.value || data[key]?.rawValue || null;
+
+const buildMissingData = (
+  intent: string,
+  collected: CollectedData
+): string[] | undefined => {
+  if (!["orcamento", "desconto", "acao_operacional"].includes(intent)) return undefined;
+
+  const missing: string[] = [];
+  if (!getValue(collected, "participant_count")) missing.push("quantidade de pessoas/participantes");
+  if (!getValue(collected, "duration")) missing.push("duracao/tempo de uso");
+  if (!getValue(collected, "occurrences")) missing.push("quantidade de encontros/dias ou recorrencia");
+  return missing;
+};
+
+const buildNextQuestion = (missing?: string[]): string | null => {
+  if (!missing?.length) return null;
+  if (missing.includes("quantidade de pessoas/participantes")) {
+    return "Quantas pessoas ou participantes serao atendidos?";
+  }
+  if (missing.includes("duracao/tempo de uso") && missing.includes("quantidade de encontros/dias ou recorrencia")) {
+    return "Qual sera a duracao e sera em um unico encontro/dia ou em mais de um?";
+  }
+  if (missing.includes("duracao/tempo de uso")) {
+    return "Qual sera a duracao ou tempo de uso?";
+  }
+  if (missing.includes("quantidade de encontros/dias ou recorrencia")) {
+    return "Sera em um unico encontro/dia ou em mais de um? Quantos?";
+  }
+  return null;
+};
+
 export const UpdateAiTicketContextService = async ({
   ticket,
   source,
@@ -127,6 +332,62 @@ export const UpdateAiTicketContextService = async ({
   return context;
 };
 
+export const AnalyzeAndUpdateAiTicketContextService = async ({
+  ticket,
+  message,
+  source = "customer_message"
+}: {
+  ticket: Ticket;
+  message: string;
+  source?: string;
+}): Promise<AiTicketContext> => {
+  const existing = await AiTicketContext.findOne({ where: { ticketId: ticket.id } });
+  const now = new Date();
+  const previousCollected = parseJson<CollectedData>(existing?.collectedData, {});
+  const extracted = extractCollectedData(message, ticket.lastAiMessage);
+  const intent = classifyIntent(message);
+  const questionType = classifyQuestion(ticket.lastAiMessage || existing?.nextQuestion || "");
+  const answeredPendingQuestion = Object.keys(extracted).length > 0 && !!questionType;
+
+  const mergedCollected: CollectedData = { ...previousCollected };
+  Object.entries(extracted).forEach(([key, item]) => {
+    mergedCollected[key] = {
+      label: item.label || key,
+      value: item.value,
+      rawValue: item.rawValue,
+      source,
+      updatedAt: now.toISOString()
+    };
+  });
+
+  const missing = buildMissingData(intent, mergedCollected);
+  const nextQuestion = buildNextQuestion(missing);
+  const currentObjective = [
+    `Intencao aparente da mensagem atual: ${intent}`,
+    questionType ? `Tipo da pergunta pendente/recente: ${questionType}` : "",
+    answeredPendingQuestion
+      ? "A mensagem atual trouxe dado concreto e deve ser tratada como resposta a pergunta pendente. Nao repetir a mesma pergunta."
+      : "",
+    nextQuestion ? `Proxima pergunta deve pedir apenas: ${missing?.join(", ")}` : "Nao ha proxima pergunta obrigatoria detectada pela memoria local."
+  ].filter(Boolean).join(" | ");
+
+  return UpdateAiTicketContextService({
+    ticket,
+    source,
+    summary: ticket.aiConversationSummary || existing?.summary || null,
+    collectedData: extracted,
+    missingData: missing,
+    currentObjective,
+    nextQuestion,
+    lastAiIntent: intent,
+    lastAiAction: existing?.lastAiAction || ticket.lastAiAction || null,
+    lastAiDecisionReason: answeredPendingQuestion
+      ? "Analise local: cliente respondeu a pergunta pendente com dado concreto."
+      : existing?.lastAiDecisionReason || ticket.lastAiDecisionReason || null,
+    lastKnowledgeIds: existing?.lastKnowledgeIds || ticket.lastAiKnowledgeIds || null
+  });
+};
+
 export const BuildAiTicketContextTextService = async (ticketId: number): Promise<string> => {
   const context = await AiTicketContext.findOne({ where: { ticketId } });
   if (!context) return "";
@@ -144,6 +405,9 @@ export const BuildAiTicketContextTextService = async (ticketId: number): Promise
     missing.length ? `Dados faltantes:\n${missing.map(item => `- ${item}`).join("\n")}` : "",
     contradictions.length ? `Contradicoes/incertezas:\n${contradictions.map(item => `- ${item}`).join("\n")}` : "",
     context.currentObjective ? `Objetivo atual: ${context.currentObjective}` : "",
+    context.nextQuestion
+      ? "Regra de continuidade: se a mensagem atual respondeu a pergunta pendente, nao repita essa pergunta; reconheca o dado recebido e avance."
+      : "",
     context.nextQuestion ? `Proxima pergunta sugerida: ${context.nextQuestion}` : "",
     context.lastAiAction ? `Ultima acao registrada no contexto: ${context.lastAiAction}` : "",
     context.lastAiDecisionReason ? `Motivo da ultima decisao: ${context.lastAiDecisionReason}` : ""
