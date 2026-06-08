@@ -260,10 +260,6 @@ const handoffToHuman = async (
     aiSetting.humanHandoffMessage ||
     "O servico de IA se encontra indisponivel no momento. Vou transferir seu atendimento para um atendente.";
 
-  if (Number(ticket.queueId || 0) !== Number(humanHandoffQueueId)) {
-    await ticket.update({ queuePositionMessageSentAt: null });
-  }
-
   await sendTextMessage(whatsappId, contactPayload, customerMessage, ticket);
   await UpdateTicketService({
       ticketData: {
@@ -637,66 +633,22 @@ const buildQualificationAiOpeningMessage = (
   const aiName = aiSetting?.name || "Mari";
   const company = aiSetting?.companyName || "nosso atendimento";
   const contactFirstName = String(contactPayload.name || "").trim().split(/\s+/)[0];
-
-  const normalizeAnswer = (value = ""): string =>
-    value
-      .replace(/^-\s*/, "")
-      .replace(/^[^:]+::?\s*/, "")
-      .replace(/\s+/g, " ")
-      .trim()
-      .replace(/[.!?]+$/, "");
-
-  const toHumanNeed = (value = ""): string | null => {
-    const text = normalizeAnswer(value);
-    const normalized = text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-    if (!normalized) return null;
-    if (normalized.includes("1 encontro")) return "um encontro pontual";
-    if (normalized.includes("mais de 1 encontro")) return "uma atividade em mais de um encontro";
-    if (normalized.includes("reuniao")) return "uma reunião com sua equipe";
-    if (normalized.includes("processo seletivo")) return "um processo seletivo";
-    if (normalized.includes("pos-graduacao") || normalized.includes("pos graduacao")) return "uma pós-graduação";
-    if (normalized.includes("professor particular")) return "aulas particulares";
-    if (normalized.includes("mais informacoes") || normalized.includes("nao ofereci")) return "entender melhor as possibilidades antes de decidir";
-
-    return text.charAt(0).toLowerCase() + text.slice(1);
-  };
-
-  const toHumanMoment = (value = ""): string | null => {
-    const text = normalizeAnswer(value);
-    const normalized = text
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-    if (!normalized) return null;
-    if (normalized.includes("ja aluguei")) return "você já tem experiência alugando espaço";
-    if (normalized.includes("nunca aluguei")) return "você já fez esse tipo de encontro, mas ainda não alugou uma sala";
-    if (normalized.includes("primeira turma") || normalized.includes("primeiro encontro")) return "você está organizando isso pela primeira vez";
-    if (normalized.includes("pesquisando")) return "você ainda está pesquisando e comparando opções";
-
-    return text.charAt(0).toLowerCase() + text.slice(1);
-  };
-
   const collectedAnswers = String(summary || "")
     .split(/\r?\n/)
     .map(line => line.trim())
     .filter(line => line.startsWith("- "))
     .slice(0, 3);
-  const mainNeed = toHumanNeed(collectedAnswers[0]);
-  const experienceMoment = toHumanMoment(collectedAnswers[1]);
+  const mainNeed = collectedAnswers[0]?.replace(/^-\s*[^:]+:\s*/, "").trim();
+  const experienceMoment = collectedAnswers[1]?.replace(/^-\s*[^:]+:\s*/, "").trim();
   const contextLine = [
-    mainNeed ? `Entendi que você precisa de apoio para ${mainNeed}.` : "Entendi suas respostas iniciais.",
-    experienceMoment ? `E pelo que você marcou, ${experienceMoment}.` : ""
+    mainNeed ? `Vi que voce busca ${mainNeed.toLowerCase()}.` : "Vi suas respostas do formulario.",
+    experienceMoment ? `Tambem entendi o seu momento: ${experienceMoment.toLowerCase()}.` : ""
   ].filter(Boolean).join(" ");
 
   return [
     `Perfeito${contactFirstName ? `, ${contactFirstName}` : ""}. Sou a ${aiName}, assistente da ${company}.`,
     contextLine,
-    "Vou seguir por esse caminho com você. Para começar, quantas pessoas vão participar?"
+    "Vou te orientar a partir disso. Para comecar, quantas pessoas vao participar?"
   ].join("\n\n");
 };
 
@@ -1534,8 +1486,7 @@ const finishQualificationResponse = async (
     ticket,
     source: "qualification_form",
     summary: summary || ticket.aiConversationSummary || null,
-    collectedData,
-    resetActiveContext: true
+    collectedData
   });
 
   return summary;

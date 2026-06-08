@@ -25,7 +25,6 @@ interface UpdateAiTicketContextRequest {
   lastAiAction?: string | null;
   lastAiDecisionReason?: string | null;
   lastKnowledgeIds?: number[] | string | null;
-  resetActiveContext?: boolean;
 }
 
 const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
@@ -75,108 +74,6 @@ const firstMatch = (value: string, patterns: RegExp[]): string | null => {
 
 const hasAny = (value: string, pattern: RegExp): boolean => pattern.test(value);
 
-const NUMBER_WORDS: Record<string, number> = {
-  um: 1,
-  uma: 1,
-  dois: 2,
-  duas: 2,
-  tres: 3,
-  quatro: 4,
-  cinco: 5,
-  seis: 6,
-  sete: 7,
-  oito: 8,
-  nove: 9,
-  dez: 10,
-  onze: 11,
-  doze: 12,
-  treze: 13,
-  quatorze: 14,
-  catorze: 14,
-  quinze: 15,
-  dezesseis: 16,
-  dezassete: 17,
-  dezessete: 17,
-  dezoito: 18,
-  dezenove: 19,
-  vinte: 20,
-  trinta: 30,
-  quarenta: 40,
-  cinquenta: 50,
-  sessenta: 60,
-  setenta: 70,
-  oitenta: 80,
-  noventa: 90
-};
-
-const numberWordAlternation = Object.keys(NUMBER_WORDS).sort((a, b) => b.length - a.length).join("|");
-const NUMBER_TOKEN_PATTERN = `(?:\\d{1,3}|${numberWordAlternation})(?:\\s+e\\s+(?:${numberWordAlternation}))?`;
-
-const parseNumberToken = (value?: string | null): string | null => {
-  const token = String(value || "").trim();
-  if (!token) return null;
-  if (/^\d{1,3}$/.test(token)) return token;
-
-  const parts = token.split(/\s+e\s+/).map(part => part.trim()).filter(Boolean);
-  const total = parts.reduce((sum, part) => {
-    const parsed = NUMBER_WORDS[part];
-    return Number.isFinite(parsed) ? sum + parsed : NaN;
-  }, 0);
-
-  return Number.isFinite(total) && total > 0 ? String(total) : null;
-};
-
-const firstNumberToken = (value: string): string | null => {
-  const match = value.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\b`));
-  return parseNumberToken(match?.[1]);
-};
-
-const OCCURRENCE_UNITS = [
-  "aula",
-  "aulas",
-  "curso",
-  "cursos",
-  "cuso",
-  "cusos",
-  "treinamento",
-  "treinamentos",
-  "workshop",
-  "workshops",
-  "palestra",
-  "palestras",
-  "reuniao",
-  "reunioes",
-  "encontro",
-  "encontros",
-  "sessao",
-  "sessoes",
-  "consulta",
-  "consultas",
-  "turma",
-  "turmas",
-  "evento",
-  "eventos",
-  "modulo",
-  "modulos",
-  "mentoria",
-  "mentorias",
-  "visita",
-  "visitas",
-  "atendimento",
-  "atendimentos",
-  "agenda",
-  "agendas",
-  "horario",
-  "horarios",
-  "dia",
-  "dias",
-  "turno",
-  "turnos"
-];
-
-const OCCURRENCE_UNIT_PATTERN = OCCURRENCE_UNITS.join("|");
-const occurrenceUnitRegex = new RegExp(`\\b(${OCCURRENCE_UNIT_PATTERN})\\b`);
-
 const isBusinessCloseText = (normalized: string): boolean =>
   /\b(fechar|finalizar|seguir|prosseguir|continuar|avancar)\b.{0,80}\b(negocio|reserva|agendamento|contrato|contratacao|compra|pedido|pacote|plano|orcamento|proposta)\b/.test(normalized) ||
   /\b(quero|queria|gostaria|vamos|bora|preciso|desejo)\b.{0,80}\b(fechar|finalizar|reservar|contratar|agendar)\b/.test(normalized);
@@ -186,15 +83,6 @@ const isTicketCloseText = (normalized: string): boolean =>
   /\b(pode|pode sim|ja pode|quero)\b.{0,20}\b(encerrar|finalizar|concluir)\b/.test(normalized) ||
   /\b(era so isso|era isso|so isso|nada mais|nao preciso de mais nada|nao quero mais nada)\b/.test(normalized);
 
-const isResponseRejectedText = (normalized: string): boolean =>
-  /\b(caro|cara|muito caro|ta caro|esta caro|pesado|fora do orcamento|nao cabe|nao da|nao consigo pagar|sem condicao|valor alto|preco alto)\b/.test(normalized) ||
-  /\b(nenhuma|nenhum|nao gostei|nao me agradou|nao agradou|nao atende|nao serve|nao encaixa|nao gostei das opcoes)\b/.test(normalized) ||
-  /\b(nao funcionou|nao resolveu|nao ajudou|continua com problema|continua igual|nao era isso|nao e isso|nao entendi|confuso|deu erro|falhou)\b/.test(normalized);
-
-const isScenarioChangedText = (normalized: string): boolean =>
-  /\b(outro orcamento|novo orcamento|mudar o orcamento|recalcular|refazer|simular|e se for|ao inves|em vez|para outra quantidade|para mais|para menos)\b/.test(normalized) ||
-  /\b(na verdade|pensando melhor|mudei de ideia|mudou|trocar|troquei|outra coisa|outro assunto|agora preciso|agora quero|e se)\b/.test(normalized);
-
 const classifyQuestion = (question = ""): string | null => {
   const normalized = cleanText(question);
   if (!normalized) return null;
@@ -202,10 +90,7 @@ const classifyQuestion = (question = ""): string | null => {
   if (hasAny(normalized, /\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/)) {
     return "participant_count";
   }
-  if (
-    hasAny(normalized, /\b(duracao|quanto tempo|horas|periodo|recorrente|pontual)\b/) ||
-    occurrenceUnitRegex.test(normalized)
-  ) {
+  if (hasAny(normalized, /\b(duracao|quanto tempo|horas|periodo|encontro|encontros|dia|dias|recorrente|pontual)\b/)) {
     return "duration_occurrence";
   }
   if (hasAny(normalized, /\b(data|dia|periodo|quando|agenda|disponibilidade)\b/)) {
@@ -231,9 +116,6 @@ const classifyIntent = (message = ""): string => {
   if (hasAny(normalized, /\b(atendente|humano|pessoa|transferir|transfere|encaminhar|encaminha|falar com)\b/)) {
     return "pedido_atendente";
   }
-  if (isResponseRejectedText(normalized)) {
-    return "resposta_rejeitada";
-  }
   if (isBusinessCloseText(normalized) || hasAny(normalized, /\b(reservar|reserva|agendar|contratar|seguir com|prosseguir|disponibilidade)\b/)) {
     return "acao_operacional";
   }
@@ -252,8 +134,8 @@ const classifyIntent = (message = ""): string => {
   if (hasAny(normalized, /\b(orcamento|valor|preco|cotacao|quanto fica|quanto custa|simular)\b/)) {
     return "orcamento";
   }
-  if (isScenarioChangedText(normalized)) {
-    return "mudanca_de_cenario";
+  if (hasAny(normalized, /\b(outro orcamento|novo orcamento|mudar o orcamento|recalcular|e se for|ao inves|em vez|para outra quantidade|para mais|para menos)\b/)) {
+    return "orcamento";
   }
   if (hasAny(normalized, /\b(ja falei|acabei de responder|ja respondi|eu disse|falei agora)\b/)) {
     return "reclamacao_repeticao";
@@ -270,26 +152,17 @@ const extractCollectedData = (
   const questionType = classifyQuestion(lastQuestion || "");
   const collected: Record<string, { label: string; value: string | null; rawValue?: string | null }> = {};
 
-  const number = firstNumberToken(normalized);
-  const countAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:de|x|por|vezes)\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
-  const unitCountAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s+(${OCCURRENCE_UNIT_PATTERN})\\s*(?:de|com|por|para|durando)?\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
-  const occurrenceUnit = unitCountAndDuration?.[2] || normalized.match(occurrenceUnitRegex)?.[1] || null;
+  const number = firstMatch(normalized, [/\b(\d{1,3})\b/]);
   const speaksAboutTimeOrOccurrences = hasAny(
     normalized,
-    /\b(h|hora|horas|semana|semanal|mes|mensal|unico|recorrente|dia inteiro)\b/
-  ) || occurrenceUnitRegex.test(normalized);
+    /\b(h|hora|horas|dia|dias|encontro|encontros|turno|turnos|semana|semanal|mes|mensal|unico|recorrente|dia inteiro)\b/
+  );
   const speaksAboutPeople = hasAny(
     normalized,
     /\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/
   );
 
-  if (
-    number &&
-    (
-      speaksAboutPeople ||
-      (questionType === "participant_count" && !speaksAboutTimeOrOccurrences)
-    )
-  ) {
+  if (questionType === "participant_count" && number && (!speaksAboutTimeOrOccurrences || speaksAboutPeople)) {
     collected.participant_count = {
       label: "Quantidade de pessoas/participantes",
       value: number,
@@ -297,12 +170,11 @@ const extractCollectedData = (
     };
   }
 
-  const rawHour = firstMatch(normalized, [
+  const hour = firstMatch(normalized, [
     /\b(\d{1,2})\s*h\b/,
     /\b(\d{1,2})\s*horas?\b/,
-    new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:hora|horas)\\s*(?:cada|por|ao|a)\\b`)
+    /\b(\d{1,2})\s*(?:hora|horas)\s*(?:cada|por|ao|a)\b/
   ]);
-  const hour = parseNumberToken(unitCountAndDuration?.[3]) || parseNumberToken(countAndDuration?.[2]) || parseNumberToken(rawHour) || rawHour;
   if (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro)\b/)) {
     collected.duration = {
       label: "Duracao/tempo informado",
@@ -311,23 +183,17 @@ const extractCollectedData = (
     };
   }
 
-  const rawOccurrences = firstMatch(normalized, [
-    new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:${OCCURRENCE_UNIT_PATTERN})\\b`)
+  const occurrences = firstMatch(normalized, [
+    /\b(\d{1,3})\s*(?:dias|dia)\b/,
+    /\b(\d{1,3})\s*(?:encontros|encontro)\b/,
+    /\b(\d{1,3})\s*(?:turnos|turno)\b/
   ]);
-  const occurrences = parseNumberToken(unitCountAndDuration?.[1]) || parseNumberToken(countAndDuration?.[1]) || parseNumberToken(rawOccurrences) || rawOccurrences;
   if (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/)) {
     collected.occurrences = {
-      label: "Quantidade de ocorrencias/unidades de agenda",
+      label: "Quantidade de encontros/dias/recorrencia",
       value: occurrences || firstMatch(normalized, [/\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/]),
       rawValue: message
     };
-    if (occurrenceUnit) {
-      collected.occurrence_unit = {
-        label: "Unidade contextual informada",
-        value: occurrenceUnit,
-        rawValue: message
-      };
-    }
   }
 
   const date = firstMatch(normalized, [
@@ -375,64 +241,6 @@ const extractCollectedData = (
     };
   }
 
-  if (isResponseRejectedText(normalized)) {
-    const rejectionValue = hasAny(normalized, /\b(caro|cara|pesado|orcamento|valor alto|preco alto|pagar)\b/)
-      ? "cliente achou caro ou fora do orçamento"
-      : hasAny(normalized, /\b(nao funcionou|nao resolveu|nao ajudou|continua com problema|deu erro|falhou)\b/)
-        ? "cliente indicou que a solução anterior não funcionou"
-        : "cliente rejeitou ou não entendeu a resposta/opções anteriores";
-
-    collected.response_rejected = {
-      label: "Resposta/opções anteriores rejeitadas",
-      value: rejectionValue,
-      rawValue: message
-    };
-    collected.customer_objection = {
-      label: "Objeção ou insatisfação atual",
-      value: rejectionValue,
-      rawValue: message
-    };
-    collected.commercial_objection = {
-      label: "Objeção/insatisfação atual",
-      value: hasAny(normalized, /\b(caro|cara|pesado|orcamento|valor alto|preco alto|pagar)\b/)
-        ? "cliente achou caro ou fora do orçamento"
-        : rejectionValue,
-      rawValue: message
-    };
-    collected.previous_options_rejected = {
-      label: "Resposta/opções anteriores não atenderam",
-      value: "não insistir na mesma resposta sem ajustar o caminho",
-      rawValue: message
-    };
-    collected.rejected_options = collected.previous_options_rejected;
-  }
-
-  if (isScenarioChangedText(normalized)) {
-    collected.scenario_changed = {
-      label: "Cliente mudou cenário, assunto ou simulação",
-      value: "sim",
-      rawValue: message
-    };
-    collected.quote_revision_requested = {
-      label: "Cliente pediu ajuste ou nova simulação",
-      value: "sim",
-      rawValue: message
-    };
-  }
-
-  if (isBusinessCloseText(normalized)) {
-    collected.action_requested = {
-      label: "Cliente pediu uma ação operacional",
-      value: "fechar negócio, reservar, agendar ou contratar",
-      rawValue: message
-    };
-    collected.business_close_requested = {
-      label: "Cliente quer fechar negócio/reserva",
-      value: "sim",
-      rawValue: message
-    };
-  }
-
   return collected;
 };
 
@@ -448,7 +256,7 @@ const buildMissingData = (
   const missing: string[] = [];
   if (!getValue(collected, "participant_count")) missing.push("quantidade de pessoas/participantes");
   if (!getValue(collected, "duration")) missing.push("duracao/tempo de uso");
-  if (!getValue(collected, "occurrences")) missing.push("quantidade de ocorrencias/unidades, dias ou recorrencia");
+  if (!getValue(collected, "occurrences")) missing.push("quantidade de encontros/dias ou recorrencia");
   return missing;
 };
 
@@ -457,14 +265,14 @@ const buildNextQuestion = (missing?: string[]): string | null => {
   if (missing.includes("quantidade de pessoas/participantes")) {
     return "Quantas pessoas ou participantes serao atendidos?";
   }
-  if (missing.includes("duracao/tempo de uso") && missing.includes("quantidade de ocorrencias/unidades, dias ou recorrencia")) {
-    return "Qual sera a duracao e sera em uma unica ocorrencia/dia ou em mais de uma?";
+  if (missing.includes("duracao/tempo de uso") && missing.includes("quantidade de encontros/dias ou recorrencia")) {
+    return "Qual sera a duracao e sera em um unico encontro/dia ou em mais de um?";
   }
   if (missing.includes("duracao/tempo de uso")) {
     return "Qual sera a duracao ou tempo de uso?";
   }
-  if (missing.includes("quantidade de ocorrencias/unidades, dias ou recorrencia")) {
-    return "Sera em uma unica ocorrencia/dia ou em mais de uma? Quantas?";
+  if (missing.includes("quantidade de encontros/dias ou recorrencia")) {
+    return "Sera em um unico encontro/dia ou em mais de um? Quantos?";
   }
   return null;
 };
@@ -481,15 +289,12 @@ export const UpdateAiTicketContextService = async ({
   lastAiIntent,
   lastAiAction,
   lastAiDecisionReason,
-  lastKnowledgeIds,
-  resetActiveContext = false
+  lastKnowledgeIds
 }: UpdateAiTicketContextRequest): Promise<AiTicketContext> => {
   const existing = await AiTicketContext.findOne({ where: { ticketId: ticket.id } });
   const now = new Date();
 
-  const mergedCollected: CollectedData = resetActiveContext
-    ? {}
-    : parseJson<CollectedData>(existing?.collectedData, {});
+  const mergedCollected: CollectedData = parseJson<CollectedData>(existing?.collectedData, {});
   Object.entries(collectedData || {}).forEach(([key, item]) => {
     const normalizedKey = key.trim();
     if (!normalizedKey) return;
@@ -505,26 +310,26 @@ export const UpdateAiTicketContextService = async ({
 
   const nextMissing = missingData
     ? normalizeArray(missingData)
-    : resetActiveContext ? [] : parseJson<string[]>(existing?.missingData, []);
+    : parseJson<string[]>(existing?.missingData, []);
   const nextContradictions = contradictions
     ? normalizeArray(contradictions)
-    : resetActiveContext ? [] : parseJson<string[]>(existing?.contradictions, []);
+    : parseJson<string[]>(existing?.contradictions, []);
   const serializedKnowledgeIds = Array.isArray(lastKnowledgeIds)
     ? JSON.stringify(lastKnowledgeIds)
     : lastKnowledgeIds || existing?.lastKnowledgeIds || null;
 
   const payload = {
     ticketId: ticket.id,
-    summary: truncate(summary || (resetActiveContext ? null : existing?.summary) || ticket.aiConversationSummary),
+    summary: truncate(summary || existing?.summary || ticket.aiConversationSummary),
     collectedData: stringify(mergedCollected),
     missingData: stringify(nextMissing),
     contradictions: stringify(nextContradictions),
-    currentObjective: currentObjective !== undefined ? currentObjective : resetActiveContext ? null : existing?.currentObjective || null,
-    nextQuestion: nextQuestion !== undefined ? nextQuestion : resetActiveContext ? null : existing?.nextQuestion || null,
+    currentObjective: currentObjective !== undefined ? currentObjective : existing?.currentObjective || null,
+    nextQuestion: nextQuestion !== undefined ? nextQuestion : existing?.nextQuestion || null,
     lastSource: source,
-    lastAiIntent: lastAiIntent !== undefined ? lastAiIntent : resetActiveContext ? null : existing?.lastAiIntent || null,
-    lastAiAction: lastAiAction !== undefined ? lastAiAction : resetActiveContext ? null : existing?.lastAiAction || null,
-    lastAiDecisionReason: lastAiDecisionReason !== undefined ? lastAiDecisionReason : resetActiveContext ? null : existing?.lastAiDecisionReason || null,
+    lastAiIntent: lastAiIntent !== undefined ? lastAiIntent : existing?.lastAiIntent || null,
+    lastAiAction: lastAiAction !== undefined ? lastAiAction : existing?.lastAiAction || null,
+    lastAiDecisionReason: lastAiDecisionReason !== undefined ? lastAiDecisionReason : existing?.lastAiDecisionReason || null,
     lastKnowledgeIds: serializedKnowledgeIds,
     lastUpdatedAt: now
   };
@@ -584,15 +389,6 @@ export const AnalyzeAndUpdateAiTicketContextService = async ({
     answeredPendingQuestion
       ? "A mensagem atual trouxe dado concreto e deve ser tratada como resposta a pergunta pendente. Nao repetir a mesma pergunta."
       : "",
-    intent === "resposta_rejeitada"
-      ? "Cliente rejeitou, nao entendeu ou indicou que a resposta/solucao anterior nao funcionou. Contornar com empatia, entender prioridade e propor outro caminho; nao repetir a mesma resposta nem encerrar."
-      : "",
-    extracted.scenario_changed || extracted.quote_revision_requested
-      ? "Cliente mudou cenário, assunto ou pediu nova simulação. Usar os novos dados quando existirem e nao ficar preso ao caminho anterior."
-      : "",
-    extracted.action_requested || extracted.business_close_requested
-      ? "Cliente pediu uma ação operacional. Conduzir proximos passos ou handoff, sem prometer execução se o backend nao executar."
-      : "",
     nextQuestion ? `Proxima pergunta deve pedir apenas: ${missing?.join(", ")}` : "Nao ha proxima pergunta obrigatoria detectada pela memoria local."
   ].filter(Boolean).join(" | ");
 
@@ -623,43 +419,8 @@ export const BuildAiTicketContextTextService = async (ticketId: number): Promise
   const collectedLines = Object.entries(collected)
     .map(([key, item]) => `- ${item.label || key}: ${item.value || item.rawValue || "nao informado"}`)
     .join("\n");
-  const hasObjection = Boolean(collected.customer_objection || collected.commercial_objection);
-  const hasRejectedOptions = Boolean(collected.response_rejected || collected.previous_options_rejected || collected.rejected_options);
-  const wantsScenarioChange = Boolean(collected.scenario_changed || collected.quote_revision_requested);
-  const wantsBusinessClose = Boolean(collected.action_requested || collected.business_close_requested);
-  const hasRepetitionComplaint = Boolean(collected.context_repetition_complaint);
-  const objection = collected.customer_objection || collected.commercial_objection;
-  const liveStateLines = [
-    context.currentObjective ? `Objetivo/estado atual: ${context.currentObjective}` : "",
-    hasObjection ? `Objeção/insatisfação atual: ${objection.value || objection.rawValue}` : "",
-    hasRejectedOptions ? "Resposta, solução ou opções anteriores não atenderam; não insistir do mesmo jeito." : "",
-    wantsScenarioChange ? "Cliente sinalizou mudança de cenário, assunto ou nova simulação; adaptar o caminho com os novos dados." : "",
-    wantsBusinessClose ? "Cliente pediu ação operacional; conduzir próximos passos ou encaminhar, sem encerrar por engano." : "",
-    hasRepetitionComplaint ? "Cliente reclamou que já respondeu; usar histórico/memória antes de perguntar novamente." : "",
-    missing.length ? `Ainda falta: ${missing.join(", ")}` : "Não há dado obrigatório faltante detectado pela memória local.",
-    context.nextQuestion ? `Próxima pergunta sugerida: ${context.nextQuestion}` : ""
-  ].filter(Boolean);
-  const bestActionLines = [
-    hasObjection
-      ? "- Contornar com empatia: reconhecer a objeção/insatisfação, perguntar o que pesou ou falhou e oferecer outro caminho sustentado pela base."
-      : "",
-    wantsScenarioChange
-      ? "- Se o cliente mudou o cenário/assunto, responder o novo ponto primeiro; se faltar dado, pedir só o necessário."
-      : "",
-    wantsBusinessClose
-      ? "- Não dizer que a ação já foi executada sem ferramenta. Informar o próximo passo real e encaminhar quando configurado."
-      : "",
-    hasRepetitionComplaint
-      ? "- Não repetir a mesma pergunta; reconhecer que o cliente já respondeu e avançar."
-      : "",
-    !hasObjection && !wantsScenarioChange && !wantsBusinessClose && !hasRepetitionComplaint
-      ? "- Responder a mensagem atual primeiro, usando a base e a conversa recente; manter tom natural."
-      : ""
-  ].filter(Boolean);
 
   return [
-    liveStateLines.length ? `Estado vivo da conversa:\n${liveStateLines.map(line => `- ${line}`).join("\n")}` : "",
-    bestActionLines.length ? `Próxima melhor postura:\n${bestActionLines.join("\n")}` : "",
     context.summary ? `Resumo estruturado:\n${context.summary}` : "",
     collectedLines ? `Dados ja coletados:\n${collectedLines}` : "",
     missing.length ? `Dados faltantes:\n${missing.map(item => `- ${item}`).join("\n")}` : "",

@@ -233,15 +233,15 @@ const hasDurationOrOccurrenceDetail = (value = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return /\b(\d+\s*h|\d+\s*hora|hora|horas|encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias|turno|diaria|recorrente|semanal|mensal|duracao|duração|periodo|período|manha|manhã|tarde|noite)\b/.test(normalized);
+  return /\b(\d+\s*h|\d+\s*hora|hora|horas|encontro|encontros|dia|dias|turno|diaria|recorrente|semanal|mensal|duracao|duração|periodo|período|manha|manhã|tarde|noite)\b/.test(normalized);
 };
 
 const isDurationOrOccurrenceQuestion = (value = ""): boolean => {
   const normalized = normalizeText(value);
   return (
     /\b(duracao|duração|quanto tempo|quantas horas|horas|periodo|período)\b/.test(normalized) ||
-    /\b(unico|único|mais de um|quantos|quantas).{0,80}\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b/.test(normalized) ||
-    /\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b.{0,80}\b(unico|único|mais de um|quantos|quantas)\b/.test(normalized)
+    /\b(unico|único|mais de um|quantos|quantas).{0,80}\b(encontro|encontros|dia|dias)\b/.test(normalized) ||
+    /\b(encontro|encontros|dia|dias).{0,80}\b(unico|único|mais de um|quantos|quantas)\b/.test(normalized)
   );
 };
 
@@ -381,164 +381,9 @@ const asksForValueOrSimulation = (message: string): boolean => {
   return /\b(quanto|valor|preco|preco|orcamento|cotacao|fica|ficaria|custa|custaria|simular|simulacao)\b/.test(normalized);
 };
 
-const getParticipantCountFromContext = (structuredContext: string): number | null => {
-  const normalized = normalizeText(structuredContext)
-    .replace(/[^\w\s/:]/g, " ")
-    .replace(/\s+/g, " ");
-
-  const explicitMatch = normalized.match(/quantidade de pessoas\/participantes:\s*(\d{1,3})\b/i);
-  if (explicitMatch) return Number(explicitMatch[1]);
-
-  const genericMatch = normalized.match(/\b(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe):\s*(\d{1,3})\b/i);
-  return genericMatch ? Number(genericMatch[1]) : null;
-};
-
-const NUMBER_WORD_VALUES: Record<string, number> = {
-  um: 1,
-  uma: 1,
-  dois: 2,
-  duas: 2,
-  tres: 3,
-  quatro: 4,
-  cinco: 5,
-  seis: 6,
-  sete: 7,
-  oito: 8,
-  nove: 9,
-  dez: 10,
-  onze: 11,
-  doze: 12,
-  treze: 13,
-  quatorze: 14,
-  catorze: 14,
-  quinze: 15,
-  dezesseis: 16,
-  dezessete: 17,
-  dezoito: 18,
-  dezenove: 19,
-  vinte: 20,
-  trinta: 30,
-  quarenta: 40,
-  cinquenta: 50,
-  sessenta: 60,
-  setenta: 70,
-  oitenta: 80,
-  noventa: 90
-};
-
-const parseNumberLikeText = (value: string): number | null => {
-  const normalized = normalizeText(value)
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const digitMatch = normalized.match(/\b(\d{1,3})\b/);
-  if (digitMatch) return Number(digitMatch[1]);
-
-  const numberWordPattern = Object.keys(NUMBER_WORD_VALUES)
-    .sort((a, b) => b.length - a.length)
-    .join("|");
-  const wordMatch = normalized.match(new RegExp(`\\b(${numberWordPattern})(?:\\s+e\\s+(${numberWordPattern}))?\\b`));
-  if (!wordMatch) return null;
-
-  const first = NUMBER_WORD_VALUES[wordMatch[1]] ?? 0;
-  const second = wordMatch[2] ? NUMBER_WORD_VALUES[wordMatch[2]] ?? 0 : 0;
-
-  return first + second || null;
-};
-
-const getExplicitNumberFromMessage = (message: string): number | null => {
-  return parseNumberLikeText(message);
-};
-
-const getCapacityLimitFromKnowledge = (knowledge: string): number | null => {
-  const normalized = normalizeText(knowledge)
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const peopleTerms = "(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)";
-  const aboveCapacityMatch = normalized.match(
-    new RegExp(`\\bacima\\s+de\\s+(\\d{1,3})\\s+${peopleTerms}.{0,90}\\b(?:validar|verificar|confirmar|avaliar).{0,60}\\b(?:capacidade|limite|lotacao|equipe|humano|atendente)\\b`)
-  );
-  if (aboveCapacityMatch) return Number(aboveCapacityMatch[1]);
-
-  const capacityMatch = normalized.match(
-    new RegExp(`\\b(?:capacidade|comporta|suporta|limite|maximo|maxima|lotacao).{0,90}\\b(?:ate|de ate|para ate)?\\s*(\\d{1,3})\\s+${peopleTerms}\\b`)
-  );
-  if (capacityMatch) return Number(capacityMatch[1]);
-
-  const untilMatch = normalized.match(new RegExp(`\\bate\\s+(\\d{1,3})\\s+${peopleTerms}\\b`));
-  if (!untilMatch || untilMatch.index === undefined) return null;
-
-  const nearbyText = normalized.slice(
-    Math.max(0, untilMatch.index - 120),
-    Math.min(normalized.length, untilMatch.index + 120)
-  );
-
-  return /\b(capacidade|comporta|suporta|limite|maximo|maxima|lotacao)\b/.test(nearbyText)
-    ? Number(untilMatch[1])
-    : null;
-};
-
-const isCapacityLimitAdjustmentRequest = (
-  message: string,
-  lastAiMessage: string | null | undefined,
-  capacityLimit: number | null
-): boolean => {
-  if (!capacityLimit || !lastAiMessage) return false;
-
-  const last = normalizeText(lastAiMessage);
-  const current = normalizeText(message)
-    .replace(/[^\w\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!/\b(capacidade|limite|comporta|suporta)\b/.test(last)) return false;
-  if (!/\b(refazer|ajustar|considerando|ate)\b/.test(last)) return false;
-  if (isExplicitHumanRequest(message) || isExplicitCloseRequest(message) || isOperationalHandoffRequest(message)) return false;
-
-  if (
-    /\b(gostaria|quer|queria|pode|posso).{0,80}\b(considerar|refazer|ajustar|calcular|orcar|orcamento|opcao)\b/.test(last) &&
-    /^(sim|s|ss|pode|pode sim|claro|isso|isso mesmo|pode ser|sim pode|ok|certo|fechado|beleza|blz|vamos|bora)$/.test(current)
-  ) {
-    return true;
-  }
-
-  const explicitNumber = getExplicitNumberFromMessage(message);
-  if (explicitNumber !== null && explicitNumber <= capacityLimit) {
-    return /\b(faz|faca|fazer|refaz|refaca|refazer|ajusta|ajuste|ajustar|considera|considerando|considerar|bota|botar|coloca|colocar|poe|por|manda|mandar|calcula|calcular|orca|orcar|orcamento|simula|simular|cota|cotar|pode|pra|para|com|ate)\b/.test(current) ||
-      current === String(explicitNumber);
-  }
-
-  return /\b(primeira|primeira opcao|refazer|ajustar|ajusta|pode refazer|pode ajustar|faz isso|pode ser|essa opcao|essa primeira)\b/.test(current);
-};
-
-const buildCapacityExceededDecision = (
-  message: string,
-  articles: KnowledgeFragment[],
-  participantCount: number,
-  capacityLimit: number
-): AiDecision => ({
-  intencao: "restricao_capacidade",
-  confianca: "alta",
-  mensagemInterpretada: message,
-  contexto: `Cliente informou ${participantCount} pessoas/participantes, mas a base informa capacidade maxima de ${capacityLimit}.`,
-  baseEncontrada: articles.length > 0,
-  respostaSegura: true,
-  acao: "responder_com_base",
-  motivo: "Guardrail local: nao montar orcamento como viavel quando a quantidade excede a capacidade informada na base.",
-  resposta: [
-    `Para ${participantCount} pessoas, preciso considerar um ponto importante: a capacidade informada e de ate ${capacityLimit} pessoas.`,
-    `Para seguir com uma estimativa, vou considerar o limite de ${capacityLimit} pessoas.`,
-    `Posso calcular o orcamento para ${capacityLimit} pessoas com os dados que voce informou?`
-  ].join("\n\n"),
-  knowledgeIds: articles.map(article => article.id)
-});
-
 const hasPriorDurationAndOccurrences = (structuredContext: string): boolean =>
   /Duracao\/tempo informado/i.test(structuredContext) &&
-  /Quantidade de (?:encontros\/dias\/recorrencia|ocorrencias\/unidades de agenda)/i.test(structuredContext);
+  /Quantidade de encontros\/dias\/recorrencia/i.test(structuredContext);
 
 const parseOptions = (value: string | null | undefined): AiDecisionOption[] => {
   if (!value) return [];
@@ -803,10 +648,10 @@ const buildAnswerPrompt = ({
   "A mensagem atual tem prioridade sobre respostas anteriores. Se ela responder uma pergunta que a IA acabou de fazer, trate como continuidade e avance a conversa.",
   "Se o cliente escolher uma opcao textual como 'por hora', 'mensal', 'pacote', '10 horas' ou informar uma quantidade como '3 horas', use essa informacao para responder. Nao pergunte novamente a mesma coisa.",
   "Se a ultima pergunta da IA foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, trate esse numero como quantidade de pessoas. Nao liste valores ainda; pergunte duracao e se sera em um unico encontro/dia ou em mais de um encontro.",
-  "Para orcamento de sala, evento, servico por tempo, agenda ou uso recorrente, nao basta saber quantidade de pessoas. Antes de listar valores, colete duracao e quantidade de ocorrencias/unidades do contexto, como aulas, reunioes, cursos, sessoes, consultas, encontros, dias ou turnos, salvo se esses dados ja estiverem claros na mensagem atual ou no contexto estruturado.",
-  "Se a ultima pergunta da IA pediu duracao, horas, quantidade de ocorrencias, encontros, aulas, reunioes, cursos, sessoes, consultas ou dias, e a mensagem atual trouxe esses dados, nao faca a mesma pergunta novamente. Use os dados atuais para calcular, responder, ou pedir apenas outro dado que ainda falte.",
+  "Para orcamento de sala, evento, servico por tempo, agenda ou uso recorrente, nao basta saber quantidade de pessoas. Antes de listar valores, colete duracao e quantidade de encontros/dias, salvo se esses dados ja estiverem claros na mensagem atual ou no contexto estruturado.",
+  "Se a ultima pergunta da IA pediu duracao, horas, quantidade de encontros ou dias, e a mensagem atual trouxe esses dados, nao faca a mesma pergunta novamente. Use os dados atuais para calcular, responder, ou pedir apenas outro dado que ainda falte.",
   "Interprete respostas naturais e variadas do cliente como resposta a pergunta pendente. Exemplos: 'serao 4 dias para 6 horas cada', 'umas 6h por dia', 'de manha e tarde', '16 pessoas', 'recorrente' ou 'so um dia' podem responder a pergunta anterior mesmo sem repetir as mesmas palavras.",
-  "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, interprete respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 aulas de 4 horas', 'três reuniões de quatro horas', '3 x 4h' ou 'três por quatro horas' como 3 ocorrencias da unidade em contexto, com 4 horas cada.",
+  "Se a pergunta anterior pediu duracao e quantidade de encontros/dias, interprete respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 x 4h' ou 'três por quatro horas' como 3 encontros/ocorrencias de 4 horas cada.",
   "Nunca faca a mesma pergunta duas vezes seguidas se o cliente respondeu com um dado concreto. Se ainda faltar algo, reconheca o dado recebido e peca apenas o dado restante.",
   "Se o cliente pedir outro orcamento, outra cotacao, outro valor ou quantidade diferente sem informar os novos numeros/dados, nao reutilize nem invente dados do historico. Peca os novos dados de forma objetiva.",
   "Se o cliente trouxer novos dados para alterar um orcamento anterior, recalcule com os novos dados. Nao repita o orcamento antigo e nao trate a mudanca como contradicao; diga de forma natural que esta ajustando a simulacao.",
@@ -1081,10 +926,6 @@ const isExplicitCloseRequest = (message: string): boolean => {
     return false;
   }
 
-  const startsWithCloseVerb = /^(encerrar|encerra|finalizar|finaliza|fechar|fecha|concluir|conclui)\b/.test(normalized);
-  const hasLikelyAttendanceWord = /\bat\w{4,14}\b/.test(normalized);
-  if (startsWithCloseVerb && hasLikelyAttendanceWord) return true;
-
   return /^(encerrar|encerra|concluir|conclui|pode encerrar|pode finalizar|pode fechar|pode concluir|quero encerrar|quero concluir|encerra atendimento|encerrar atendimento|finaliza atendimento|finalizar atendimento|fecha atendimento|fechar atendimento|pode finalizar atendimento|pode fechar atendimento|quero finalizar atendimento|quero fechar atendimento)$/.test(normalized);
 };
 
@@ -1119,9 +960,7 @@ const responsePromisesImmediateHandoff = (value = ""): boolean => {
 };
 
 const alignActionWithPromisedHandoff = (decision: AiDecision): AiDecision => {
-  if (decision.acao === "encaminhar_atendente" || decision.acao === "encerrar_atendimento" || decision.acao === "nao_responder") {
-    return decision;
-  }
+  if (decision.acao !== "responder_com_base") return decision;
   if (!responsePromisesImmediateHandoff(decision.resposta || "")) return decision;
 
   return {
@@ -1308,10 +1147,10 @@ const buildDecisionPrompt = ({
     "Evite looping: se a resposta que voce pretende enviar for parecida com a ultima resposta da IA, mude de acao. Para negativa curta apos oferta, encerre ou encaminhe; para pergunta nova, responda a pergunta nova; para duvida nao resolvida, encaminhe.",
     "Se a ultima pergunta foi diagnostica, como 'o erro acontece ao finalizar?', respostas como 'sim' ou 'nao' nao significam encerramento; continue o diagnostico.",
     "Se a ultima pergunta foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, esse numero e a quantidade de pessoas. A proxima etapa e perguntar duracao e se sera em um unico encontro/dia ou em mais de um encontro. Nao liste valores ainda.",
-    "Antes de enviar orcamento de qualquer servico que dependa de tempo, uso, agenda, ocorrencias, aulas, reunioes, cursos, sessoes, consultas, encontros, dias ou recorrencia, confirme os dados minimos: quantidade de pessoas/unidades quando aplicavel, duracao e quantidade de ocorrencias/unidades de agenda. Se faltar algum desses dados, use pedir_mais_informacoes.",
-    "Se a ultima pergunta foi sobre duracao, horas, dias, encontros, aulas, reunioes, cursos, sessoes ou consultas e a mensagem atual respondeu com esses dados, nao repita essa pergunta. Avance para resposta com base ou peca somente o proximo dado realmente ausente.",
+    "Antes de enviar orcamento de qualquer servico que dependa de tempo, uso, agenda, encontros, dias ou recorrencia, confirme os dados minimos: quantidade de pessoas/unidades quando aplicavel, duracao e quantidade de encontros/dias. Se faltar algum desses dados, use pedir_mais_informacoes.",
+    "Se a ultima pergunta foi sobre duracao, horas, dias ou encontros e a mensagem atual respondeu com esses dados, nao repita essa pergunta. Avance para resposta com base ou peca somente o proximo dado realmente ausente.",
     "Sempre avalie se a mensagem atual responde a pergunta pendente de forma indireta, abreviada ou com erro de digitacao. Nao exija que o cliente use as mesmas palavras da pergunta.",
-    "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 aulas de 4 horas', 'três reuniões de quatro horas', '3 x 4h' ou 'três por quatro horas' significam 3 ocorrencias da unidade em contexto, com 4 horas cada.",
+    "Se a pergunta anterior pediu duracao e quantidade de encontros/dias, respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 x 4h' ou 'três por quatro horas' significam 3 encontros/ocorrencias de 4 horas cada.",
     "Se for pedir_mais_informacoes depois de uma resposta do cliente, a pergunta nova deve ser diferente da ultima pergunta da IA. Reconheca explicitamente o dado recebido antes de pedir outro dado.",
     "Se a ultima pergunta foi escolher uma opcao e o cliente disse '2' ou o nome da opcao, a intencao e confirmacao_opcao.",
     "REGRA DE ESCOPO: quando a base de conhecimento relevante tiver artigos, considere que o assunto faz parte do escopo do atendimento, mesmo que o nome da empresa, fila ou tipo de atendimento pareca diferente.",
@@ -1597,116 +1436,6 @@ const DecideAiTicketActionService = async ({
     },
     "[AI FLOW] Decision context prepared"
   );
-
-  const participantCount = getParticipantCountFromContext(structuredContext);
-  const capacityLimit = getCapacityLimitFromKnowledge(knowledge);
-  const adjustedCapacityCount = getExplicitNumberFromMessage(message) || capacityLimit;
-
-  if (
-    articles.length > 0 &&
-    isCapacityLimitAdjustmentRequest(message, ticket.lastAiMessage, capacityLimit) &&
-    adjustedCapacityCount
-  ) {
-    const capacityAdjustedContext = [
-      structuredContext,
-      "",
-      "Ajuste solicitado pelo cliente apos aviso de capacidade:",
-      `- Cliente escolheu refazer a orientacao/orcamento considerando ${adjustedCapacityCount} pessoas, dentro do limite informado.`,
-      "- Use os demais dados ja informados no historico recente, como duracao e quantidade de encontros/unidades, se estiverem claros.",
-      "- Nao encaminhe para atendente apenas por esta mensagem. Responda com a nova simulacao se a base permitir calcular."
-    ].join("\n");
-
-    const adjustedDecision = await withGeneratedKnowledgeAnswer({
-      decision: {
-        intencao: "consulta_valor",
-        confianca: "alta",
-        mensagemInterpretada: message,
-        contexto: `Cliente aceitou ajustar a simulacao para ${adjustedCapacityCount} pessoas apos aviso de capacidade.`,
-        baseEncontrada: true,
-        respostaSegura: true,
-        acao: "responder_com_base",
-        motivo: "Correcao local: resposta curta ao aviso de capacidade significa refazer no limite, nao transferir.",
-        knowledgeIds: articles.map(article => article.id)
-      },
-      aiSetting,
-      ticket,
-      message: `Refaca a orientacao/orcamento considerando ${adjustedCapacityCount} pessoas. A mensagem original do cliente foi: ${message}`,
-      contactName,
-      history,
-      knowledge,
-      articles,
-      structuredContext: capacityAdjustedContext
-    });
-
-    logger.info(
-      {
-        ticketId: ticket.id,
-        aiSettingId: aiSetting.id,
-        adjustedCapacityCount,
-        knowledgeIds: articles.map(article => article.id)
-      },
-      "[AI ACTION] Capacity adjustment recalculated instead of handoff"
-    );
-
-    return applyNoToolConfirmationGuardrail(adjustedDecision);
-  }
-
-  const isCapacitySensitiveMessage =
-    asksForValueOrSimulation(message) ||
-    hasDurationOrOccurrenceDetail(message) ||
-    changesParticipantCount(message);
-  const shouldBlockCapacityQuote =
-    participantCount !== null &&
-    capacityLimit !== null &&
-    participantCount > capacityLimit &&
-    isCapacitySensitiveMessage &&
-    !isExplicitCloseRequest(message) &&
-    !isExplicitHumanRequest(message) &&
-    !isOperationalHandoffRequest(message);
-
-  if (shouldBlockCapacityQuote) {
-    const capacityContext = [
-      structuredContext,
-      "",
-      "Restricao de capacidade detectada:",
-      `- Cliente informou ${participantCount} pessoas/participantes.`,
-      `- A base informa capacidade/validacao ate ${capacityLimit} pessoas.`,
-      `- Se houver duracao e quantidade de encontros/unidades no historico, envie a estimativa agora considerando no maximo ${capacityLimit} pessoas.`,
-      `- Avise claramente que para ${participantCount} pessoas o formato excede a capacidade e que a estimativa considera ${capacityLimit} pessoas.`,
-      "- Nao apresente o orcamento como viavel para a quantidade acima do limite.",
-      "- Nao ofereca transferencia para atendente nessa resposta; direcione o cliente para o calculo considerando o limite permitido."
-    ].join("\n");
-
-    const capacityDecision = await withGeneratedKnowledgeAnswer({
-      decision: buildCapacityExceededDecision(
-        message,
-        articles,
-        participantCount,
-        capacityLimit
-      ),
-      aiSetting,
-      ticket,
-      message: `Monte o orcamento considerando a restricao de capacidade: ${participantCount} pessoas excede o limite de ${capacityLimit}. Se duracao e quantidade de encontros estiverem no historico, calcule agora para ${capacityLimit} pessoas e avise que acima disso nao comporta. Nao encaminhe para atendente e nao pergunte o que o cliente prefere.`,
-      contactName,
-      history,
-      knowledge,
-      articles,
-      structuredContext: capacityContext
-    });
-
-    logger.info(
-      {
-        ticketId: ticket.id,
-        aiSettingId: aiSetting.id,
-        participantCount,
-        capacityLimit,
-        knowledgeIds: articles.map(article => article.id)
-      },
-      "[AI ACTION] Capacity limit guardrail blocked quote"
-    );
-
-    return applyNoToolConfirmationGuardrail(capacityDecision);
-  }
 
   if (isResponseRejectedRequest(message) && articles.length > 0) {
     const objectionDecision = await withGeneratedKnowledgeAnswer({
