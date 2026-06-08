@@ -61,6 +61,9 @@ const normalizeText = (value = ""): string =>
 const cleanText = (value = ""): string =>
   normalizeText(value)
     .replace(/[^\w\s/:-]/g, " ")
+    .replace(/\bfois\b/g, "dois")
+    .replace(/\bfoi\s+de\b/g, "dois de")
+    .replace(/\bquadro\b/g, "quatro")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -74,6 +77,31 @@ const firstMatch = (value: string, patterns: RegExp[]): string | null => {
 };
 
 const hasAny = (value: string, pattern: RegExp): boolean => pattern.test(value);
+
+const getActiveQuestionText = (value = ""): string => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const lines = text.split(/\n+/).map(line => line.trim()).filter(Boolean);
+  const questionLine = [...lines].reverse().find(line => line.includes("?"));
+  if (questionLine) {
+    const questionMatches = questionLine.match(/[^?]+\?/g);
+    return (questionMatches?.[questionMatches.length - 1] || questionLine).trim();
+  }
+
+  return lines[lines.length - 1] || text;
+};
+
+const isHourQuestion = (value = ""): boolean => {
+  const normalized = cleanText(getActiveQuestionText(value));
+  return /\b(quantas horas|quantos horas|horas|duracao|tempo)\b/.test(normalized);
+};
+
+const isOccurrenceCountQuestion = (value = ""): boolean => {
+  const normalized = cleanText(getActiveQuestionText(value));
+  return /\b(quantos|quantas|qtd|quantidade|numero)\b.{0,80}\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|cursos|curso|treinamentos|treinamento|sessoes|sessao|consultas|consulta)\b/.test(normalized) ||
+    /\b(unico|mais de um|mais de uma)\b.{0,80}\b(dia|dias|encontro|encontros)\b/.test(normalized);
+};
 
 const NUMBER_WORDS: Record<string, number> = {
   um: 1,
@@ -130,6 +158,9 @@ const firstNumberToken = (value: string): string | null => {
   const match = value.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\b`));
   return parseNumberToken(match?.[1]);
 };
+
+const isBareParticipantCountAnswer = (value: string): boolean =>
+  new RegExp(`^(?:umas?|uns|cerca\\s+de|aproximadamente|mais\\s+ou\\s+menos|por\\s+volta\\s+de)?\\s*${NUMBER_TOKEN_PATTERN}\\s*(?:pessoas|participantes|alunos|clientes|convidados)?$`).test(value);
 
 const OCCURRENCE_UNITS = [
   "aula",
@@ -196,17 +227,17 @@ const isScenarioChangedText = (normalized: string): boolean =>
   /\b(na verdade|pensando melhor|mudei de ideia|mudou|trocar|troquei|outra coisa|outro assunto|agora preciso|agora quero|e se)\b/.test(normalized);
 
 const classifyQuestion = (question = ""): string | null => {
-  const normalized = cleanText(question);
+  const normalized = cleanText(getActiveQuestionText(question));
   if (!normalized) return null;
 
-  if (hasAny(normalized, /\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/)) {
-    return "participant_count";
-  }
   if (
     hasAny(normalized, /\b(duracao|quanto tempo|horas|periodo|recorrente|pontual)\b/) ||
     occurrenceUnitRegex.test(normalized)
   ) {
     return "duration_occurrence";
+  }
+  if (hasAny(normalized, /\b(pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\b/)) {
+    return "participant_count";
   }
   if (hasAny(normalized, /\b(data|dia|periodo|quando|agenda|disponibilidade)\b/)) {
     return "date_or_availability";
@@ -274,9 +305,11 @@ const extractCollectedData = (
   const countAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:de|x|por|vezes)\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
   const unitCountAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s+(${OCCURRENCE_UNIT_PATTERN})\\s*(?:de|com|por|para|durando)?\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
   const occurrenceUnit = unitCountAndDuration?.[2] || normalized.match(occurrenceUnitRegex)?.[1] || null;
+  const singleDayOccurrence = hasAny(normalized, /\b(unico dia|um unico dia|apenas 1 dia|apenas um dia|so 1 dia|so um dia|somente 1 dia|somente um dia)\b/);
+  const singleOccurrence = singleDayOccurrence || hasAny(normalized, /\b(unico|um unico|apenas 1|apenas um|so 1|so um|somente 1|somente um|pontual)\b/);
   const speaksAboutTimeOrOccurrences = hasAny(
     normalized,
-    /\b(h|hora|horas|semana|semanal|mes|mensal|unico|recorrente|dia inteiro)\b/
+    /\b(h|hora|horas|semana|semanal|mes|mensal|unico|recorrente|dia inteiro|unico dia|o dia todo)\b/
   ) || occurrenceUnitRegex.test(normalized);
   const speaksAboutPeople = hasAny(
     normalized,
@@ -287,7 +320,7 @@ const extractCollectedData = (
     number &&
     (
       speaksAboutPeople ||
-      (questionType === "participant_count" && !speaksAboutTimeOrOccurrences)
+      (questionType === "participant_count" && !speaksAboutTimeOrOccurrences && isBareParticipantCountAnswer(normalized))
     )
   ) {
     collected.participant_count = {
@@ -302,11 +335,16 @@ const extractCollectedData = (
     /\b(\d{1,2})\s*horas?\b/,
     new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:hora|horas)\\s*(?:cada|por|ao|a)\\b`)
   ]);
-  const hour = parseNumberToken(unitCountAndDuration?.[3]) || parseNumberToken(countAndDuration?.[2]) || parseNumberToken(rawHour) || rawHour;
-  if (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro)\b/)) {
+  const hour =
+    parseNumberToken(unitCountAndDuration?.[3]) ||
+    parseNumberToken(countAndDuration?.[2]) ||
+    parseNumberToken(rawHour) ||
+    (questionType === "duration_occurrence" && isHourQuestion(lastQuestion || "") ? number : null) ||
+    rawHour;
+  if (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/)) {
     collected.duration = {
       label: "Duracao/tempo informado",
-      value: hour ? `${hour}h` : firstMatch(normalized, [/\b(manha|tarde|noite|turno|diaria|dia inteiro)\b/]),
+      value: hour ? `${hour}h` : firstMatch(normalized, [/\b(manha|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/]),
       rawValue: message
     };
   }
@@ -314,17 +352,22 @@ const extractCollectedData = (
   const rawOccurrences = firstMatch(normalized, [
     new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:${OCCURRENCE_UNIT_PATTERN})\\b`)
   ]);
-  const occurrences = parseNumberToken(unitCountAndDuration?.[1]) || parseNumberToken(countAndDuration?.[1]) || parseNumberToken(rawOccurrences) || rawOccurrences;
-  if (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/)) {
+  const occurrences =
+    parseNumberToken(unitCountAndDuration?.[1]) ||
+    parseNumberToken(countAndDuration?.[1]) ||
+    parseNumberToken(rawOccurrences) ||
+    (questionType === "duration_occurrence" && isOccurrenceCountQuestion(lastQuestion || "") && !hour ? number : null) ||
+    rawOccurrences;
+  if (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|apenas um|so 1|so um|somente 1|somente um|recorrente|semanal|mensal|pontual|unico dia|um unico dia|apenas 1 dia|apenas um dia|so 1 dia|so um dia|somente 1 dia|somente um dia)\b/)) {
     collected.occurrences = {
       label: "Quantidade de ocorrencias/unidades de agenda",
-      value: occurrences || firstMatch(normalized, [/\b(unico|um unico|apenas 1|so 1|recorrente|semanal|mensal|pontual)\b/]),
+      value: occurrences || (singleOccurrence ? "1" : firstMatch(normalized, [/\b(recorrente|semanal|mensal)\b/])),
       rawValue: message
     };
-    if (occurrenceUnit) {
+    if (occurrenceUnit || singleDayOccurrence) {
       collected.occurrence_unit = {
         label: "Unidade contextual informada",
-        value: occurrenceUnit,
+        value: occurrenceUnit || "dia",
         rawValue: message
       };
     }
@@ -439,6 +482,70 @@ const extractCollectedData = (
 const getValue = (data: CollectedData, key: string): string | null =>
   data[key]?.value || data[key]?.rawValue || null;
 
+const getQualificationText = (collected: CollectedData): string =>
+  Object.entries(collected)
+    .filter(([, item]) => item.source === "qualification_form")
+    .map(([, item]) => `${item.label || ""} ${item.value || ""} ${item.rawValue || ""}`)
+    .join(" ");
+
+const buildOccurrenceWords = (collected: CollectedData): {
+  unit: string;
+  durationTarget: string;
+  singleTarget: string;
+  asksSingleFirst: boolean;
+} => {
+  const text = cleanText(getQualificationText(collected));
+
+  if (/\b(reuniao|reunioes|equipe)\b/.test(text)) {
+    return {
+      unit: "dias de reuniao",
+      durationTarget: "cada dia de reuniao",
+      singleTarget: "essa reuniao",
+      asksSingleFirst: true
+    };
+  }
+
+  if (/\b(processo seletivo|seletivo|entrevista|entrevistas)\b/.test(text)) {
+    return {
+      unit: "dias de processo seletivo",
+      durationTarget: "cada dia de processo seletivo",
+      singleTarget: "esse processo seletivo",
+      asksSingleFirst: true
+    };
+  }
+
+  if (/\b(professor|aula|aulas|particular)\b/.test(text)) {
+    return {
+      unit: "aulas/encontros",
+      durationTarget: "cada aula/encontro",
+      singleTarget: "essa aula",
+      asksSingleFirst: /\b(1 encontro|um encontro|unico encontro)\b/.test(text)
+    };
+  }
+
+  if (/\b(curso|treinamento|turma|workshop|palestra)\b/.test(text)) {
+    return {
+      unit: "dias de treinamento",
+      durationTarget: "cada dia de treinamento",
+      singleTarget: "esse encontro unico",
+      asksSingleFirst: /\b(1 encontro|um encontro|unico encontro)\b/.test(text)
+    };
+  }
+
+  return {
+    unit: "dias/encontros",
+    durationTarget: "cada dia/encontro",
+    singleTarget: "esse encontro unico",
+    asksSingleFirst: false
+  };
+};
+
+const inferSingleOccurrenceFromQualification = (collected: CollectedData): boolean => {
+  const text = cleanText(getQualificationText(collected));
+  return /\b(1 encontro|um encontro|unico encontro|encontro unico|1 dia|um dia|unico dia|dia unico)\b/.test(text) &&
+    !/\b(mais de 1|mais de um|mais de uma|varios|varias)\b/.test(text);
+};
+
 const buildMissingData = (
   intent: string,
   collected: CollectedData
@@ -448,23 +555,29 @@ const buildMissingData = (
   const missing: string[] = [];
   if (!getValue(collected, "participant_count")) missing.push("quantidade de pessoas/participantes");
   if (!getValue(collected, "duration")) missing.push("duracao/tempo de uso");
-  if (!getValue(collected, "occurrences")) missing.push("quantidade de ocorrencias/unidades, dias ou recorrencia");
+  if (!getValue(collected, "occurrences") && !inferSingleOccurrenceFromQualification(collected)) {
+    missing.push("quantidade de ocorrencias/unidades, dias ou recorrencia");
+  }
   return missing;
 };
 
-const buildNextQuestion = (missing?: string[]): string | null => {
+const buildNextQuestion = (missing?: string[], collected: CollectedData = {}): string | null => {
   if (!missing?.length) return null;
+  const words = buildOccurrenceWords(collected);
   if (missing.includes("quantidade de pessoas/participantes")) {
     return "Quantas pessoas ou participantes serao atendidos?";
   }
   if (missing.includes("duracao/tempo de uso") && missing.includes("quantidade de ocorrencias/unidades, dias ou recorrencia")) {
-    return "Qual sera a duracao e sera em uma unica ocorrencia/dia ou em mais de uma?";
+    if (words.asksSingleFirst) {
+      return `Quantas horas tera ${words.singleTarget}?`;
+    }
+    return `Sera em um unico dia/encontro ou em mais de um? Se for mais de um, quantos ${words.unit} serao ao todo?`;
   }
   if (missing.includes("duracao/tempo de uso")) {
-    return "Qual sera a duracao ou tempo de uso?";
+    return `Quantas horas tera ${words.durationTarget}?`;
   }
   if (missing.includes("quantidade de ocorrencias/unidades, dias ou recorrencia")) {
-    return "Sera em uma unica ocorrencia/dia ou em mais de uma? Quantas?";
+    return `Quantos ${words.unit} serao ao todo?`;
   }
   return null;
 };
@@ -564,6 +677,10 @@ export const AnalyzeAndUpdateAiTicketContextService = async ({
   const intent = classifyIntent(message);
   const questionType = classifyQuestion(ticket.lastAiMessage || existing?.nextQuestion || "");
   const answeredPendingQuestion = Object.keys(extracted).length > 0 && !!questionType;
+  const intentForMissing =
+    answeredPendingQuestion && questionType === "duration_occurrence"
+      ? "orcamento"
+      : intent;
 
   const mergedCollected: CollectedData = { ...previousCollected };
   Object.entries(extracted).forEach(([key, item]) => {
@@ -576,8 +693,25 @@ export const AnalyzeAndUpdateAiTicketContextService = async ({
     };
   });
 
-  const missing = buildMissingData(intent, mergedCollected);
-  const nextQuestion = buildNextQuestion(missing);
+  if (!getValue(mergedCollected, "occurrences") && inferSingleOccurrenceFromQualification(mergedCollected)) {
+    mergedCollected.occurrences = {
+      label: "Quantidade de ocorrencias/unidades de agenda",
+      value: "1",
+      rawValue: "inferido do formulario: encontro unico",
+      source: "qualification_form",
+      updatedAt: now.toISOString()
+    };
+    mergedCollected.occurrence_unit = {
+      label: "Unidade contextual informada",
+      value: "encontro",
+      rawValue: "inferido do formulario: encontro unico",
+      source: "qualification_form",
+      updatedAt: now.toISOString()
+    };
+  }
+
+  const missing = buildMissingData(intentForMissing, mergedCollected);
+  const nextQuestion = buildNextQuestion(missing, mergedCollected);
   const currentObjective = [
     `Intencao aparente da mensagem atual: ${intent}`,
     questionType ? `Tipo da pergunta pendente/recente: ${questionType}` : "",

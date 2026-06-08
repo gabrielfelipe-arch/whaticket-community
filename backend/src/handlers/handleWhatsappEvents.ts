@@ -328,7 +328,11 @@ const sendTextMessage = async (
   ticket?: Ticket,
   senderType: "ai" | "system" | "ura" = "ai"
 ): Promise<void> => {
-  const renderedBody = await RenderMessageVariables(`\u200e${body}`, contactPayload as any);
+  const normalizedBody =
+    senderType === "ai"
+      ? String(body || "").replace(/\*\*([^*\n][\s\S]*?[^*\n])\*\*/g, "*$1*")
+      : body;
+  const renderedBody = await RenderMessageVariables(`\u200e${normalizedBody}`, contactPayload as any);
   const sentMessage = await whatsappProvider.sendMessage(
     whatsappId,
     contactChatId(contactPayload),
