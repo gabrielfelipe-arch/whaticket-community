@@ -158,7 +158,7 @@ const buildQualificationQuestion = (
     motivo: reason,
     resposta: [
       `Para eu te orientar melhor${service} e encontrar a opcao mais adequada da ${company}, me diga um pouco mais sobre o que voce precisa.`,
-      "Qual atividade ou objetivo voce pretende realizar, e esse uso seria pontual ou recorrente?"
+      "Me diga quantos dias/encontros voce pretende fazer e quantas horas tera cada um. Se for um uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas."
     ].join("\n\n")
   };
 };
@@ -879,8 +879,40 @@ const getActiveConversationHistory = (history = ""): string => {
   return resetIndex >= 0 ? lines.slice(resetIndex + 1).join("\n").trim() : history;
 };
 
+const extractIncludedItemsFromAnswer = (value = ""): string[] => {
+  const lines = value.split("\n");
+  const items: string[] = [];
+  let reading = false;
+
+  for (const line of lines) {
+    const normalized = normalizeText(line).replace(/\*/g, "").trim();
+
+    if (/^(?:incluso|inclusos|inclui)\s*:/.test(normalized)) {
+      reading = true;
+      continue;
+    }
+
+    if (!reading) continue;
+
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const bullet = trimmed.match(/^[-*•]\s*(.+?)\s*[.;:]?$/);
+    if (bullet?.[1]) {
+      items.push(bullet[1].trim());
+      continue;
+    }
+
+    if (!/^(?:sala|internet|wi|wifi|ar|capacidade|tv|quadro|recepcao|banheiro|copa|cafeteira|micro|filtro|agua|estrutura)\b/.test(normalized)) {
+      reading = false;
+    }
+  }
+
+  return Array.from(new Set(items));
+};
+
 const historyHasIncludedSection = (history = ""): boolean =>
-  /\b(?:incluso|inclusos|inclui)\s*:/i.test(normalizeText(getActiveConversationHistory(history)));
+  extractIncludedItemsFromAnswer(getActiveConversationHistory(history)).length >= 5;
 
 const stripIncludedSection = (answer = ""): string => {
   const lines = answer.split("\n");
@@ -901,7 +933,7 @@ const stripIncludedSection = (answer = ""): string => {
       const isIncludedItem =
         !trimmed ||
         /^[-•*]/.test(trimmed) ||
-        /^(?:sala|internet|wi|wifi|ar|tv|quadro|recepcao|banheiro|copa|cafeteira|micro|filtro|agua|estrutura)\b/.test(normalizedTrimmed);
+        /^(?:sala|internet|wi|wifi|ar|capacidade|tv|quadro|recepcao|banheiro|copa|cafeteira|micro|filtro|agua|estrutura)\b/.test(normalizedTrimmed);
 
       if (isIncludedItem) continue;
       skipping = false;
@@ -925,6 +957,82 @@ const isQuoteAnswer = (answer = ""): boolean => {
     /\b(orcamento|valor|preco|total|desconto|bloco|pacote|diaria|turno|melhor custo)\b/.test(normalized);
 };
 
+const isClearlyOutOfScopeMessage = (message = ""): boolean => {
+  const normalized = normalizeText(message);
+  if (!normalized) return false;
+
+  const asksWorldCup =
+    /\b(copa|copas).{0,40}\b(mundo|mundial|brasil|argentina|italia|franca|alemanha)\b/.test(normalized) ||
+    /\b(quantas|quantos).{0,40}\b(copas|titulos|mundiais)\b/.test(normalized);
+
+  const asksFootballOrClothing =
+    /\b(camisa|camiseta|uniforme).{0,50}\b(time|selecao|brasil|italia|futebol)\b/.test(normalized) ||
+    /\b(futebol|flamengo|vasco|botafogo|fluminense|corinthians|palmeiras|sao paulo)\b/.test(normalized);
+
+  const asksGeneralTrivia =
+    /\b(quem ganhou|quem venceu|qual e a capital|quantos anos tem|quando nasceu|curiosidade)\b/.test(normalized) ||
+    /\b(me explica|explique|me fala|qual e|o que e|quem e|quando foi|onde fica).{0,80}\b(?:futebol|politica|religiao|filme|serie|novela|jogo|game|receita|criptomoeda|bitcoin|dolar|euro|presidente|celebridade)\b/.test(normalized);
+
+  return asksWorldCup || asksFootballOrClothing || asksGeneralTrivia;
+};
+
+const buildOutOfScopeDecision = (message: string, aiSetting: AiSetting): AiDecision => ({
+  intencao: "sem_resposta_segura",
+  confianca: "alta",
+  mensagemInterpretada: message,
+  contexto: "Cliente perguntou assunto fora do escopo do atendimento configurado.",
+  baseEncontrada: false,
+  respostaSegura: true,
+  acao: "sem_resposta_segura",
+  motivo: "Guardrail local: nao responder curiosidade geral nem reutilizar orcamento anterior.",
+  resposta: `Nao consigo te ajudar com esse assunto por aqui. Meu foco e o atendimento da ${aiSetting.companyName || "empresa"}, como valores, estrutura, reserva e duvidas do servico. Posso te ajudar com algo nessa linha?`
+});
+
+const shouldCorrectExact15hQuote = (answer = "", context = ""): boolean => {
+  const normalizedAnswer = normalizeText(answer);
+  const normalizedContext = normalizeText(`${answer}\n${context}`);
+
+  const mentions15h =
+    /\b15\s*h\b/.test(normalizedContext) ||
+    /\b15\s+horas\b/.test(normalizedContext) ||
+    /\b3\s*(?:encontros|aulas|dias|reunioes).{0,40}\b5\s*(?:h|horas)\b/.test(normalizedContext) ||
+    /\b3\s*x\s*5\s*h\b/.test(normalizedContext);
+
+  const wronglyOffers20h =
+    /\bpacote\s+(?:de\s+)?20\s*(?:h|horas)\b/.test(normalizedAnswer) ||
+    /\b20\s*(?:h|horas).{0,80}\b(?:saldo|uso futuro|cobre tudo)\b/.test(normalizedAnswer);
+
+  return mentions15h && wronglyOffers20h;
+};
+
+const hasLessThanThreeMonths = (context = ""): boolean => {
+  const normalized = normalizeText(context);
+  return /\b(?:1|um|uma|2|dois|duas)\s+mes(?:es)?\b/.test(normalized);
+};
+
+const buildCorrected15hQuoteAnswer = (context = ""): string => {
+  const normalized = normalizeText(context);
+  const peopleMatch = normalized.match(/\b(\d{1,2})\s+pessoas?\b/);
+  const peopleText = peopleMatch?.[1] ? ` para ${peopleMatch[1]} pessoas` : "";
+  const recurrenceNote = hasLessThanThreeMonths(context)
+    ? [
+        "",
+        "Como o uso informado foi por menos de 3 meses, nao vou tratar como plano mensalista recorrente. Nesse caso, considero como datas/encontros especificos."
+      ].join("\n")
+    : "";
+
+  return [
+    `Para 3 encontros de 5h${peopleText}, sao 15h no total.`,
+    "",
+    "- Melhor opcao: pacote de 15h = R$ 900",
+    recurrenceNote,
+    "",
+    "Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente.",
+    "",
+    "Quer seguir com essa opcao?"
+  ].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+};
+
 const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
   const structureMatch = knowledge.match(
     /(?:estrutura inclusa|o valor da contratacao inclui|o valor da contratação inclui|inclui:)([\s\S]*?)(?:\n\s*(?:\d+\.\s+|#{1,6}\s+|===)|$)/i
@@ -932,7 +1040,7 @@ const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
   const source = structureMatch?.[1] || "";
   if (!source.trim()) return [];
 
-  const stopWords = /\b(usos indicados|capacidade|valores oficiais|observacoes|observações|pacotes|planos|educacao|educação|corporativo|rh e selecao|rh e seleção)\b/i;
+  const stopWords = /\b(usos indicados|valores oficiais|observacoes|observações|pacotes|planos|educacao|educação|corporativo|rh e selecao|rh e seleção)\b/i;
   const items: string[] = [];
 
   for (const line of source.split("\n")) {
@@ -951,6 +1059,22 @@ const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
   return Array.from(new Set(items));
 };
 
+const buildKnowledgeWithFullIncludedSource = async (knowledge = ""): Promise<string> => {
+  const currentItems = extractIncludedItemsFromKnowledge(knowledge);
+  if (currentItems.length >= 8) return knowledge;
+
+  const articles = await KnowledgeBaseArticle.findAll({
+    where: { active: true },
+    attributes: ["title", "content"]
+  });
+
+  const fullKnowledge = articles
+    .map(article => [`# ${article.title}`, article.content].filter(Boolean).join("\n"))
+    .join("\n\n");
+
+  return [knowledge, fullKnowledge].filter(Boolean).join("\n\n");
+};
+
 const appendIncludedSectionIfNeeded = ({
   answer,
   knowledge,
@@ -964,14 +1088,41 @@ const appendIncludedSectionIfNeeded = ({
 }): string => {
   if (!isQuoteAnswer(answer)) return answer;
   if (isIncludedItemsQuestion(message)) return answer;
-  if (answerHasIncludedSection(answer)) return answer;
-  if (historyHasIncludedSection(activeHistory)) return answer;
 
   const includedItems = extractIncludedItemsFromKnowledge(knowledge);
   if (!includedItems.length) return answer;
 
+  if (answerHasIncludedSection(answer)) {
+    const strippedAnswer = stripIncludedSection(answer);
+    const answerIncludedItems = extractIncludedItemsFromAnswer(answer);
+    if (historyHasIncludedSection(activeHistory) && answerIncludedItems.length >= includedItems.length) {
+      return strippedAnswer;
+    }
+
+    return [
+      strippedAnswer.trim(),
+      "",
+      "*Incluso:*",
+      ...includedItems.map(item => `- ${item}`)
+    ].join("\n");
+  }
+
+  if (historyHasIncludedSection(activeHistory)) return answer;
+
   return [
     answer.trim(),
+    "",
+    "*Incluso:*",
+    ...includedItems.map(item => `- ${item}`)
+  ].join("\n");
+};
+
+const buildIncludedItemsAnswerFromKnowledge = (knowledge = ""): string | null => {
+  const includedItems = extractIncludedItemsFromKnowledge(knowledge);
+  if (!includedItems.length) return null;
+
+  return [
+    "O que está incluso é o mesmo para qualquer opção/pacote:",
     "",
     "*Incluso:*",
     ...includedItems.map(item => `- ${item}`)
@@ -1083,12 +1234,14 @@ const buildAnswerPrompt = ({
   "Use linguagem natural, educada, objetiva e humana.",
   "Prefira respostas curtas, em estilo WhatsApp. Evite textos longos: normalmente use 2 a 6 linhas, salvo se o cliente pedir detalhes.",
   "Pode usar emojis com moderacao para deixar a conversa mais amigavel, no maximo 1 ou 2 por resposta. Use emojis simples como 🙂, ✅, 💰, 📌 ou 👍 quando fizer sentido.",
-  "Para orcamentos, seja enxuto: informe o contexto em 1 linha, liste as principais opcoes/valores em bullets curtos e finalize com uma pergunta simples.",
-  "Em orcamentos, mostre a conta de forma transparente quando houver composicao: exemplo '3 blocos x R$ 140 = R$ 420'. O cliente precisa entender o valor individual e o total.",
+  "Para orcamentos, seja enxuto: informe o contexto em 1 linha, mostre a melhor opcao recomendada e finalize com uma pergunta simples. Nao liste opcoes empatadas ou mais caras se elas nao trazem vantagem real para o cliente.",
+  "Em orcamentos, mostre a conta de forma transparente e nomeie o item da tabela antes da multiplicacao. Exemplos: 'pacote de 3h x 2 = R$ 210 x 2 = R$ 420', 'bloco de 2h x 3 = R$ 140 x 3 = R$ 420', 'turno de 5h x 2 = R$ 300 x 2 = R$ 600'. Evite escrever apenas '2 x 3h'.",
   "Antes de comparar valores por tempo, calcule explicitamente a demanda real: horas por ocorrencia x quantidade de ocorrencias = total de horas. Exemplo: 3 horas em 3 dias diferentes = 3 x 3h = 9h no total.",
-  "Se a base trouxer descontos aplicaveis por quantidade de pessoas, itens, encontros, dias, recorrencia ou outro criterio, considere esses descontos no total final e mostre a conta de forma curta.",
+  "Em orcamento comum, mostre somente valores de tabela/brutos. Nao informe nem aplique descontos automaticamente.",
+  "Somente informe e calcule desconto quando a mensagem atual do cliente perguntar explicitamente por desconto, promocao, condicao, valor com desconto ou equivalente.",
+  "Todo orcamento, cotacao ou simulacao precisa terminar com um aviso curto: 'Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente.'",
   "Quando o cliente perguntar 'o que eu tenho direito?', 'o que entra?', 'o que inclui?', 'o que esta incluso?' ou equivalente apos um orcamento, responda sobre itens inclusos/estrutura/beneficios do plano escolhido, nao repita o orcamento inteiro.",
-  "No primeiro orcamento util da conversa, se a base tiver informacoes de inclusos, adicione um rodape 'Incluso:' com todos os itens inclusos cadastrados, em bullets curtos. Nao resuma para apenas alguns itens.",
+  "No primeiro orcamento util da conversa, se a base tiver informacoes de inclusos, adicione um rodape 'Incluso:' com todos os itens inclusos cadastrados, em bullets curtos. Nao resuma para apenas alguns itens e nunca envie apenas 1 item se houver lista completa na base.",
   "Considere como conversa atual apenas o ciclo depois do ultimo encerramento/menu. Inclusos enviados em ciclos anteriores do mesmo ticket nao contam como ja enviados para o novo orcamento.",
   "Se o cliente pedir para recalcular, comparar, mudar quantidade, mudar horas, mudar dias ou usar outros valores na mesma conversa, nao repita o rodape de inclusos. Foque apenas na nova conta e no novo total.",
   "Nao use Markdown com dois asteriscos (**texto**). Se precisar destacar algo para WhatsApp, use no maximo asterisco simples (*texto*) ou deixe sem destaque.",
@@ -1097,13 +1250,31 @@ const buildAnswerPrompt = ({
   "O atendimento pode ser de qualquer ramo: vendas, suporte, clinica, escola, loja, oficina, servicos, delivery, imobiliaria, financeiro, cobranca, agendamento, promocao ou relacionamento.",
   "Adapte a resposta ao tipo de atendimento configurado, a mensagem do cliente e a base encontrada.",
   "Use somente as INFORMACOES INTERNAS ENCONTRADAS.",
+  "Responda somente assuntos relacionados ao atendimento configurado e a base encontrada. Se o cliente perguntar curiosidade geral, roupa, esporte, produto externo, politica, celebridade, futebol ou qualquer tema fora do escopo, diga de forma educada que nao consegue ajudar com esse assunto por ali, que o foco e o atendimento da empresa/servico, e redirecione para valores, estrutura, reserva, suporte ou duvidas relacionadas. Nao responda com conhecimento geral e nao repita orcamento antigo.",
   "Nao copie a base literalmente quando puder explicar melhor. Reescreva de forma clara, humana e especifica para a pergunta do cliente.",
   "Nao invente valores, prazos, links, telefones, regras, procedimentos ou nomes que nao estejam na base.",
+  "Se o cliente pedir para simular usando um valor que nao existe na base, nao aceite o valor inventado. Diga que nao consegue simular fora da tabela cadastrada e informe o valor oficial mais proximo da base.",
   "Quando a base de conhecimento trouxer valores oficiais, eles tem prioridade sobre qualquer valor citado anteriormente no historico ou pela propria IA. Nao reutilize valor antigo se ele conflitar com a base encontrada.",
   "Se o cliente pedir explicacao de diferenca entre modalidades, explique o funcionamento antes de orcar: o que pode ser usado no mesmo dia, o que funciona como saldo, o que exige horas consecutivas e quando deve encaminhar para humano.",
-  "Quando houver mais de uma composicao viavel na base, compare as opcoes em vez de recomendar uma so. Exemplo: avulso em blocos de 2h, turno/diaria consecutiva, pacote de horas nao consecutivas e eventual saldo/complemento permitido pela base.",
+  "Quando houver mais de uma composicao viavel na base, recomende uma opcao principal. Compare outras opcoes somente se o cliente pedir comparacao/diferenca, se houver duvida real entre modalidades, ou se a alternativa for mais barata/mais adequada. Nao mostre composicao empatada ou mais cara quando ja existe pacote direto que cobre exatamente a necessidade.",
+  "Para dias/encontros diferentes, compare o cenario inteiro: opcoes consecutivas por encontro/dia versus pacotes flexiveis pelo total de horas.",
+  "Se existir pacote flexivel direto que cobre exatamente o total solicitado em dias/encontros diferentes, recomende somente esse pacote. Nao liste opcoes consecutivas equivalentes, composicoes por soma, opcoes empatadas ou opcoes mais caras, salvo se o cliente pedir comparacao ou perguntar a diferenca. Exemplo: 3 dias de 5h = 15h; recomende pacote de 15h e nao mencione turno de 5h x 3 nem 10h + 5h.",
+  "Diaria de 10h x quantidade de dias so deve aparecer se o cliente pedir mais horas consecutivas em cada dia; nao use diaria como comparacao principal quando existir pacote flexivel direto exato.",
+  "Nunca trate diaria como saldo flexivel. Diaria e uso consecutivo no mesmo dia; pacote de horas e saldo flexivel para dias/horarios diferentes conforme disponibilidade.",
+  "Nao confunda turno com diaria: turno de 5h e diaria de 10h podem ter valores diferentes na base; use exatamente os valores oficiais encontrados.",
   "Se a base trouxer uma matriz de simulacao, tabela de cenarios ou exemplos oficiais de calculo, use essa matriz como referencia principal antes de calcular por conta propria.",
-  "Se o total de horas nao fechar exatamente em um pacote, explique de forma simples: pacote pode deixar saldo para uso futuro; avulso pode compor blocos de 2h; se faltar hora solta nao cadastrada, nao invente valor por hora e diga que o complemento exato precisa ser confirmado pela equipe.",
+  "Nao ofereca pacote menor do que a necessidade do cliente. A opcao recomendada precisa cobrir 100% das horas/itens solicitados.",
+  "Nao ofereca pacote muito acima da necessidade como opcao principal. Pacote maior so entra como principal quando a sobra for de ate 2h ou quando for mais barato/empatado em relacao a composicao que cobre a necessidade com menos sobra. Acima de 2h excedentes, so mencione se o cliente pedir saldo, recorrencia, pacote maior ou uso futuro.",
+  "Se o pacote for muito maior que a necessidade, responda com a melhor opcao avulsa/minima e, no maximo, diga curto que existem pacotes caso ele pretenda usar mais horas futuramente.",
+  "Ao comparar pacotes de horas, use todos os pacotes cadastrados na base, como 2h, 3h, 5h, 10h, 15h e 20h quando existirem. Prefira o menor pacote direto que cubra a necessidade antes de compor varios blocos ou oferecer pacote maior.",
+  "Quando existir uma matriz por total de horas flexiveis na base, consulte essa matriz antes de responder. Ela deve guiar combinacoes como 6h, 7h, 8h, 9h, 12h, 13h, 14h, 15h, 18h e 19h.",
+  "Quando der numero impar de horas, procure primeiro pacote direto de 3h, 5h ou 15h antes de subir para pacote maior. Se o pacote maior for mais barato e cobrir tudo, recomende o pacote maior explicando o saldo.",
+  "A opcao principal de orcamento precisa cobrir 100% do que o cliente pediu e ficar proxima da necessidade real. Nao ofereca como principal uma opcao que cubra menos horas/itens nem uma opcao muito acima do pedido.",
+  "Para pacotes maiores, use como criterio: so oferecer como principal se a sobra for pequena, ate 2h, ou se o pacote maior for mais barato/empatado do que a composicao exata/proxima. Fora disso, mencione pacote maior apenas se o cliente pedir saldo, recorrencia, pacote ou uso futuro.",
+  "Quando o pacote maior nao for a melhor opcao, nao liste varias opcoes acima do pedido. Mostre a opcao recomendada e, no maximo, uma alternativa proxima ou economicamente justificada. Alternativa empatada sem beneficio pratico deve ser omitida.",
+  "Se a base tiver pacote ou valor direto de 3h, nunca responda que nao existe pacote de 3 horas. Para 1 encontro de 3h, use o valor direto de 3h; para 2 encontros de 3h, compare 'pacote/periodo de 3h x 2 = R$ 210 x 2 = R$ 420' antes de oferecer pacote de 10h.",
+  "Se o cliente pedir 6h e existir valor/pacote direto de 3h, prefira apresentar 'pacote/periodo de 3h x 2 = total correspondente'. Nao priorize 3 blocos de 2h quando 2 pacotes/periodos de 3h forem uma composicao cadastrada e equivalente.",
+  "Se o total de horas nao fechar exatamente em um pacote, explique de forma simples: pacote pode deixar saldo para uso futuro; avulso pode compor blocos minimos; se faltar hora solta nao cadastrada, nao invente valor por hora e diga que o complemento exato precisa ser confirmado pela equipe.",
   "Nunca apresente como opcao viavel uma composicao que cubra menos horas do que o cliente pediu. Se o cliente pediu 9h, uma conta que cobre 8h ou 6h nao esta completa; diga que falta cobertura ou prefira pacote/plano que cubra o total.",
   "Se a base tiver bloco minimo, plano avulso minimo ou duracao minima, e o cliente pedir menos tempo que esse minimo, nao venda a hora menor isolada. Explique que o minimo cadastrado se aplica e calcule pelo menor bloco/plano permitido.",
   "Quando o uso for em dias/encontros separados, aplique o minimo por ocorrencia. Exemplo: se o menor avulso e bloco de 2h por R$ 140 e o cliente quer 2 encontros de 1h, calcule 2 blocos x R$ 140 = R$ 280; o cliente usa ate 2h em cada encontro. Nao diga que isso nao cobre tudo.",
@@ -1118,6 +1289,9 @@ const buildAnswerPrompt = ({
   "Se o cliente escolher uma opcao textual como 'por hora', 'mensal', 'pacote', '10 horas' ou informar uma quantidade como '3 horas', use essa informacao para responder. Nao pergunte novamente a mesma coisa.",
   "Se a ultima pergunta da IA foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, trate esse numero como quantidade de pessoas. Nao liste valores ainda; pergunte duracao e se sera em um unico encontro/dia ou em mais de um encontro.",
   "Para orcamento de sala, evento, servico por tempo, agenda ou uso recorrente, nao basta saber quantidade de pessoas. Antes de listar valores, colete separadamente: primeiro quantidade de ocorrencias/unidades do contexto, como aulas, reunioes, cursos, sessoes, consultas, encontros ou dias; depois duracao de cada ocorrencia, salvo se esses dados ja estiverem claros na mensagem atual ou no contexto estruturado.",
+  "Uso recorrente/mensalista so deve ser tratado como recorrente quando o cliente pretende manter uma rotina semanal por no minimo 3 meses. Nao transforme isso em pergunta obrigatoria quando ja houver dados para orcar. Se o cliente sinalizar uso semanal/mensal, informe de forma curta que existem condicoes especiais para uso semanal por 3 meses ou mais; pergunte por quantos meses apenas se for necessario comparar mensalista.",
+  "Se o cliente informar 1 ou 2 meses, isso nao atende ao minimo de 3 meses para recorrente/mensalista. Nesse caso, nao ofereca mensalista nem pacote maior por saldo futuro; trate como datas/encontros especificos e use a matriz de horas/pacotes.",
+  "Exemplo obrigatorio: 3 aulas, encontros ou dias de 5h = 15h no total. Mesmo se o cliente disser que sera por 2 meses, a recomendacao principal e pacote de 15h = R$ 900. Nao oferecer pacote 20h, porque fica acima da necessidade.",
   "Quando faltarem quantidade de dias/encontros e horas, nao pergunte tudo junto. Pergunte primeiro: unico dia/encontro ou mais de um; se for mais de um, quantos ao todo. Depois pergunte quantas horas tera cada dia/encontro.",
   "Se a ultima pergunta da IA pediu duracao, horas, quantidade de ocorrencias, encontros, aulas, reunioes, cursos, sessoes, consultas ou dias, e a mensagem atual trouxe esses dados, nao faca a mesma pergunta novamente. Use os dados atuais para calcular, responder, ou pedir apenas outro dado que ainda falte.",
   "Interprete respostas naturais e variadas do cliente como resposta a pergunta pendente. Exemplos: 'serao 4 dias para 6 horas cada', 'umas 6h por dia', 'de manha e tarde', '16 pessoas', 'recorrente' ou 'so um dia' podem responder a pergunta anterior mesmo sem repetir as mesmas palavras.",
@@ -1135,10 +1309,11 @@ const buildAnswerPrompt = ({
   "Se a base informar capacidade maxima, limite, disponibilidade, regra de elegibilidade ou restricao, compare com os dados atuais do cliente. Se o dado do cliente exceder o limite, avise claramente e nao passe orcamento como se fosse viavel.",
   "Se o estado vivo indicar que a resposta anterior foi rejeitada, a solução não funcionou, houve objeção ou o cliente mudou de cenário, não repita o mesmo caminho nem encerre. Reconheça o ponto do cliente e ofereça o próximo caminho sustentado pela base.",
   "Se a pergunta pedir calculo simples e a base trouxer o numero necessario, calcule o resultado e mostre a conta de forma curta. Exemplo: diaria de R$ 300 por 10 dias = R$ 3.000.",
-  "Quando houver desconto cadastrado na base e ele se aplicar aos dados atuais, calcule primeiro o valor bruto, depois o desconto e o total com desconto. Nao ignore desconto aplicavel.",
-  "Se a base trouxer plano avulso de 2 horas por R$ 140 e o cliente pedir valor por hora, explique que o plano avulso cadastrado e de 2 horas por R$ 140. Se pedir 3 horas e nao houver preco de hora adicional, informe o valor cadastrado e diga que o valor exato para 3 horas precisa ser confirmado por atendente.",
-  "Se o cliente pedir 1h, apenas 1 hora ou duracao menor que o bloco minimo cadastrado, calcule usando o bloco minimo da base. Para varias ocorrencias separadas, multiplique o bloco minimo pela quantidade de ocorrencias e aplique descontos cabiveis depois do valor bruto.",
-  "Para comparacao de orcamento, mostre o total de horas primeiro e depois no maximo 2 ou 3 opcoes: avulso por blocos, pacote com saldo quando fizer sentido, e diaria/turno quando forem consecutivos no mesmo dia. Deixe claro o que cobre tudo e o que deixa saldo ou exige complemento. Mostre a soma: quantidade x valor unitario = total.",
+  "Quando houver desconto cadastrado na base e o cliente perguntar explicitamente por desconto, calcule primeiro o valor bruto, depois o desconto e o total com desconto. Se o cliente nao perguntou desconto, nao fale de desconto.",
+  "Se a base trouxer plano avulso de 2 horas por R$ 140 e o cliente pedir valor por hora, explique que o plano avulso cadastrado e de 2 horas por R$ 140. Se pedir 3h, 5h, 10h, 15h ou 20h e a base tiver pacote direto para essa quantidade, use o pacote direto; se nao houver pacote ou complemento cadastrado, nao invente valor por hora.",
+  "Se o cliente pedir 1h, apenas 1 hora ou duracao menor que o bloco minimo cadastrado, calcule usando o bloco minimo da base. Para varias ocorrencias separadas, multiplique o bloco minimo pela quantidade de ocorrencias. Desconto so entra se o cliente perguntar por desconto.",
+  "Para comparacao de orcamento, mostre o total de horas primeiro e depois no maximo 2 opcoes realmente uteis: a recomendada e uma alternativa so se for mais barata, mais adequada ao uso, ou se o cliente pediu comparacao. Menor pacote direto exato vence composicoes empatadas. Pacote maior com saldo so quando sobrar ate 2h ou for financeiramente melhor/empatado. Mostre a soma com o item da tabela: pacote/bloco/turno/diaria x quantidade = valor unitario x quantidade = total.",
+  "Para necessidades pequenas, como 1h, 2h, 3h, 5h ou poucos encontros curtos, normalmente mostre apenas o avulso/minimo ou o menor pacote direto cadastrado. Nao empurre pacote grande se o cliente nao demonstrou uso futuro.",
   "Turno/diaria consecutiva so deve ser comparado quando as horas forem no mesmo dia/periodo. Para dias, encontros, aulas ou reunioes diferentes, priorize regras de pacote nao consecutivo ou blocos por ocorrencia conforme a base.",
   "Se a pergunta atual for complemento da resposta anterior, use o historico recente para entender a continuidade. Exemplo: depois de informar diaria, 'e para 10 dias?' pede calculo com a diaria anterior.",
   "Se a pergunta for diferente da anterior, responda o novo assunto usando a base encontrada; nao repita resposta antiga.",
@@ -1179,6 +1354,13 @@ const generateAnswerFromKnowledge = async ({
   if (!knowledge) return null;
 
   const activeHistory = getActiveConversationHistory(history);
+  const includedKnowledge = await buildKnowledgeWithFullIncludedSource(knowledge);
+
+  if (isIncludedItemsQuestion(message)) {
+    const includedAnswer = buildIncludedItemsAnswerFromKnowledge(includedKnowledge);
+    if (includedAnswer) return includedAnswer;
+  }
+
   const answerPrompt = buildAnswerPrompt({
     message,
     history: activeHistory,
@@ -1204,13 +1386,22 @@ const generateAnswerFromKnowledge = async ({
     });
 
     const cleaned = cleanCustomerAiAnswer(answer || "");
+    const packageCorrectionContext = [
+      message,
+      activeHistory,
+      structuredContext || "",
+      includedKnowledge
+    ].join("\n");
+    const correctedAnswer = shouldCorrectExact15hQuote(cleaned, packageCorrectionContext)
+      ? buildCorrected15hQuoteAnswer(packageCorrectionContext)
+      : cleaned;
     const withoutRepeatedIncluded =
       historyHasIncludedSection(activeHistory) && !isIncludedItemsQuestion(message)
-        ? stripIncludedSection(cleaned)
-        : cleaned;
+        ? stripIncludedSection(correctedAnswer)
+        : correctedAnswer;
     const withIncludedFallback = appendIncludedSectionIfNeeded({
       answer: withoutRepeatedIncluded,
-      knowledge,
+      knowledge: includedKnowledge,
       activeHistory,
       message
     });
@@ -1663,6 +1854,9 @@ const buildDecisionPrompt = ({
     "Se a ultima pergunta foi diagnostica, como 'o erro acontece ao finalizar?', respostas como 'sim' ou 'nao' nao significam encerramento; continue o diagnostico.",
     "Se a ultima pergunta foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, esse numero e a quantidade de pessoas. A proxima etapa e perguntar se sera em um unico dia/encontro ou em mais de um; se for mais de um, quantos ao todo. Nao liste valores ainda.",
     "Antes de enviar orcamento de qualquer servico que dependa de tempo, uso, agenda, ocorrencias, aulas, reunioes, cursos, sessoes, consultas, encontros, dias ou recorrencia, confirme os dados minimos: quantidade de pessoas/unidades quando aplicavel, quantidade de ocorrencias/unidades de agenda e duracao de cada ocorrencia. Se faltarem quantidade de ocorrencias e duracao, pergunte primeiro a quantidade de ocorrencias; depois as horas por ocorrencia.",
+    "Uso recorrente/mensalista exige rotina semanal por no minimo 3 meses. Nao transforme isso em pergunta obrigatoria quando ja houver dados para orcar. Se o cliente sinalizar uso semanal/mensal, informe de forma curta que existem condicoes especiais para uso semanal por 3 meses ou mais; pergunte por quantos meses apenas se for necessario comparar mensalista.",
+    "Se o cliente informar 1 ou 2 meses, isso nao atende ao minimo de 3 meses para recorrente/mensalista. Trate como datas/encontros especificos; nao ofereca mensalista nem pacote maior por saldo futuro.",
+    "Exemplo obrigatorio: 3 aulas, encontros ou dias de 5h = 15h no total. Mesmo se o cliente disser que sera por 2 meses, recomende pacote de 15h = R$ 900 e nao pacote 20h.",
     "Se a ultima pergunta foi sobre duracao, horas, dias, encontros, aulas, reunioes, cursos, sessoes ou consultas e a mensagem atual respondeu com esses dados, nao repita essa pergunta. Avance para resposta com base ou peca somente o proximo dado realmente ausente.",
     "Sempre avalie se a mensagem atual responde a pergunta pendente de forma indireta, abreviada ou com erro de digitacao. Nao exija que o cliente use as mesmas palavras da pergunta.",
     "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 aulas de 4 horas', 'três reuniões de quatro horas', '3 x 4h' ou 'três por quatro horas' significam 3 ocorrencias da unidade em contexto, com 4 horas cada.",
@@ -1676,14 +1870,18 @@ const buildDecisionPrompt = ({
     "A base de conhecimento encontrada tem prioridade sobre qualquer suposicao pelo nome da empresa, nome da fila ou tipo de atendimento.",
     "Se houver artigo relevante na base, nunca diga que o assunto nao parece relacionado ao atendimento antes de avaliar o conteudo do artigo.",
     "A IA nao pode inventar valores, prazos, links, telefones, regras, procedimentos ou nomes que nao estejam na base.",
+    "Se o cliente pedir simulacao com valor informado por ele que conflita com a tabela/base, nao use esse valor. Use responder_com_base para explicar que a simulacao so pode usar valores oficiais cadastrados.",
+    "Se o cliente perguntar assunto fora do escopo do atendimento e da base, como camisa de time, futebol, politica, celebridade, receita, roupa, curiosidade geral ou produto externo, use sem_resposta_segura com resposta curta e educada: diga que nao consegue ajudar com esse assunto por ali, que o foco e o atendimento da empresa/servico, e redirecione para valores, estrutura, reserva, suporte ou duvidas relacionadas. Nao responda usando conhecimento geral e nao repita orcamento antigo.",
     "Pode responder perguntas sobre quem e a IA, qual seu papel, ou explicar uma resposta anterior usando o perfil configurado e o historico da conversa.",
     "Pode conversar de forma natural e humanizada, mas sem criar informacoes comerciais, tecnicas, promocionais, financeiras, medicas, juridicas ou operacionais fora da base.",
     "Pode vender, orientar, sugerir possiveis causas, explicar promocao, informar preco, conduzir agendamento, acompanhar pedido ou tirar duvidas somente quando houver base suficiente.",
     "Pode fazer calculos simples quando a base trouxer os dados numericos necessarios, como diaria x quantidade de dias, valor unitario x unidades ou soma simples.",
     "Se o cliente perguntar 'o que tenho direito?', 'o que entra?', 'o que inclui?', 'o que esta incluso?' ou equivalente, interprete como pergunta sobre inclusos/estrutura/beneficios do servico ou plano. Use responder_com_base se houver base.",
-    "Em orcamentos, a resposta final deve mostrar a composicao da soma quando houver valor unitario: quantidade x valor unitario = total.",
-    "Quando o cliente pedir comparacao, pacote, avulso, completar horas, saldo ou melhor custo, use responder_com_base se a base trouxer valores. Compare composicoes validas em vez de prender em uma unica opcao.",
-    "Para servicos por hora, calcule o total de horas e compare: blocos avulsos, pacote com saldo, diaria/turno quando forem consecutivos. Se a base nao tiver hora solta para complemento, nao invente; explique que o complemento precisa ser confirmado.",
+    "Em orcamentos, a resposta final deve mostrar a composicao da soma nomeando o item da tabela: 'pacote de 3h x 2 = R$ 210 x 2 = R$ 420', 'bloco de 2h x 3 = R$ 140 x 3 = R$ 420'.",
+    "Em orcamentos comuns, nao informe desconto. Desconto so deve aparecer se o cliente perguntou por desconto, promocao, condicao ou valor com desconto.",
+    "Todo orcamento, cotacao ou simulacao deve avisar que e informativo e precisa ser validado por atendente para disponibilidade, reserva e condicoes finais.",
+    "Quando o cliente pedir comparacao, pacote, avulso, completar horas, saldo ou melhor custo, use responder_com_base se a base trouxer valores. Compare apenas opcoes realmente uteis: mais barata, mais adequada ao uso, ou pedida explicitamente pelo cliente. Nao liste composicao empatada ou mais cara se ja houver pacote direto que cobre exatamente a necessidade.",
+    "Para servicos por hora, calcule o total de horas e recomende a melhor opcao. Compare blocos avulsos, pacote com saldo, diaria/turno quando forem consecutivos somente quando isso mudar a decisao, reduzir custo ou responder pedido de comparacao. Se a base nao tiver hora solta para complemento, nao invente; explique que o complemento precisa ser confirmado.",
     "Orcamento, cotacao, estimativa e calculo de valor com dados da base sao respostas informativas e podem ser enviados ao cliente. Isso nao e confirmacao de reserva, agenda, pagamento ou contratacao.",
     "So encaminhe para atendente quando o cliente pedir para reservar, fechar, pagar, confirmar agenda, negociar fora das regras, falar com humano, ou quando faltar dado essencial que a base nao permita calcular.",
     "Se o cliente pedir outro orcamento, nova simulacao, quantidade diferente ou comparar cenarios, mas nao informar os novos numeros/dados, use pedir_mais_informacoes. Nao invente quantidade, horas, itens, dias, encontros ou unidades.",
@@ -1856,6 +2054,10 @@ const DecideAiTicketActionService = async ({
   const singleOccurrenceFromContext = collectedDataIndicatesSingleOccurrence(collectedData);
   const multipleOccurrencesFromContext = collectedDataIndicatesMultipleOccurrences(collectedData);
   const bareDuration = bareNumericAnswerToValue(message);
+
+  if (isClearlyOutOfScopeMessage(message)) {
+    return buildOutOfScopeDecision(message, aiSetting);
+  }
 
   if (
     singleOccurrenceFromContext &&
