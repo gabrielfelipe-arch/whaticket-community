@@ -36,6 +36,9 @@ class AiTicketContext extends Model<AiTicketContext> {
   missingData: string;
 
   @Column(DataType.TEXT)
+  operationalState: string;
+
+  @Column(DataType.TEXT)
   contradictions: string;
 
   @Column(DataType.TEXT)

@@ -18,6 +18,7 @@ interface UpdateAiTicketContextRequest {
   summary?: string | null;
   collectedData?: Record<string, { label: string; value: string | null; rawValue?: string | null }>;
   missingData?: string[];
+  operationalState?: Record<string, any>;
   contradictions?: string[];
   currentObjective?: string | null;
   nextQuestion?: string | null;
@@ -603,6 +604,7 @@ export const UpdateAiTicketContextService = async ({
   summary,
   collectedData,
   missingData,
+  operationalState,
   contradictions,
   currentObjective,
   nextQuestion,
@@ -637,6 +639,9 @@ export const UpdateAiTicketContextService = async ({
   const nextContradictions = contradictions
     ? normalizeArray(contradictions)
     : resetActiveContext ? [] : parseJson<string[]>(existing?.contradictions, []);
+  const nextOperationalState = operationalState
+    ? stringify(operationalState)
+    : resetActiveContext ? null : existing?.operationalState || null;
   const serializedKnowledgeIds = Array.isArray(lastKnowledgeIds)
     ? JSON.stringify(lastKnowledgeIds)
     : lastKnowledgeIds || existing?.lastKnowledgeIds || null;
@@ -646,6 +651,7 @@ export const UpdateAiTicketContextService = async ({
     summary: truncate(summary || (resetActiveContext ? null : existing?.summary) || ticket.aiConversationSummary),
     collectedData: stringify(mergedCollected),
     missingData: stringify(nextMissing),
+    operationalState: nextOperationalState,
     contradictions: stringify(nextContradictions),
     currentObjective: currentObjective !== undefined ? currentObjective : resetActiveContext ? null : existing?.currentObjective || null,
     nextQuestion: nextQuestion !== undefined ? nextQuestion : resetActiveContext ? null : existing?.nextQuestion || null,

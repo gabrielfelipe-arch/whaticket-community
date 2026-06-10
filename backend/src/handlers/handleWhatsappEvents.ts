@@ -24,6 +24,10 @@ import QualificationFormQuestion from "../models/QualificationFormQuestion";
 import QualificationFormResponse from "../models/QualificationFormResponse";
 import QualificationFormAnswer from "../models/QualificationFormAnswer";
 import { UpdateAiTicketContextService } from "../services/AiServices/AiTicketContextService";
+import {
+  ApplyAiResponseAntiLoopService,
+  UpdateOperationalStateAfterAiDecisionService
+} from "../services/AiServices/AiConversationStateService";
 
 import CreateMessageService from "../services/MessageServices/CreateMessageService";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
@@ -631,6 +635,17 @@ const updateContextFromAiDecision = async (
     lastAiDecisionReason: aiDecision.motivo,
     lastKnowledgeIds: aiDecision.knowledgeIds || null
   });
+
+  await UpdateOperationalStateAfterAiDecisionService(ticket, aiDecision, aiMessage || aiDecision.resposta || null);
+};
+
+const prepareAiResponseForSend = async (
+  ticket: Ticket,
+  aiDecision: AiDecision,
+  body: string
+): Promise<{ decision: AiDecision; body: string }> => {
+  const result = await ApplyAiResponseAntiLoopService(ticket, aiDecision, body);
+  return { decision: result.decision, body: result.response };
 };
 
 const buildQualificationAiOpeningMessage = (
@@ -840,28 +855,32 @@ const handleAiReply = async (
         params: aiDecision.parametrosFerramenta || {}
       });
 
-      const body = result.ok
+      let body = result.ok
         ? result.customerMessage || aiDecision.resposta || "Pronto, executei essa etapa."
         : result.errorMessage?.includes("nao permitida")
           ? "Essa acao nao esta permitida para este atendimento. Vou encaminhar para um atendente."
           : "Nao consegui executar essa acao automaticamente. Vou encaminhar para um atendente confirmar com seguranca.";
+      let effectiveDecision = aiDecision;
 
       if (!result.ok) {
         await handoffToHuman(whatsappId, messageBody, ticket, contactPayload, aiSettingId, body);
       } else {
+        const prepared = await prepareAiResponseForSend(ticket, aiDecision, body);
+        body = prepared.body;
+        effectiveDecision = prepared.decision;
         await sendTextMessage(whatsappId, contactPayload, body, ticket);
         await ticket.update(buildAiStateUpdate(
           ticket,
           messageBody,
           body,
-          aiDecision.acao,
-          aiDecision.intencao,
-          aiDecision.motivo,
-          aiDecision.knowledgeIds
+          effectiveDecision.acao,
+          effectiveDecision.intencao,
+          effectiveDecision.motivo,
+          effectiveDecision.knowledgeIds
         ));
       }
 
-      await updateContextFromAiDecision(ticket, aiDecision, body);
+      await updateContextFromAiDecision(ticket, effectiveDecision, body);
       return true;
     }
 
@@ -870,17 +889,18 @@ const handleAiReply = async (
       aiDecision.respostaSegura &&
       aiDecision.resposta
     ) {
-      await sendTextMessage(whatsappId, contactPayload, aiDecision.resposta, ticket);
+      const prepared = await prepareAiResponseForSend(ticket, aiDecision, aiDecision.resposta);
+      await sendTextMessage(whatsappId, contactPayload, prepared.body, ticket);
       await ticket.update(buildAiStateUpdate(
         ticket,
         messageBody,
-        aiDecision.resposta,
-        aiDecision.acao,
-        aiDecision.intencao,
-        aiDecision.motivo,
-        aiDecision.knowledgeIds
+        prepared.body,
+        prepared.decision.acao,
+        prepared.decision.intencao,
+        prepared.decision.motivo,
+        prepared.decision.knowledgeIds
       ));
-      await updateContextFromAiDecision(ticket, aiDecision, aiDecision.resposta);
+      await updateContextFromAiDecision(ticket, prepared.decision, prepared.body);
       return true;
     }
 
@@ -994,16 +1014,18 @@ const handleAiReply = async (
       const optionLines = options
         .map(option => `${option.numero} - ${option.valor}`)
         .join("\n");
-      const body = [aiDecision.perguntaConfirmacao, optionLines].filter(Boolean).join("\n\n");
+      const rawBody = [aiDecision.perguntaConfirmacao, optionLines].filter(Boolean).join("\n\n");
+      const prepared = await prepareAiResponseForSend(ticket, aiDecision, rawBody);
+      const body = prepared.body;
 
       await sendTextMessage(whatsappId, contactPayload, body, ticket);
       await ticket.update({
         aiHandled: true,
         lastAiMessage: body,
-        lastAiIntent: aiDecision.intencao,
-        lastAiAction: aiDecision.acao,
-        lastAiDecisionReason: aiDecision.motivo,
-        lastAiKnowledgeIds: aiDecision.knowledgeIds?.length ? JSON.stringify(aiDecision.knowledgeIds) : null,
+        lastAiIntent: prepared.decision.intencao,
+        lastAiAction: prepared.decision.acao,
+        lastAiDecisionReason: prepared.decision.motivo,
+        lastAiKnowledgeIds: prepared.decision.knowledgeIds?.length ? JSON.stringify(prepared.decision.knowledgeIds) : null,
         lastAiAskedMoreHelp: false,
         lastAiExpectedReply: "option",
         lastAiQuestionType: "confirmacao_opcao",
@@ -1016,39 +1038,46 @@ const handleAiReply = async (
           ticket.aiConversationSummary,
           messageBody,
           body,
-          aiDecision.acao
+          prepared.decision.acao
         )
       });
-      await updateContextFromAiDecision(ticket, aiDecision, body);
+      await updateContextFromAiDecision(ticket, prepared.decision, body);
       return true;
     }
 
     if (aiDecision.acao === "pedir_mais_informacoes") {
-      const body =
+      const rawBody =
         aiDecision.resposta ||
         "Para eu te passar a informacao correta, pode me dar mais detalhes sobre o que voce precisa?";
+      const prepared = await prepareAiResponseForSend(ticket, aiDecision, rawBody);
+      const body = prepared.body;
 
       await sendTextMessage(whatsappId, contactPayload, body, ticket);
       await ticket.update(buildAiStateUpdate(
         ticket,
         messageBody,
         body,
-        aiDecision.acao,
-        aiDecision.intencao,
-        aiDecision.motivo,
-        aiDecision.knowledgeIds,
+        prepared.decision.acao,
+        prepared.decision.intencao,
+        prepared.decision.motivo,
+        prepared.decision.knowledgeIds,
         {
           lastAiQuestionType: "missing_info",
           lastAiExpectedReply: "free_text",
           lastAiQuestionAt: new Date()
         }
       ));
-      await updateContextFromAiDecision(ticket, aiDecision, body);
+      await updateContextFromAiDecision(ticket, prepared.decision, body);
       return true;
     }
 
     if (aiDecision.acao === "responder_com_base" && aiDecision.resposta) {
-      const { body, shouldClose } = stripAiCloseTag(aiDecision.resposta);
+      const stripped = stripAiCloseTag(aiDecision.resposta);
+      const prepared = stripped.shouldClose
+        ? { decision: aiDecision, body: stripped.body }
+        : await prepareAiResponseForSend(ticket, aiDecision, stripped.body);
+      const body = prepared.body;
+      const shouldClose = stripped.shouldClose;
       await sendTextMessage(whatsappId, contactPayload, body, ticket);
 
       if (shouldClose) {
@@ -1073,21 +1102,21 @@ const handleAiReply = async (
             aiFinishedAt: new Date(),
             aiSettingId: ticket.aiSettingId,
             lastAiMessage: body,
-            lastAiIntent: aiDecision.intencao,
-            lastAiAction: aiDecision.acao,
-            lastAiDecisionReason: aiDecision.motivo,
-            lastAiKnowledgeIds: aiDecision.knowledgeIds?.length ? JSON.stringify(aiDecision.knowledgeIds) : null,
+            lastAiIntent: prepared.decision.intencao,
+            lastAiAction: prepared.decision.acao,
+            lastAiDecisionReason: prepared.decision.motivo,
+            lastAiKnowledgeIds: prepared.decision.knowledgeIds?.length ? JSON.stringify(prepared.decision.knowledgeIds) : null,
             lastAiAskedMoreHelp: false,
             aiInteractionCount: Number(ticket.aiInteractionCount || 0) + 1,
             aiConversationSummary: buildAiConversationSummary(
               ticket.aiConversationSummary,
               messageBody,
               body,
-              aiDecision.acao
+              prepared.decision.acao
             )
           }
         });
-        await updateContextFromAiDecision(ticket, aiDecision, body);
+        await updateContextFromAiDecision(ticket, prepared.decision, body);
         return true;
       }
 
@@ -1095,12 +1124,12 @@ const handleAiReply = async (
         ticket,
         messageBody,
         body,
-        aiDecision.acao,
-        aiDecision.intencao,
-        aiDecision.motivo,
-        aiDecision.knowledgeIds
+        prepared.decision.acao,
+        prepared.decision.intencao,
+        prepared.decision.motivo,
+        prepared.decision.knowledgeIds
       ));
-      await updateContextFromAiDecision(ticket, aiDecision, body);
+      await updateContextFromAiDecision(ticket, prepared.decision, body);
       return true;
     }
 

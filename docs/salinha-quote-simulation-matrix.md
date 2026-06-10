@@ -16,17 +16,13 @@ Este documento consolida as simulacoes que a IA deve usar para evitar erros de c
 - Pacote nao consecutivo: 20h por R$ 1.000.
 - Nao existe venda de 1h isolada nem valor por hora solta.
 
-## Descontos
+## Descontos e condicoes especiais
 
-- Ate 5 pessoas: 25%.
-- De 6 a 10 pessoas: 15%.
-- De 11 a 20 pessoas: sem desconto automatico por pessoas.
-- Acima de 20 pessoas: capacidade excedida; informar limite e ajustar para ate 20 ou encaminhar para avaliacao.
-- Desconto por quantidade de encontros/itens: 2 itens = 5%, 3 itens = 8%, 4 itens = 13%, 5 ou mais itens = 20%.
-- Soma maxima de descontos: 30%.
-- Nao informar desconto no primeiro orcamento nem em simulacao comum.
-- Calcular e informar desconto somente quando o cliente perguntar explicitamente por desconto, promocao, condicao ou valor com desconto.
-- Quando o cliente perguntar por desconto, calcular: valor bruto, desconto aplicavel e total final.
+- A IA nao deve calcular, prometer, aplicar nem detalhar descontos.
+- Nao existe percentual de desconto autorizado para resposta automatica.
+- Se o cliente perguntar por desconto, promocao, negociacao, condicao melhor ou valor com desconto, informar que isso precisa ser validado por um atendente.
+- A simulacao automatica deve usar somente valores oficiais de tabela, sem desconto.
+- Acima de 20 pessoas: capacidade excedida; informar limite e ajustar para ate 20 ou encaminhar para avaliacao quando o cliente pedir atendimento humano.
 
 ## Escopo e valores permitidos
 
@@ -52,8 +48,8 @@ Este documento consolida as simulacoes que a IA deve usar para evitar erros de c
   - Uso em um unico dia: comparar opcoes consecutivas desse dia.
   - Uso em dias/encontros diferentes: comparar opcoes consecutivas por dia/encontro contra pacotes flexiveis pelo total de horas.
   - Uso com pedido de saldo/recorrencia/pacote: priorizar matriz de pacotes flexiveis.
-- Se o cliente pedir menos que o minimo avulso, calcular pelo minimo. Exemplo: 1h em 1 encontro = 1 bloco de 2h = R$ 140 antes de desconto.
-- Para encontros/dias separados, aplicar o minimo por ocorrencia. Exemplo: 2 encontros de 1h = 2 blocos de 2h = R$ 280 antes de desconto.
+- Se o cliente pedir menos que o minimo avulso, calcular pelo minimo. Exemplo: 1h em 1 encontro = 1 bloco de 2h = R$ 140.
+- Para encontros/dias separados, aplicar o minimo por ocorrencia. Exemplo: 2 encontros de 1h = 2 blocos de 2h = R$ 280.
 - Nao dizer que o bloco de 2h "nao cobre tudo" quando o cliente pediu 1h. Ele cobre e sobra tempo no bloco.
 - Turno e diaria so valem como horas consecutivas no mesmo dia.
 - Pacotes de 2h, 3h, 5h, 10h, 15h e 20h sao saldo nao consecutivo para usar em dias/horarios diferentes, conforme disponibilidade.
@@ -97,12 +93,12 @@ Este documento consolida as simulacoes que a IA deve usar para evitar erros de c
 10. Se houver empate e nao existir pacote flexivel direto exato, explicar a diferenca de uso em uma frase somente quando isso ajudar a decisao do cliente:
    - Turno/diaria: horas consecutivas naquele dia.
    - Pacote: saldo flexivel para usar em dias/horarios diferentes conforme disponibilidade.
-11. Nao mostrar desconto, salvo se o cliente perguntar.
+11. Nao calcular desconto. Se o cliente perguntar, encaminhar para atendente validar.
 12. Encerrar o orcamento com o aviso de simulacao informativa.
 
 ## Um unico dia ou uso consecutivo
 
-| Pedido | Opcao correta antes de desconto | Observacao |
+| Pedido | Opcao correta | Observacao |
 | --- | --- | --- |
 | 1h | 1 bloco de 2h = R$ 140 | Nao vende 1h solta; minimo e 2h. |
 | 2h | 1 bloco de 2h = R$ 140 | Cobre exatamente. |
@@ -128,7 +124,7 @@ Use esta ordem:
 5. Se existir pacote flexivel direto que cobre exatamente o total solicitado em dias/encontros diferentes, recomendar esse pacote sem listar opcoes consecutivas equivalentes, composicoes por soma, opcoes empatadas ou opcoes mais caras.
 6. Escolher a melhor opcao pelo cenario inteiro, explicando diferenca entre consecutivo por dia e pacote flexivel somente quando houver duvida, pedido de comparacao, ou quando nao existir pacote flexivel direto exato.
 7. Informar saldo quando pacote sobrar.
-8. Mostrar desconto somente se o cliente perguntar explicitamente por desconto.
+8. Nao calcular desconto. Se o cliente perguntar, informar que precisa de atendente.
 
 ## Uso recorrente e planos mensalistas
 
@@ -157,7 +153,7 @@ Em qualquer total sem pacote direto exato, a resposta profissional deve conter:
 - total final;
 - saldo, se a composicao cobrir mais horas do que o solicitado.
 
-| Total solicitado | Melhor opcao objetiva antes de desconto | Alternativa/observacao |
+| Total solicitado | Melhor opcao objetiva | Alternativa/observacao |
 | --- | --- | --- |
 | 1h | Pacote/bloco 2h = R$ 140 | Nao existe 1h solta; sobra 1h dentro do minimo. |
 | 2h | Pacote/bloco 2h = R$ 140 | Cobre exatamente. |
@@ -189,7 +185,7 @@ Observacao: quando uma composicao com pacotes menores ficar mais cara do que o p
 
 Exemplo obrigatorio: 4 encontros de 3h = 12h no total. Nao existe pacote direto de 12h. Responder como composicao: pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740. Nunca dizer "pacote de 12h = R$ 720".
 
-| Pedido | Avulso antes de desconto | Pacote possivel | Observacao |
+| Pedido | Avulso/tabela | Pacote possivel | Observacao |
 | --- | --- | --- | --- |
 | 2 encontros de 1h | Bloco de 2h x 2 = R$ 140 x 2 = R$ 280 | Nao oferecer pacote como principal | Avulso cobre com 2h por encontro. |
 | 3 encontros de 1h | Bloco de 2h x 3 = R$ 140 x 3 = R$ 420 | Pacote 3h = R$ 210 | Pacote 3h costuma ser melhor se puder usar como saldo flexivel. |
@@ -199,7 +195,7 @@ Exemplo obrigatorio: 4 encontros de 3h = 12h no total. Nao existe pacote direto 
 | 3 encontros de 3h | Pacote 10h = R$ 600 | Pacote de 3h x 3 = R$ 210 x 3 = R$ 630 | Total real: 9h. Pacote 10h cobre tudo, sobra 1h e fica mais barato. |
 | 2 encontros de 4h | Bloco de 2h x 4 = R$ 140 x 4 = R$ 560 | Pacote 10h = R$ 600 com 2h saldo | Comparar. |
 | 3 encontros de 4h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Pacote 15h = R$ 900 com 3h saldo | Melhor que 6 blocos; pacote 20h so se quiser muito saldo. |
-| 2 encontros de 5h | Turno de 5h x 2 = R$ 300 x 2 = R$ 600 | Pacote 10h = R$ 600 | Empate antes de desconto; explicar diferenca entre turno consecutivo e pacote flexivel. |
+| 2 encontros de 5h | Turno de 5h x 2 = R$ 300 x 2 = R$ 600 | Pacote 10h = R$ 600 | Empate de tabela; explicar diferenca entre turno consecutivo e pacote flexivel somente se ajudar a decisao. |
 | 3 encontros de 5h | Pacote 15h = R$ 900 | Turno de 5h x 3 = R$ 300 x 3 = R$ 900, apenas se o cliente pedir comparacao | Como existe pacote flexivel direto de 15h, oferecer somente o pacote 15h. Diaria de 10h x 3 = R$ 1.500 e nao e melhor. |
 | 3 encontros de 5h por 1 ou 2 meses | Pacote 15h = R$ 900 | Nao oferecer pacote 20h | Menos de 3 meses nao entra como mensalista/recorrente; calcular como datas/encontros especificos. |
 | 2 encontros de 6h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Pacote 15h so se cliente pedir saldo | Evitar pacote 20h como principal para 12h; fica muito acima. |
@@ -224,7 +220,7 @@ Exemplo obrigatorio: 4 encontros de 3h = 12h no total. Nao existe pacote direto 
   - Consecutivo: diaria de 10h = R$ 500.
   - Nao tratar como pacote flexivel; e uma diaria no mesmo dia.
 
-## Exemplos sem desconto
+## Exemplos com valores de tabela
 
 - 10 pessoas, 2 encontros de 1h: bloco de 2h x 2 = R$ 140 x 2 = R$ 280.
 - 8 pessoas, 3 encontros de 3h: pacote 10h = R$ 600, com 1h de saldo.
@@ -235,11 +231,11 @@ Exemplo obrigatorio: 4 encontros de 3h = 12h no total. Nao existe pacote direto 
 - 20 pessoas, 1 encontro de 6h: pacote/periodo de 3h x 2 = R$ 210 x 2 = R$ 420.
 - 25 pessoas: capacidade excedida. Informar que a capacidade e ate 20 pessoas e, se o cliente aceitar ajustar para 20, calcular para 20.
 
-## Exemplos com desconto somente quando perguntado
+## Quando o cliente pedir desconto
 
-- 10 pessoas, 2 encontros de 1h: bruto R$ 280. Se perguntar desconto: 15% por pessoas + 5% por 2 encontros = 20%. Total com desconto R$ 224.
-- 8 pessoas, 2 encontros de 3h: bruto R$ 420. Se perguntar desconto: 15% por pessoas + 5% por 2 encontros = 20%. Total com desconto R$ 336.
-- 8 pessoas, 3 encontros de 4h: bruto R$ 740. Se perguntar desconto: 15% por pessoas + 8% por 3 encontros = 23%. Total com desconto R$ 569,80.
+- Nao calcular desconto.
+- Responder de forma curta que desconto ou condicao especial precisa ser validado por atendente.
+- Encaminhar para atendimento humano quando o cliente quiser negociar.
 
 ## Formato recomendado de resposta
 

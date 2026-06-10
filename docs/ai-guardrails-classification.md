@@ -24,9 +24,10 @@ Estas travas devem permanecer. Sempre que possivel, devem migrar do prompt para 
 ### Desconto
 
 - Desconto nao deve ser informado automaticamente.
-- So deve aparecer quando o cliente perguntar explicitamente por desconto, promocao, condicao ou equivalente.
-- Percentuais, cupons e regras promocionais devem vir da base ou backend.
-- Se o cliente pedir algo fora da regra, a IA deve encaminhar ou pedir validacao humana.
+- A IA nao deve calcular, prometer, aplicar nem detalhar descontos.
+- Percentuais, cupons e regras promocionais nao devem ficar em prompt/base/matriz para evitar confusao.
+- Se o cliente perguntar por desconto, promocao, negociacao, condicao melhor ou valor com desconto, a IA deve encaminhar para atendente.
+- Orcamento automatico deve usar somente valores brutos de tabela.
 
 ### Cupom
 
@@ -214,3 +215,67 @@ Testes obrigatorios:
 - Cliente diz "ja falei"; esperado: revisar dados coletados e pedir apenas o que falta.
 - Cliente diz "nao foi isso"; esperado: pedir correcao curta, sem repetir resposta anterior.
 - Cliente diz "ok" apos orcamento; esperado: nao encerrar automaticamente.
+
+## 4. Camada De Conversa Natural E Anti-Loop
+
+Adicionar uma camada explicita antes da resposta final, hoje representada por `AiConversationOrchestratorService` mais guardrails locais em `DecideAiTicketActionService`.
+
+Responsabilidades:
+
+- Interpretar a mensagem como parte de uma sequencia, nao como texto isolado.
+- Comparar mensagem atual, ultima pergunta da IA, ultima oferta, ultimo orcamento, dados coletados e acao real disponivel.
+- Gerar um objeto de decisao antes da resposta final.
+- Diferenciar aceite de oferta anterior: recalcular, transferir ou encerrar.
+- Bloquear resposta igual ou muito parecida com a ultima.
+- Quando houver loop, reconhecer e mudar de estrategia.
+- Manter conversa livre, mas decisoes criticas controladas por backend/ferramenta/base.
+
+Objeto de decisao recomendado:
+
+```json
+{
+  "detectedIntent": "revisar_orcamento",
+  "isReplyToPreviousQuestion": false,
+  "isReplyToPreviousOffer": true,
+  "previousOfferType": "quote_revision",
+  "acceptedPreviousOffer": true,
+  "hasPreviousQuote": true,
+  "updatedFields": {},
+  "requiresTool": false,
+  "toolToCall": null,
+  "shouldAskClarification": true,
+  "nextQuestionKey": "quote_revision_scope",
+  "responseGoal": "iniciar_revisao_orcamento",
+  "mustNotRepeatLastAnswer": true
+}
+```
+
+Revisao de orcamento sem loop:
+
+- Se o cliente pedir outro orcamento, recalculo, mudar cenario ou responder afirmativamente a uma oferta de recalculo, iniciar revisao.
+- Se ja existe orcamento anterior, perguntar: "O que voce quer mudar: pessoas, dias ou horas?"
+- Se nao existe orcamento anterior, perguntar primeiro para quantas pessoas seria.
+- Respostas curtas como "horas", "dias" ou "pessoas" devem avancar para a pergunta especifica.
+- Respostas como "quero", "vamos", "pode" apos oferta de recalculo significam aceite da revisao, nao repeticao da oferta.
+
+Resposta proibida em loop:
+
+> Posso refazer a simulacao com outro formato de uso dentro da tabela, se voce quiser comparar um cenario diferente.
+
+Se a resposta nova for parecida com a anterior:
+
+- nao enviar;
+- incrementar contagem de repeticao quando houver campo persistente;
+- perguntar algo especifico;
+- ou reconhecer o loop se o cliente apontou erro.
+
+Testes adicionais:
+
+- IA pergunta "Quer seguir com essa opcao?"; cliente pergunta "Podemos recalcular?"; esperado: perguntar o que deseja mudar.
+- IA ofereceu recalculo; cliente diz "Quero fazer"; esperado: nao repetir oferta, perguntar pessoas/dias/horas.
+- Cliente diz "Vamos recalcular?"; esperado: iniciar revisao.
+- Cliente pergunta "E vc faz ow?"; esperado: explicar funcao da IA e voltar ao foco.
+- Cliente diz "bugou", "hugou", "travou" ou "voce esta em looping"; esperado: reconhecer e retomar por pergunta objetiva.
+- Cliente responde "horas" apos pergunta de revisao; esperado: perguntar quantas horas por encontro.
+- Cliente responde "quero" apos oferta de atendente; esperado: transferir.
+- Cliente responde "pode" apos oferta de encerramento; esperado: encerrar.

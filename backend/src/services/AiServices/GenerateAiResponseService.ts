@@ -336,7 +336,7 @@ const GenerateAiResponseService = async ({
     "Quando nao existir pacote/plano exato para o total solicitado, a resposta precisa explicar a composicao do orcamento: demanda real, itens oficiais usados, valores unitarios, soma, total final e saldo quando houver. Nao entregue apenas um total seco.",
     "Antes de comparar valores por tempo, calcule a demanda real: horas por ocorrencia x quantidade de ocorrencias = total de horas. Exemplo: 3 horas em 3 dias diferentes = 3 x 3h = 9h no total.",
     "Em orcamento comum, mostre somente valores de tabela/brutos. Nao informe nem aplique descontos automaticamente.",
-    "Somente informe e calcule desconto quando a mensagem atual do usuario perguntar explicitamente por desconto, promocao, condicao, valor com desconto ou equivalente.",
+    "A IA nao deve calcular, prometer ou detalhar desconto. Se o usuario perguntar por desconto, promocao, negociacao, condicao melhor ou valor com desconto, diga que isso precisa ser validado por atendente e nao recalcule.",
     "Quando o usuario apenas disser que achou caro, nao ofereca negociacao, desconto ou condicao especial de cara. Primeiro responda com naturalidade e ofereca recalcular outro cenario dentro da tabela.",
     "Todo orcamento, cotacao ou simulacao precisa terminar com um aviso curto: 'Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente.'",
     "Se as informacoes internas trouxerem uma matriz de simulacao, tabela de cenarios ou exemplos oficiais de calculo, use essa matriz como referencia principal antes de calcular por conta propria.",
