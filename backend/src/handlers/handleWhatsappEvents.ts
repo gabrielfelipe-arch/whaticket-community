@@ -865,6 +865,25 @@ const handleAiReply = async (
       return true;
     }
 
+    if (
+      aiDecision.acao === "sem_resposta_segura" &&
+      aiDecision.respostaSegura &&
+      aiDecision.resposta
+    ) {
+      await sendTextMessage(whatsappId, contactPayload, aiDecision.resposta, ticket);
+      await ticket.update(buildAiStateUpdate(
+        ticket,
+        messageBody,
+        aiDecision.resposta,
+        aiDecision.acao,
+        aiDecision.intencao,
+        aiDecision.motivo,
+        aiDecision.knowledgeIds
+      ));
+      await updateContextFromAiDecision(ticket, aiDecision, aiDecision.resposta);
+      return true;
+    }
+
     if (aiDecision.acao === "encaminhar_atendente" || aiDecision.acao === "sem_resposta_segura") {
       logger.info(
         {

@@ -78,6 +78,20 @@ const firstMatch = (value: string, patterns: RegExp[]): string | null => {
 
 const hasAny = (value: string, pattern: RegExp): boolean => pattern.test(value);
 
+const isPackageCompositionOrTotalHoursRequest = (normalized = ""): boolean => {
+  if (!normalized) return false;
+
+  const packageTerms = /\b(pacote|pacotes|plano|planos|bloco|blocos|composicao|compor|montar|simular|orcamento|calcular)\b/.test(normalized);
+  const hasHourValue = /\b\d{1,3}\s*(?:h|hora|horas)\b/.test(normalized);
+  const hasSumSignal = /(?:\+|mais|junto|somando)/.test(normalized);
+  const saysTotalHours = /\b(total|totais|ao todo|no total|pra|para)\b.{0,25}\b\d{1,3}\s*(?:h|hora|horas)\b/.test(normalized) ||
+    /\b\d{1,3}\s*(?:h|hora|horas)\b.{0,25}\b(total|totais|ao todo|no total)\b/.test(normalized);
+  const isCorrectionAboutTotal = /\b(?:to|estou|tou|tô)\s+falando\b.{0,30}\b\d{1,3}\s*(?:h|hora|horas)\b/.test(normalized) ||
+    /\bnao\s+ha\s+(?:encontro|encontros|dia|dias)\s+de\s+\d{1,3}\s*(?:h|hora|horas)\b/.test(normalized);
+
+  return (packageTerms && (hasSumSignal || hasHourValue)) || saysTotalHours || isCorrectionAboutTotal;
+};
+
 const getActiveQuestionText = (value = ""): string => {
   const text = String(value || "").trim();
   if (!text) return "";
@@ -300,6 +314,7 @@ const extractCollectedData = (
   const normalized = cleanText(message);
   const questionType = classifyQuestion(lastQuestion || "");
   const collected: Record<string, { label: string; value: string | null; rawValue?: string | null }> = {};
+  const packageCompositionOrTotalHours = isPackageCompositionOrTotalHoursRequest(normalized);
 
   const number = firstNumberToken(normalized);
   const countAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:de|x|por|vezes)\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
@@ -341,7 +356,7 @@ const extractCollectedData = (
     parseNumberToken(rawHour) ||
     (questionType === "duration_occurrence" && isHourQuestion(lastQuestion || "") ? number : null) ||
     rawHour;
-  if (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/)) {
+  if (!packageCompositionOrTotalHours && (hour || hasAny(normalized, /\b(manha|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/))) {
     collected.duration = {
       label: "Duracao/tempo informado",
       value: hour ? `${hour}h` : firstMatch(normalized, [/\b(manha|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/]),
@@ -358,7 +373,7 @@ const extractCollectedData = (
     parseNumberToken(rawOccurrences) ||
     (questionType === "duration_occurrence" && isOccurrenceCountQuestion(lastQuestion || "") && !hour ? number : null) ||
     rawOccurrences;
-  if (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|apenas um|so 1|so um|somente 1|somente um|recorrente|semanal|mensal|pontual|unico dia|um unico dia|apenas 1 dia|apenas um dia|so 1 dia|so um dia|somente 1 dia|somente um dia)\b/)) {
+  if (!packageCompositionOrTotalHours && (occurrences || hasAny(normalized, /\b(unico|um unico|apenas 1|apenas um|so 1|so um|somente 1|somente um|recorrente|semanal|mensal|pontual|unico dia|um unico dia|apenas 1 dia|apenas um dia|so 1 dia|so um dia|somente 1 dia|somente um dia)\b/))) {
     collected.occurrences = {
       label: "Quantidade de ocorrencias/unidades de agenda",
       value: occurrences || (singleOccurrence ? "1" : firstMatch(normalized, [/\b(recorrente|semanal|mensal)\b/])),

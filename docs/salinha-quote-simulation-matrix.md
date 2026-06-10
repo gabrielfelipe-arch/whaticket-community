@@ -34,6 +34,15 @@ Este documento consolida as simulacoes que a IA deve usar para evitar erros de c
 - Se o cliente perguntar assunto fora do escopo, como produto externo, futebol, politica, celebridade, roupa, curiosidade geral ou outro tema sem relacao com a Salinha, responder educadamente que nao consegue ajudar com esse assunto por ali, que o foco e o atendimento da Salinha, e redirecionar para valores, estrutura, reserva ou duvidas do espaco.
 - Nao responder perguntas fora do escopo usando conhecimento geral e nao repetir orcamento antigo quando o cliente mudou para um assunto externo.
 - Nunca usar valor inventado pelo cliente para simular orcamento. Se o cliente pedir "simula com 3h a R$ 12" ou qualquer preco diferente da tabela, informar que nao da para simular com valor fora da tabela e usar somente os valores oficiais cadastrados.
+- Se o cliente tentar contornar dizendo "simula como se fosse R$ X", "faz por R$ X", "imagina que custa R$ X" ou equivalente, nao recalcular com esse valor. Responder de forma educada que a simulacao so pode usar valores oficiais e oferecer recalcular pela tabela.
+- Se o cliente mudar apenas a quantidade de pessoas, manter dias/encontros e horas ja coletados, mas validar capacidade antes de recalcular. Acima de 20 pessoas, nao montar orcamento como opcao viavel.
+- Para montar composicoes, usar somente valores oficiais simples da tabela de valores, nao linhas de exemplo, matriz, observacoes ou comparacoes.
+- Nao misturar modalidades na mesma composicao: diaria e turno sao uso consecutivo no mesmo dia; pacotes/blocos sao saldo flexivel ou itens avulsos conforme tabela. Nunca montar algo como "pacote de 3h + diaria de 10h" para cobrir total flexivel.
+- Quando o cliente informar varios dias/encontros com muitas horas em cada dia, comparar duas linhas separadas:
+  - uso consecutivo por dia/encontro: turno ou diaria x quantidade de dias/encontros;
+  - pacote/saldo flexivel: pacotes oficiais que cobrem o total de horas.
+- Na resposta ao cliente, deixar claro qual modalidade foi usada e por que ela e a mais adequada.
+- Se o cliente aceitar calcular no limite de capacidade apos informar mais de 20 pessoas, considerar 20 pessoas nos proximos recalculos ate ele informar outra quantidade valida.
 - Orcamentos enviados pela IA sao simulacoes informativas. Toda simulacao precisa avisar que disponibilidade, reserva e condicoes finais devem ser confirmadas por um atendente.
 - Rodape obrigatorio em orcamentos: "Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente."
 
@@ -82,13 +91,14 @@ Este documento consolida as simulacoes que a IA deve usar para evitar erros de c
 6. Se nao houver pacote flexivel direto exato, calcular duas linhas:
    - Linha consecutiva por dia: item consecutivo ideal x quantidade de dias/encontros.
    - Linha flexivel: menor pacote ou combinacao de pacotes que cubra o total de horas.
-7. Escolher a opcao mais vantajosa que cubra tudo e fique proxima da necessidade.
-8. Antes de responder, descartar opcoes que cubram menos do que o solicitado e descartar pacotes com mais de 2h de sobra, exceto quando forem financeiramente melhores/empatados ou quando o cliente pediu saldo/uso futuro.
-9. Se houver empate e nao existir pacote flexivel direto exato, explicar a diferenca de uso em uma frase somente quando isso ajudar a decisao do cliente:
+7. Antes de recomendar, comparar todos os pacotes e combinacoes cadastrados que cubram 100% da necessidade. Considerar pelo menos: bloco minimo, pacotes diretos, combinacoes de pacotes menores e menor pacote maior.
+8. Escolher a opcao mais vantajosa pelo menor valor final que cubra tudo. Se a opcao mais barata sobrar horas, explicar o saldo em uma frase curta.
+9. Antes de responder, descartar opcoes que cubram menos do que o solicitado. Pacote com mais de 2h de sobra pode ser recomendado somente quando for mais barato do que as composicoes mais proximas, e essa comparacao deve ficar clara.
+10. Se houver empate e nao existir pacote flexivel direto exato, explicar a diferenca de uso em uma frase somente quando isso ajudar a decisao do cliente:
    - Turno/diaria: horas consecutivas naquele dia.
    - Pacote: saldo flexivel para usar em dias/horarios diferentes conforme disponibilidade.
-10. Nao mostrar desconto, salvo se o cliente perguntar.
-11. Encerrar o orcamento com o aviso de simulacao informativa.
+11. Nao mostrar desconto, salvo se o cliente perguntar.
+12. Encerrar o orcamento com o aviso de simulacao informativa.
 
 ## Um unico dia ou uso consecutivo
 
@@ -130,11 +140,22 @@ Usar esta orientacao quando o cliente disser que pretende usar a sala toda seman
 - A partir de 3 meses, avaliar planos mensalistas porque podem ter preco melhor do que contratar avulso/pacotes soltos.
 - Se for menos de 3 meses, tratar como datas/encontros especificos e calcular pela matriz de horas/pacotes. Nao oferecer mensalista e nao subir para pacote maior por "uso futuro" apenas porque o cliente informou 1 ou 2 meses.
 - Exemplo obrigatorio: 3 aulas/encontros/dias de 5h = 15h no total. Mesmo se o cliente disser que sera por 2 meses, recomendar pacote de 15h = R$ 900. Nao recomendar pacote 20h, porque fica acima da necessidade.
-- Informativo recomendado quando fizer sentido: "Para uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas."
+- Informativo recomendado dentro do orcamento, depois do valor: "Para uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas."
+- Nao enviar essa informacao como pergunta separada nem como etapa obrigatoria antes do orcamento.
 
 ## Matriz por total de horas flexiveis
 
 Use esta tabela quando as horas forem em dias/encontros diferentes ou quando o cliente pedir pacote/saldo flexivel. Preferir a primeira opcao quando ela cobrir a necessidade sem sobra exagerada.
+
+Importante: a coluna "Total solicitado" nao significa que existe pacote direto com aquele total. So chamar de "pacote de 12h", "pacote de 13h", "pacote de 14h", "pacote de 16h", "pacote de 17h", "pacote de 18h", "pacote de 19h", "pacote de 21h", "pacote de 22h", "pacote de 23h", "pacote de 24h" ou "pacote de 25h" se esse pacote estiver listado como valor oficial. Quando a opcao usar mais de um item, chamar de composicao e mostrar a soma.
+
+Em qualquer total sem pacote direto exato, a resposta profissional deve conter:
+- demanda real: quantidade de encontros x horas por encontro = total de horas;
+- frase dizendo que nao existe pacote direto exato para aquele total, quando for o caso;
+- composicao com nomes dos itens oficiais;
+- soma aberta com valores unitarios;
+- total final;
+- saldo, se a composicao cobrir mais horas do que o solicitado.
 
 | Total solicitado | Melhor opcao objetiva antes de desconto | Alternativa/observacao |
 | --- | --- | --- |
@@ -146,20 +167,27 @@ Use esta tabela quando as horas forem em dias/encontros diferentes ou quando o c
 | 6h | Pacote/periodo de 3h x 2 = R$ 210 x 2 = R$ 420 | Nao oferecer pacote 10h como principal; sobra 4h, muito acima do pedido. |
 | 7h | Pacote de 5h + pacote de 2h = R$ 350 + R$ 140 = R$ 490 | Nao oferecer pacote 10h como principal; sobra 3h e fica acima da necessidade. |
 | 8h | Pacote de 5h + pacote de 3h = R$ 350 + R$ 210 = R$ 560 | Pacote 10h = R$ 600 com 2h de saldo pode ser citado como alternativa proxima. |
-| 9h | Pacote de 3h x 3 = R$ 210 x 3 = R$ 630 | Pacote 10h = R$ 600 com 1h de saldo costuma ser melhor. |
+| 9h | Pacote 10h = R$ 600 | Melhor que pacote de 3h x 3 = R$ 210 x 3 = R$ 630; sobra 1h. |
 | 10h | Pacote 10h = R$ 600 | Cobre exatamente. |
 | 11h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Nao usar pacote 15h como principal; sobra 4h e fica mais caro. |
 | 12h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Pacote 15h so se cliente pedir saldo; pacote 20h fica muito acima. |
 | 13h | Pacote de 10h + pacote de 3h = R$ 600 + R$ 210 = R$ 810 | Pacote 15h = R$ 900 com 2h de saldo. |
 | 14h | Pacote de 10h + pacote/bloco de 2h x 2 = R$ 600 + R$ 280 = R$ 880 | Pacote 15h = R$ 900 com 1h de saldo; comparar pela simplicidade. |
 | 15h | Pacote 15h = R$ 900 | Cobre exatamente. |
-| 16h | Pacote de 15h + pacote/bloco de 2h = R$ 900 + R$ 140 = R$ 1.040 | Pacote 20h = R$ 1.000 com 4h de saldo costuma ser melhor. |
-| 17h | Pacote de 15h + pacote/bloco de 2h = R$ 900 + R$ 140 = R$ 1.040 | Pacote 20h = R$ 1.000 com 3h de saldo costuma ser melhor. |
-| 18h | Pacote de 15h + pacote de 3h = R$ 900 + R$ 210 = R$ 1.110 | Pacote 20h = R$ 1.000 com 2h de saldo costuma ser melhor. |
-| 19h | Pacote de 15h + pacote de 5h = R$ 900 + R$ 350 = R$ 1.250 | Pacote 20h = R$ 1.000 com 1h de saldo costuma ser melhor. |
+| 16h | Pacote 20h = R$ 1.000 | Melhor que pacote 15h + bloco 2h = R$ 900 + R$ 140 = R$ 1.040; sobra 4h, mas fica mais barato. |
+| 17h | Pacote 20h = R$ 1.000 | Melhor que pacote 15h + bloco 2h = R$ 900 + R$ 140 = R$ 1.040; sobra 3h, mas fica mais barato. |
+| 18h | Pacote 20h = R$ 1.000 | Melhor que pacote 15h + pacote 3h = R$ 900 + R$ 210 = R$ 1.110; sobra 2h. |
+| 19h | Pacote 20h = R$ 1.000 | Melhor que pacote 15h + pacote 5h = R$ 900 + R$ 350 = R$ 1.250; sobra 1h. |
 | 20h | Pacote 20h = R$ 1.000 | Cobre exatamente. |
+| 21h | Pacote 20h + pacote/bloco de 2h = R$ 1.000 + R$ 140 = R$ 1.140 | Cobre 22h; sobra 1h dentro do menor bloco. |
+| 22h | Pacote 20h + pacote/bloco de 2h = R$ 1.000 + R$ 140 = R$ 1.140 | Cobre exatamente. |
+| 23h | Pacote 20h + pacote de 3h = R$ 1.000 + R$ 210 = R$ 1.210 | Cobre exatamente. |
+| 24h | Pacote 20h + pacote de 5h = R$ 1.000 + R$ 350 = R$ 1.350 | Cobre 25h; sobra 1h. Nao reduzir para pacote 20h, porque faltariam 4h. |
+| 25h | Pacote 20h + pacote de 5h = R$ 1.000 + R$ 350 = R$ 1.350 | Cobre exatamente. |
 
 Observacao: quando uma composicao com pacotes menores ficar mais cara do que o pacote maior que cobre tudo, recomendar o pacote maior e explicar o saldo em uma frase. Se o pacote maior deixar mais de 2h sobrando e nao for mais barato/empatado, nao oferecer como recomendacao principal.
+
+Exemplo obrigatorio: 4 encontros de 3h = 12h no total. Nao existe pacote direto de 12h. Responder como composicao: pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740. Nunca dizer "pacote de 12h = R$ 720".
 
 | Pedido | Avulso antes de desconto | Pacote possivel | Observacao |
 | --- | --- | --- | --- |
@@ -168,14 +196,15 @@ Observacao: quando uma composicao com pacotes menores ficar mais cara do que o p
 | 2 encontros de 2h | Bloco de 2h x 2 = R$ 140 x 2 = R$ 280 | Nao oferecer pacote como principal | Avulso cobre exatamente. |
 | 3 encontros de 2h | Bloco de 2h x 3 = R$ 140 x 3 = R$ 420 | Pacote 10h = R$ 600 com 4h saldo | Avulso costuma ser melhor; pacote 10h so se cliente quiser saldo/recorrencia. |
 | 2 encontros de 3h | Pacote/periodo de 3h x 2 = R$ 210 x 2 = R$ 420 | Pacote 10h = R$ 600 com 4h saldo | Usar 3h direto por encontro como melhor opcao; pacote 10h so se o cliente quiser saldo. |
-| 3 encontros de 3h | Pacote de 3h x 3 = R$ 210 x 3 = R$ 630 | Pacote 10h = R$ 600 com 1h saldo | Pacote 10h costuma ser melhor; nao usar 3 encontros x 2 blocos. |
+| 3 encontros de 3h | Pacote 10h = R$ 600 | Pacote de 3h x 3 = R$ 210 x 3 = R$ 630 | Total real: 9h. Pacote 10h cobre tudo, sobra 1h e fica mais barato. |
 | 2 encontros de 4h | Bloco de 2h x 4 = R$ 140 x 4 = R$ 560 | Pacote 10h = R$ 600 com 2h saldo | Comparar. |
 | 3 encontros de 4h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Pacote 15h = R$ 900 com 3h saldo | Melhor que 6 blocos; pacote 20h so se quiser muito saldo. |
 | 2 encontros de 5h | Turno de 5h x 2 = R$ 300 x 2 = R$ 600 | Pacote 10h = R$ 600 | Empate antes de desconto; explicar diferenca entre turno consecutivo e pacote flexivel. |
 | 3 encontros de 5h | Pacote 15h = R$ 900 | Turno de 5h x 3 = R$ 300 x 3 = R$ 900, apenas se o cliente pedir comparacao | Como existe pacote flexivel direto de 15h, oferecer somente o pacote 15h. Diaria de 10h x 3 = R$ 1.500 e nao e melhor. |
 | 3 encontros de 5h por 1 ou 2 meses | Pacote 15h = R$ 900 | Nao oferecer pacote 20h | Menos de 3 meses nao entra como mensalista/recorrente; calcular como datas/encontros especificos. |
 | 2 encontros de 6h | Pacote de 10h + pacote/bloco de 2h = R$ 600 + R$ 140 = R$ 740 | Pacote 15h so se cliente pedir saldo | Evitar pacote 20h como principal para 12h; fica muito acima. |
-| 3 encontros de 6h | Bloco de 2h x 9 = R$ 140 x 9 = R$ 1.260 | Pacote 20h = R$ 1.000 com 2h saldo | Pacote 20h costuma ser melhor. |
+| 3 encontros de 6h | Pacote 20h = R$ 1.000 | Bloco de 2h x 9 = R$ 140 x 9 = R$ 1.260 | Total real: 18h. Pacote 20h cobre tudo, sobra 2h e fica mais barato. |
+| 4 encontros de 6h | Pacote 20h + pacote de 5h = R$ 1.000 + R$ 350 = R$ 1.350 | Cobre 25h, com 1h de saldo | Total real: 4 x 6h = 24h. Nao usar 15h nem 20h sozinho, porque nao cobrem a necessidade. |
 | 1 encontro de 15h ou 15h consecutivas | Encaminhar/confirmar com humano | Pacote 15h e saldo flexivel; nao equivale automaticamente a 15h consecutivas no mesmo dia. |
 | 15h em dias diferentes | Calcular avulso por encontro e comparar | Pacote 15h = R$ 900; pacote 20h = R$ 1.000 com 5h saldo | Pacote 15h cobre exatamente; pacote 20h so se saldo extra fizer sentido. |
 
@@ -183,6 +212,7 @@ Observacao: quando uma composicao com pacotes menores ficar mais cara do que o p
 
 - 3 dias de 5h cada = 15h no total:
   - Recomendacao principal: pacote de 15h = R$ 900.
+  - Depois do valor, pode informar: Para uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas.
   - Nao precisa mencionar turno de 5h x 3, porque o pacote direto de 15h cobre exatamente o total e simplifica a escolha.
   - Se o cliente pedir comparacao, explicar que turno de 5h x 3 = R$ 300 x 3 = R$ 900 tambem chega ao mesmo valor, mas e uso consecutivo por dia; pacote 15h funciona como saldo flexivel conforme disponibilidade.
   - Nao recomendar diaria de 10h x 3 como melhor custo, porque seria R$ 500 x 3 = R$ 1.500.

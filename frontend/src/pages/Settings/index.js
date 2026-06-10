@@ -709,6 +709,7 @@ const resources = [
 				options: [
 					{ value: "registrarLead", label: "Registrar lead" },
 					{ value: "gerarResumoParaAtendente", label: "Gerar resumo para atendente" },
+					{ value: "calcularOrcamento", label: "Calcular orcamento" },
 					{ value: "transferirParaFila", label: "Transferir para fila" },
 					{ value: "encerrarAtendimento", label: "Encerrar atendimento" },
 					{ value: "consultarAgenda", label: "Consultar agenda" },

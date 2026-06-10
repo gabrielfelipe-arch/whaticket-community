@@ -38,6 +38,10 @@ import AiTicketContext from "../models/AiTicketContext";
 import AiLead from "../models/AiLead";
 import AiCalendarConnection from "../models/AiCalendarConnection";
 import AiToolExecution from "../models/AiToolExecution";
+import CommercialService from "../models/CommercialService";
+import CommercialIncludedItem from "../models/CommercialIncludedItem";
+import CommercialPriceRule from "../models/CommercialPriceRule";
+import CommercialQuoteSimulation from "../models/CommercialQuoteSimulation";
 
 
 // eslint-disable-next-line
@@ -85,7 +89,11 @@ const models = [
   AiTicketContext,
   AiLead,
   AiCalendarConnection,
-  AiToolExecution
+  AiToolExecution,
+  CommercialService,
+  CommercialIncludedItem,
+  CommercialPriceRule,
+  CommercialQuoteSimulation
 ];
 
 sequelize.addModels(models);

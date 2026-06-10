@@ -9,10 +9,12 @@ import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
+import CalculateCommercialQuoteService from "../CommercialServices/CalculateCommercialQuoteService";
 
 export type AiToolName =
   | "registrarLead"
   | "gerarResumoParaAtendente"
+  | "calcularOrcamento"
   | "transferirParaFila"
   | "encerrarAtendimento"
   | "consultarAgenda"
@@ -124,6 +126,55 @@ const buildAttendantSummary = async (ticket: Ticket): Promise<AiToolResult> => {
   });
 
   return { ok: true, internalMessage: body, data: { summary: body } };
+};
+
+const calculateQuote = async (
+  ticket: Ticket,
+  aiSetting: AiSetting,
+  params: Record<string, any>
+): Promise<AiToolResult> => {
+  const result = await CalculateCommercialQuoteService({
+    commercialServiceId: params.commercialServiceId ? Number(params.commercialServiceId) : undefined,
+    aiSettingId: aiSetting.id,
+    ticketId: ticket.id,
+    contactId: ticket.contactId || undefined,
+    pricingDimension: params.pricingDimension || "hours",
+    participantCount: params.participantCount ? Number(params.participantCount) : undefined,
+    quantity: params.quantity ? Number(params.quantity) : undefined,
+    occurrenceCount: params.occurrenceCount ? Number(params.occurrenceCount) : undefined,
+    durationPerOccurrence: params.durationPerOccurrence ? Number(params.durationPerOccurrence) : undefined,
+    preferredMode: params.preferredMode,
+    maxUsefulOverage: params.maxUsefulOverage ? Number(params.maxUsefulOverage) : undefined,
+    includeAlternatives: Boolean(params.includeAlternatives)
+  });
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      errorMessage: result.validationMessage || "Nao foi possivel calcular o orcamento.",
+      data: result as any
+    };
+  }
+
+  const recommended = result.recommended;
+  const lines = recommended?.lines
+    .map(line => `- ${line.name} x ${line.count}: R$ ${line.unitPrice.toFixed(2).replace(".", ",")} x ${line.count} = R$ ${line.total.toFixed(2).replace(".", ",")}`)
+    .join("\n");
+  const included = result.includedItems.length
+    ? `\n\nIncluso:\n${result.includedItems.map(item => `- ${item}`).join("\n")}`
+    : "";
+
+  return {
+    ok: true,
+    customerMessage: [
+      `Simulei o orcamento para ${result.requestedQuantity} unidade(s).`,
+      lines,
+      recommended ? `Total: R$ ${recommended.total.toFixed(2).replace(".", ",")}` : "",
+      "Essa simulacao precisa ser validada por um atendente antes da confirmacao.",
+      included
+    ].filter(Boolean).join("\n"),
+    data: result as any
+  };
 };
 
 const transferToQueue = async (
@@ -307,6 +358,7 @@ export const ExecuteAiToolService = async ({
     const result =
       toolName === "registrarLead" ? await registerLead(ticket, aiSetting) :
       toolName === "gerarResumoParaAtendente" ? await buildAttendantSummary(ticket) :
+      toolName === "calcularOrcamento" ? await calculateQuote(ticket, aiSetting, params) :
       toolName === "transferirParaFila" ? await transferToQueue(ticket, aiSetting, params) :
       toolName === "encerrarAtendimento" ? await closeTicket(ticket, params) :
       toolName === "consultarAgenda" ? await consultCalendar(aiSetting, params) :
