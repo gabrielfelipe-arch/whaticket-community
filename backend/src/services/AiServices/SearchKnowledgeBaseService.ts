@@ -242,7 +242,7 @@ const splitArticleIntoChunks = (article: KnowledgeBaseArticle): Array<{ section:
       line.length >= 4 &&
       line.length <= 90 &&
       !/[.!?;]$/.test(line) &&
-      /^[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ0-9]/.test(line) &&
+      /^[A-Z????????????0-9]/.test(line) &&
       currentLines.length > 0 &&
       (
         /:$/.test(line) ||

@@ -221,8 +221,8 @@ const answerMatchesIntent = (intent = "", message = "", answer = ""): boolean =>
     case "request_teacher_package":
       if (asksAbout(message, [/\b1 hora\b/, /\buma hora\b/, /\bhora semanal\b/, /\bhora por semana\b/])) {
         return /\bprofessor\b/.test(normalizedAnswer) &&
-          /\b(nao|nÃ£o)\b/.test(normalizedAnswer) &&
-          /\b(1 dia|2 dias|dias de uso|opcoes por dias|opÃ§Ãµes por dias)\b/.test(normalizedAnswer);
+          /\b(nao|não)\b/.test(normalizedAnswer) &&
+          /\b(1 dia|2 dias|dias de uso|opcoes por dias|opções por dias)\b/.test(normalizedAnswer);
       }
       return /\bprofessor\b/.test(normalizedAnswer) && /\b(1 mes|tercas|quintas|13h|17h30|2 dias|1 dia)\b/.test(normalizedAnswer);
     case "request_price_table":

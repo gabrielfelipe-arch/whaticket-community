@@ -2,8 +2,8 @@ export const POST_QUOTE_MENU_TEXT = [
   "Como deseja prosseguir?",
   "",
   "1. Confirmar disponibilidade/reserva com a equipe",
-  "2. Fazer uma nova simulação",
-  "3. Tenho outra dúvida"
+  "2. Fazer uma nova simula\u00e7\u00e3o",
+  "3. Tenho outra d\u00favida"
 ].join("\n");
 
 const normalizeText = (value = ""): string =>
@@ -34,8 +34,8 @@ export const appendPostQuoteMenu = (answer = ""): string => {
   if (!trimmed) return POST_QUOTE_MENU_TEXT;
 
   const withoutOldFollowUp = trimmed
-    .replace(/\n{0,2}\s*Quer seguir com essa op[cç][aã]o\?\s*$/i, "")
-    .replace(/\n{0,2}\s*Quer seguir com esse or[cç]amento\?\s*$/i, "")
+    .replace(/\n{0,2}\s*Quer seguir com essa op[c\u00e7][a\u00e3]o\?\s*$/i, "")
+    .replace(/\n{0,2}\s*Quer seguir com esse or[c\u00e7]amento\?\s*$/i, "")
     .trim();
 
   if (normalizeText(withoutOldFollowUp).includes(normalizeText("Como deseja prosseguir"))) {
@@ -47,6 +47,6 @@ export const appendPostQuoteMenu = (answer = ""): string => {
 
 export const postQuoteMenuOptionLabel = (option: "1" | "2" | "3"): string => {
   if (option === "1") return "Confirmar disponibilidade/reserva com a equipe";
-  if (option === "2") return "Fazer uma nova simulação";
-  return "Tenho outra dúvida";
+  if (option === "2") return "Fazer uma nova simula\u00e7\u00e3o";
+  return "Tenho outra d\u00favida";
 };

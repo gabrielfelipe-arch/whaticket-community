@@ -166,7 +166,12 @@ const calculateQuote = async (
     : "";
 
   const customerMessage = [
-    `Simulação de orçamento para ${result.requestedQuantity}h no total.`,
+    "📌 Orçamento estimado",
+    "",
+    `⏱️ Total: ${result.requestedQuantity}h`,
+    "",
+    "Melhor opção encontrada:",
+    "",
     lines,
     recommended ? `Total estimado: R$ ${recommended.total.toFixed(2).replace(".", ",")}` : "",
     included,

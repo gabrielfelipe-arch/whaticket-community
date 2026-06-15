@@ -168,7 +168,7 @@ const buildCandidatesForRules = (
     .filter(([coveredQuantity]) => coveredQuantity >= requestedQuantity)
     .map(([coveredQuantity, data]) => ({
       mode,
-      title: mode === "consecutive" ? "Uso consecutivo" : "Pacote flexivel",
+      title: mode === "consecutive" ? "Uso consecutivo" : "Pacote flexível",
       requestedQuantity,
       coveredQuantity,
       overage: coveredQuantity - requestedQuantity,
@@ -244,7 +244,7 @@ const CalculateCommercialQuoteService = async (
 ): Promise<CalculateQuoteResult> => {
   const service = await findCommercialService(request);
   if (!service) {
-    return { ok: false, status: "not_found", alternatives: [], includedItems: [], validationMessage: "Servico comercial nao encontrado." };
+    return { ok: false, status: "not_found", alternatives: [], includedItems: [], validationMessage: "Serviço comercial não encontrado." };
   }
 
   const requestedQuantity = getRequestedQuantity(request);
@@ -261,7 +261,7 @@ const CalculateCommercialQuoteService = async (
       requestedQuantity,
       alternatives: [],
       includedItems: [],
-      validationMessage: `Capacidade maxima: ${capacityMax}. Quantidade informada: ${request.participantCount}.`
+      validationMessage: `Capacidade máxima: ${capacityMax}. Quantidade informada: ${request.participantCount}.`
     };
   }
 
@@ -314,7 +314,7 @@ const CalculateCommercialQuoteService = async (
     recommended,
     alternatives,
     includedItems: includedItems.map(item => item.label),
-    validationMessage: recommended ? undefined : "Nenhuma regra de preco cadastrada cobre essa necessidade."
+    validationMessage: recommended ? undefined : "Nenhuma regra de preço cadastrada cobre essa necessidade."
   };
 
   if (request.ticketId || request.contactId || request.aiSettingId) {
