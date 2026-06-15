@@ -16,13 +16,12 @@ import Typography from "@material-ui/core/Typography";
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import CircularProgress from "@material-ui/core/CircularProgress";
-import MenuItem from "@material-ui/core/MenuItem";
-import Chip from "@material-ui/core/Chip";
 
 import { i18n } from "../../translate/i18n";
 
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
+import TagCheckboxPicker from "../TagCheckboxPicker";
 
 const useStyles = makeStyles(theme => ({
 	root: {
@@ -51,11 +50,6 @@ const useStyles = makeStyles(theme => ({
 		left: "50%",
 		marginTop: -12,
 		marginLeft: -12,
-	},
-	tagChips: {
-		display: "flex",
-		flexWrap: "wrap",
-		gap: theme.spacing(0.5),
 	},
 }));
 
@@ -175,7 +169,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 						}, 400);
 					}}
 				>
-					{({ values, errors, touched, isSubmitting }) => (
+					{({ values, errors, touched, isSubmitting, setFieldValue }) => (
 						<Form>
 							<DialogContent dividers>
 								<Typography variant="subtitle1" gutterBottom>
@@ -215,42 +209,12 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										variant="outlined"
 									/>
 								</div>
-								<Field
-									as={TextField}
-									select
-									fullWidth
+								<TagCheckboxPicker
+									tags={tags}
+									selectedIds={values.tagIds}
 									label="Etiquetas"
-									name="tagIds"
-									variant="outlined"
-									margin="dense"
-									SelectProps={{
-										multiple: true,
-										renderValue: selected => (
-											<div className={classes.tagChips}>
-												{selected.map(tagId => {
-													const tag = tags.find(item => item.id === tagId);
-													return (
-														<Chip
-															key={tagId}
-															size="small"
-															label={tag?.name || tagId}
-															style={{
-																backgroundColor: tag?.color || "#607d8b",
-																color: "#fff",
-															}}
-														/>
-													);
-												})}
-											</div>
-										),
-									}}
-								>
-									{tags.map(tag => (
-										<MenuItem key={tag.id} value={tag.id}>
-											{tag.name}
-										</MenuItem>
-									))}
-								</Field>
+									onChange={tagIds => setFieldValue("tagIds", tagIds)}
+								/>
 								<Typography
 									style={{ marginBottom: 8, marginTop: 12 }}
 									variant="subtitle1"

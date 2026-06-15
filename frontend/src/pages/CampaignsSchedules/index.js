@@ -42,6 +42,7 @@ import { toast } from "react-toastify";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
+import TagCheckboxPicker from "../../components/TagCheckboxPicker";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -586,22 +587,6 @@ const CampaignsSchedules = () => {
       contactIds: prev.contactIds.filter(contactId => allowedContactIds.includes(Number(contactId)))
     }));
   };
-
-  const renderTagValue = selected => (
-    <div className={classes.tagChips}>
-      {selected.map(tagId => {
-        const tag = tags.find(item => item.id === tagId);
-        return (
-          <Chip
-            key={tagId}
-            size="small"
-            label={tag?.name || tagId}
-            style={{ backgroundColor: tag?.color || "#607d8b", color: "#fff" }}
-          />
-        );
-      })}
-    </div>
-  );
 
   const createCampaign = async () => {
     try {
@@ -1392,21 +1377,13 @@ const CampaignsSchedules = () => {
                     </TextField>
                   </Grid>
                   <Grid item xs={12} sm={6}>
-                    <TextField
-                      select
-                      fullWidth
-                      margin="dense"
-                      variant="outlined"
+                    <TagCheckboxPicker
+                      tags={tags}
+                      selectedIds={scheduleForm.tagIds}
                       label="Etiquetas"
-                      name="tagIds"
-                      value={scheduleForm.tagIds}
-                      onChange={handleScheduleChange}
-                      SelectProps={{ multiple: true, renderValue: renderTagValue }}
-                    >
-                      {tags.map(tag => (
-                        <MenuItem key={tag.id} value={tag.id}>{tag.name}</MenuItem>
-                      ))}
-                    </TextField>
+                      helperText="Se marcar etiquetas, o envio sera feito para contatos que tenham pelo menos uma delas."
+                      onChange={tagIds => setScheduleForm(prev => ({ ...prev, tagIds }))}
+                    />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <ContactPicker
@@ -1420,21 +1397,13 @@ const CampaignsSchedules = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField fullWidth type="number" margin="dense" variant="outlined" label="Etiqueta aplicada nos ultimos dias" name="tagAppliedLastDays" value={scheduleForm.tagAppliedLastDays} onChange={handleScheduleChange} placeholder="Ex: 7" />
-                    <TextField
-                      select
-                      fullWidth
-                      margin="dense"
-                      variant="outlined"
+                    <TagCheckboxPicker
+                      tags={tags}
+                      selectedIds={scheduleForm.excludeTagIds}
                       label="Nao enviar para contatos com estas etiquetas"
-                      name="excludeTagIds"
-                      value={scheduleForm.excludeTagIds}
-                      onChange={handleScheduleChange}
-                      SelectProps={{ multiple: true, renderValue: renderTagValue }}
-                    >
-                      {tags.map(tag => (
-                        <MenuItem key={tag.id} value={tag.id}>{tag.name}</MenuItem>
-                      ))}
-                    </TextField>
+                      helperText="Contatos com essas etiquetas serao ignorados neste envio."
+                      onChange={excludeTagIds => setScheduleForm(prev => ({ ...prev, excludeTagIds }))}
+                    />
                   </Grid>
                 </Grid>
               </Paper>
@@ -1632,26 +1601,13 @@ const CampaignsSchedules = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                margin="dense"
-                variant="outlined"
+              <TagCheckboxPicker
+                tags={tags}
+                selectedIds={scheduleForm.tagIds}
                 label="Etiquetas"
-                name="tagIds"
-                value={scheduleForm.tagIds}
-                onChange={handleScheduleChange}
-                SelectProps={{ multiple: true, renderValue: renderTagValue }}
-              >
-                {tags.map(tag => (
-                  <MenuItem key={tag.id} value={tag.id}>
-                    {tag.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Typography variant="caption" color="textSecondary">
-                Se marcar etiquetas, o envio sera feito para contatos que tenham pelo menos uma delas.
-              </Typography>
+                helperText="Se marcar etiquetas, o envio sera feito para contatos que tenham pelo menos uma delas."
+                onChange={tagIds => setScheduleForm(prev => ({ ...prev, tagIds }))}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField fullWidth type="number" margin="dense" variant="outlined" label="Etiqueta aplicada nos ultimos dias" name="tagAppliedLastDays" value={scheduleForm.tagAppliedLastDays} onChange={handleScheduleChange} placeholder="Ex: 7" />
@@ -1660,26 +1616,13 @@ const CampaignsSchedules = () => {
               </Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField
-                select
-                fullWidth
-                margin="dense"
-                variant="outlined"
+              <TagCheckboxPicker
+                tags={tags}
+                selectedIds={scheduleForm.excludeTagIds}
                 label="Nao enviar para contatos com estas etiquetas"
-                name="excludeTagIds"
-                value={scheduleForm.excludeTagIds}
-                onChange={handleScheduleChange}
-                SelectProps={{ multiple: true, renderValue: renderTagValue }}
-              >
-                {tags.map(tag => (
-                  <MenuItem key={tag.id} value={tag.id}>
-                    {tag.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <Typography variant="caption" color="textSecondary">
-                Contatos com essas etiquetas serao ignorados neste envio.
-              </Typography>
+                helperText="Contatos com essas etiquetas serao ignorados neste envio."
+                onChange={excludeTagIds => setScheduleForm(prev => ({ ...prev, excludeTagIds }))}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de agendamento" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>

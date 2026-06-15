@@ -7,6 +7,7 @@ import CreateContactService from "../services/ContactServices/CreateContactServi
 import ShowContactService from "../services/ContactServices/ShowContactService";
 import UpdateContactService from "../services/ContactServices/UpdateContactService";
 import DeleteContactService from "../services/ContactServices/DeleteContactService";
+import ImportContactsSpreadsheetService from "../services/ContactServices/ImportContactsSpreadsheetService";
 
 import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
@@ -170,4 +171,17 @@ export const remove = async (
   });
 
   return res.status(200).json({ message: "Contact deleted" });
+};
+
+export const importSpreadsheet = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (!req.file?.path) {
+    throw new AppError("Arquivo da planilha nao enviado.", 400);
+  }
+
+  const result = await ImportContactsSpreadsheetService(req.file.path);
+
+  return res.status(200).json(result);
 };

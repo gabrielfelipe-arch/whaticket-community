@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useContext } from "react";
+import React, { useState, useEffect, useReducer, useContext, useRef } from "react";
 import openSocket from "../../services/socket-io";
 import { toast } from "react-toastify";
 import { useHistory } from "react-router-dom";
@@ -12,12 +12,17 @@ import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import Button from "@material-ui/core/Button";
 import Avatar from "@material-ui/core/Avatar";
+import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogTitle from "@material-ui/core/DialogTitle";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import SearchIcon from "@material-ui/icons/Search";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
-import MenuItem from "@material-ui/core/MenuItem";
 import Chip from "@material-ui/core/Chip";
+import Typography from "@material-ui/core/Typography";
+import CloudUploadIcon from "@material-ui/icons/CloudUpload";
 
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
@@ -36,6 +41,7 @@ import MainContainer from "../../components/MainContainer";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
+import TagCheckboxPicker from "../../components/TagCheckboxPicker";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -91,10 +97,12 @@ const useStyles = makeStyles((theme) => ({
   filters: {
     display: "flex",
     alignItems: "center",
+    flexWrap: "wrap",
     gap: theme.spacing(1),
   },
   tagFilter: {
-    minWidth: 220,
+    width: 280,
+    maxWidth: "100%",
   },
   tagChips: {
     display: "flex",
@@ -106,6 +114,7 @@ const useStyles = makeStyles((theme) => ({
 const Contacts = () => {
   const classes = useStyles();
   const history = useHistory();
+  const fileInputRef = useRef(null);
 
   const { user } = useContext(AuthContext);
 
@@ -120,6 +129,8 @@ const Contacts = () => {
   const [deletingContact, setDeletingContact] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [importingSpreadsheet, setImportingSpreadsheet] = useState(false);
+  const [spreadsheetInfoOpen, setSpreadsheetInfoOpen] = useState(false);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
@@ -181,10 +192,6 @@ const Contacts = () => {
     setSearchParam(event.target.value.toLowerCase());
   };
 
-  const handleTagFilterChange = event => {
-    setTagFilterIds(event.target.value);
-  };
-
   const handleOpenContactModal = () => {
     setSelectedContactId(null);
     setContactModalOpen(true);
@@ -237,6 +244,33 @@ const Contacts = () => {
     }
   };
 
+  const handleSpreadsheetImport = async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setImportingSpreadsheet(true);
+    try {
+      const { data } = await api.post("/contacts/import-spreadsheet", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      toast.success(
+        `Planilha importada. Criados: ${data.created || 0}. Atualizados: ${data.updated || 0}. Ignorados: ${data.skipped || 0}.`
+      );
+      setSpreadsheetInfoOpen(false);
+      dispatch({ type: "RESET" });
+      setPageNumber(1);
+      history.go(0);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setImportingSpreadsheet(false);
+      event.target.value = "";
+    }
+  };
+
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
   };
@@ -277,6 +311,46 @@ const Contacts = () => {
           ? `${i18n.t("contacts.confirmationModal.deleteMessage")}`
           : `${i18n.t("contacts.confirmationModal.importMessage")}`}
       </ConfirmationModal>
+      <Dialog
+        open={spreadsheetInfoOpen}
+        onClose={() => setSpreadsheetInfoOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Importar contatos por planilha</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Use um arquivo CSV, XLS ou XLSX com uma linha de cabeçalho. O sistema lê a primeira aba da planilha.
+          </Typography>
+          <Typography variant="subtitle2">Colunas aceitas</Typography>
+          <Typography variant="body2" paragraph>
+            <strong>nome</strong>, <strong>numero</strong> ou <strong>telefone</strong>, <strong>email</strong> e <strong>etiquetas</strong>.
+          </Typography>
+          <Typography variant="subtitle2">Exemplo</Typography>
+          <Typography variant="body2" component="pre" style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
+            nome;telefone;email;etiquetas{"\n"}
+            Maria Silva;5521999999999;maria@email.com;Cliente VIP,Curso{"\n"}
+            Joao Souza;5521888888888;;Lead|Orcamento
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            As etiquetas podem ser separadas por virgula, ponto e virgula ou barra vertical. Etiquetas que ainda nao existirem serao criadas automaticamente.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setSpreadsheetInfoOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            color="primary"
+            variant="contained"
+            startIcon={<CloudUploadIcon />}
+            disabled={importingSpreadsheet}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Selecionar planilha
+          </Button>
+        </DialogActions>
+      </Dialog>
       <MainHeader>
         <Title>{i18n.t("contacts.title")}</Title>
         <MainHeaderButtonsWrapper>
@@ -294,40 +368,31 @@ const Contacts = () => {
                 ),
               }}
             />
-            <TextField
-              select
-              variant="outlined"
-              size="small"
-              label="Etiquetas"
-              value={tagFilterIds}
-              onChange={handleTagFilterChange}
-              className={classes.tagFilter}
-              SelectProps={{
-                multiple: true,
-                renderValue: selected => (
-                  <div className={classes.tagChips}>
-                    {selected.map(tagId => {
-                      const tag = tags.find(item => item.id === tagId);
-                      return (
-                        <Chip
-                          key={tagId}
-                          size="small"
-                          label={tag?.name || tagId}
-                          style={{ backgroundColor: tag?.color || "#607d8b", color: "#fff" }}
-                        />
-                      );
-                    })}
-                  </div>
-                ),
-              }}
-            >
-              {tags.map(tag => (
-                <MenuItem key={tag.id} value={tag.id}>
-                  {tag.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            <div className={classes.tagFilter}>
+              <TagCheckboxPicker
+                tags={tags}
+                selectedIds={tagFilterIds}
+                label="Buscar por etiqueta"
+                onChange={setTagFilterIds}
+              />
+            </div>
           </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            style={{ display: "none" }}
+            onChange={handleSpreadsheetImport}
+          />
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<CloudUploadIcon />}
+            disabled={importingSpreadsheet}
+            onClick={() => setSpreadsheetInfoOpen(true)}
+          >
+            {importingSpreadsheet ? "Importando..." : "Importar planilha"}
+          </Button>
           <Button
             variant="contained"
             color="primary"

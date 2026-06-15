@@ -38,6 +38,7 @@ import api from "../../services/api";
 import { i18n } from "../../translate/i18n.js";
 import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
+import TagCheckboxPicker from "../../components/TagCheckboxPicker";
 
 const businessWeekdayOptions = [
 	{ value: 1, label: "Seg" },
@@ -2544,32 +2545,13 @@ const QualificationFormsPanel = ({ classes }) => {
 													/>
 												</Grid>
 												<Grid item xs={12}>
-													<TextField
-														select
-														fullWidth
-														margin="dense"
-														variant="outlined"
+													<TagCheckboxPicker
+														tags={safeArray(tags)}
+														selectedIds={parseListValue(option.tagRefs)}
 														label="Etiquetas aplicadas se escolher esta opcao"
-														value={parseListValue(option.tagRefs)}
-														onChange={event => {
-															const value = event.target.value;
-															updateOption(index, { tagRefs: value });
-														}}
-														SelectProps={{
-															multiple: true,
-															renderValue: selected => (selected || [])
-																.map(tagId => safeArray(tags).find(tag => String(tag.id) === String(tagId))?.name || `#${tagId}`)
-																.join(", ")
-														}}
 														helperText={renderOptionTags(option)}
-													>
-														{safeArray(tags).map(tag => (
-															<MenuItem key={tag.id} value={String(tag.id)}>
-																<Checkbox checked={parseListValue(option.tagRefs).includes(String(tag.id))} />
-																{textValue(tag.name)}
-															</MenuItem>
-														))}
-													</TextField>
+														onChange={value => updateOption(index, { tagRefs: value.map(String) })}
+													/>
 													<Button
 														size="small"
 														variant="outlined"
