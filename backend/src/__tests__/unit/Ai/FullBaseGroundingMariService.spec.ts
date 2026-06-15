@@ -55,6 +55,60 @@ const wrongModelAnswer = JSON.stringify({
   reasoningSummary: "Resposta propositalmente desalinhada para testar guardrail."
 });
 
+const naturalUnavailableStructureAnswer = (message: string): string | null => {
+  const normalized = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (/projetor/.test(normalized)) {
+    return JSON.stringify({
+      intent: "request_included_structure",
+      userAsked: message,
+      foundInBase: false,
+      baseSectionsUsed: ["Estrutura"],
+      shouldAnswer: true,
+      needsHuman: false,
+      needsQuoteCalculation: false,
+      shouldTransfer: false,
+      customerAnswer: "Infelizmente nao temos projetor, mas temos TV para reproducao de conteudo.",
+      reasoningSummary: "Item nao confirmado; resposta natural com alternativa confirmada."
+    });
+  }
+
+  if (/quadro verde|quadri verde|lousa verde/.test(normalized)) {
+    return JSON.stringify({
+      intent: "request_included_structure",
+      userAsked: message,
+      foundInBase: false,
+      baseSectionsUsed: ["Estrutura"],
+      shouldAnswer: true,
+      needsHuman: false,
+      needsQuoteCalculation: false,
+      shouldTransfer: false,
+      customerAnswer: "Infelizmente nao temos quadro verde, mas temos quadro branco.",
+      reasoningSummary: "Item nao confirmado; resposta natural com alternativa confirmada."
+    });
+  }
+
+  if (/estacionamento|impressora/.test(normalized)) {
+    return JSON.stringify({
+      intent: "request_included_structure",
+      userAsked: message,
+      foundInBase: false,
+      baseSectionsUsed: ["Estrutura"],
+      shouldAnswer: true,
+      needsHuman: false,
+      needsQuoteCalculation: false,
+      shouldTransfer: false,
+      customerAnswer: "Infelizmente nao temos esse item. A sala conta com ar-condicionado, internet, TV, quadro branco, recepcao, banheiro e copa compartilhavel.",
+      reasoningSummary: "Item nao confirmado; resposta natural com estrutura confirmada."
+    });
+  }
+
+  return null;
+};
+
 const makeCases = (): Array<{
   message: string;
   mustContain: RegExp;
@@ -150,7 +204,12 @@ const makeCases = (): Array<{
     ["tem ar condicionado mesmo?", /ar-condicionado/i],
     ["a internet ta inclusa?", /internet/i],
     ["tem copa compartilhada?", /copa/i],
-    ["quais itens inclusos?", /ar-condicionado|internet|TV|quadro/i]
+    ["quais itens inclusos?", /ar-condicionado|internet|TV|quadro/i],
+    ["tem projetor?", /infelizmente.*nao temos projetor|TV para reproducao/i],
+    ["tem estacionamento?", /infelizmente.*nao temos esse item|ar-condicionado|internet|TV/i],
+    ["tem impressora?", /infelizmente.*nao temos esse item|ar-condicionado|internet|TV/i],
+    ["e tem quadri verde?", /infelizmente.*nao temos quadro verde|quadro branco/i],
+    ["tem mas oq?", /ar-condicionado|internet|TV|quadro/i]
   ].map(([message, mustContain]) => ({ message: String(message), mustContain: mustContain as RegExp }));
 
   const discount = [
@@ -204,7 +263,10 @@ describe("FullBaseGroundingMariService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (KnowledgeBaseArticle.findAll as jest.Mock).mockResolvedValue([baseArticle]);
-    (GenerateAiResponseService as jest.Mock).mockResolvedValue(wrongModelAnswer);
+    (GenerateAiResponseService as jest.Mock).mockImplementation(({ message }: { message: string }) => {
+      const currentMessage = String(message.match(/USER:\n([\s\S]*)$/)?.[1] || "");
+      return Promise.resolve(naturalUnavailableStructureAnswer(currentMessage) || wrongModelAnswer);
+    });
   });
 
   it.each(makeCases().map(item => [item.message, item.mustContain, item.mustNotContain]))(
@@ -227,6 +289,9 @@ describe("FullBaseGroundingMariService", () => {
       expect(result?.baseSentToModel).toBe(true);
       expect(result?.promptVersion).toBe("full-base-grounding-mari-v2");
       expect(result?.customerAnswer).toMatch(mustContain);
+      if (/projetor|estacionamento|impressora/i.test(String(message))) {
+        expect(result?.customerAnswer).not.toMatch(/\bbase\b/i);
+      }
       if (mustNotContain) {
         expect(result?.customerAnswer).not.toMatch(mustNotContain);
       }

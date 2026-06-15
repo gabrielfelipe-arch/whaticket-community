@@ -97,6 +97,18 @@ const getDetectedIntent = (normalized: string, fallback?: string | null): string
   if (hasAny(normalized, [/\b(calcinha|sexual|sexo|nude|pelada|pelado)\b/])) {
     return "inappropriate_message";
   }
+  if (hasAny(normalized, [/\b(loop|looping|repetindo|repetiu|mesma coisa|ja falei|ja respondi|nao entendeu|voce nao entendeu|vc nao entendeu|nao foi isso|nao era isso|nao e isso|para de repetir|pare de repetir|bugou|travou|se perdeu)\b/])) {
+    return "frustration_or_loop_complaint";
+  }
+  if (
+    /\b(voce|vc|tu|mari)\b.{0,35}\b(bonita|bonito|linda|lindo|simpatica|simpatico|legal|engracada|engracado|gata|gato|sair comigo|namora|casada|casado|solteira|solteiro)\b/.test(normalized) ||
+    /\b(gostei de voce|gostei da mari|voce e demais|vc e demais|quer sair comigo)\b/.test(normalized)
+  ) {
+    return "personal_tone_or_light_flirt";
+  }
+  if (/\b(voce|vc|tu|mari)\b.{0,40}\b(merda|burra|burro|idiota|inutil|horrivel|lixo)\b/.test(normalized)) {
+    return "offensive_message";
+  }
   if (hasAny(normalized, [/\b(placar|jogo|futebol|flamengo|vasco|botafogo|fluminense|dolar|euro|moeda|cambio)\b/])) {
     return "out_of_scope";
   }
@@ -158,7 +170,10 @@ const getDetectedIntent = (normalized: string, fallback?: string | null): string
   if (hasAny(normalized, [/\b(cabe|cabem|capacidade|pessoas|oessoas|participantes|suporta|comporta|lotacao|lotacao maxima|lotacao maxima|maxima|maximo|25|vinte e cinco|mais de 20|passar de 20|acima de 20)\b/])) {
     return "request_capacity";
   }
-  if (hasAny(normalized, [/\b(ar|ar-condicionado|ar condicionado|estrutura|incluso|inclusos|inclui|itens|quadro|banheiro|recepcao|agua gelada)\b/])) {
+  if (
+    hasAny(normalized, [/\b(ar|ar-condicionado|ar condicionado|estrutura|incluso|inclusos|inclui|itens|quadro|quadri|lousa|banheiro|recepcao|agua gelada|projetor|estacionamento|impressora|mesa de som)\b/]) ||
+    /\btem\b.{0,20}\b(mais|mas|oq|o que)\b/.test(normalized)
+  ) {
     return "request_included_structure";
   }
   if (hasAny(normalized, [/\b(internet|wifi|wi-fi)\b/])) {
@@ -194,6 +209,11 @@ const extractEntities = (normalized: string): Record<string, string | number | b
   if (/\bcredito\b|\bcr\s*dito\b/.test(normalized)) entities.paymentMethod = "credito";
   if (/\bdivide|parcel/.test(normalized)) entities.paymentCondition = "parcelamento/divisao";
   if (/\bar\b|ar-condicionado|ar condicionado/.test(normalized)) entities.topic = "estrutura_ar_condicionado";
+  if (/\bquadro\b|\bquadri\b|\blousa\b/.test(normalized)) entities.topic = "estrutura_quadro";
+  if (/\bprojetor\b/.test(normalized)) entities.topic = "estrutura_projetor";
+  if (/\bestacionamento\b/.test(normalized)) entities.topic = "estrutura_estacionamento";
+  if (/\bimpressora\b/.test(normalized)) entities.topic = "estrutura_impressora";
+  if (/\bmesa de som\b/.test(normalized)) entities.topic = "estrutura_mesa_de_som";
   if (
     hasAny(normalized, discountPatterns) ||
     /\b(fechar|fecho|contratar|reservar).{0,40}\b(varios|varias|muitos|muitas)\b.{0,40}\b(dias|encontros|horarios)\b/.test(normalized)
@@ -234,10 +254,34 @@ const buildDirectedQuery = (
 ): string => {
   switch (intent) {
     case "inappropriate_message":
-      return "Politica de resposta para mensagens inadequadas, ofensivas, sexuais ou fora do escopo no atendimento da Salinha Meier.";
+      return "Diretriz de comportamento para mensagem sexual, invasiva ou inadequada no atendimento da Salinha Meier, sem frase pronta.";
+    case "personal_tone_or_light_flirt":
+      return "Diretriz de comportamento para elogio, brincadeira leve ou flerte leve no atendimento da Salinha Meier, sem frase pronta.";
+    case "offensive_message":
+      return "Diretriz de comportamento para ofensa ou grosseria no atendimento da Salinha Meier, sem frase pronta.";
+    case "frustration_or_loop_complaint":
+      return "Diretriz de comportamento para reclamacao de loop, repeticao ou erro de entendimento, sem voltar automaticamente ao orcamento.";
     case "out_of_scope":
-      return "Politica de resposta para perguntas fora do contexto da Salinha Meier e como redirecionar para valores, estrutura, endereco, reserva ou orcamento.";
+      return "Diretriz de comportamento para pergunta fora do contexto da Salinha Meier, com redirecionamento natural e sem frase pronta.";
     case "request_included_structure":
+      if (/\bquadro verde\b|\bquadri verde\b|\blousa verde\b/.test(normalized)) {
+        return "A estrutura da Salinha Meier inclui quadro verde ou quadro branco?";
+      }
+      if (/\btem\b.{0,20}\b(mais|mas|oq|o que)\b/.test(normalized)) {
+        return "Quais itens e estrutura estao inclusos na Salinha Meier?";
+      }
+      if (/\bprojetor\b/.test(normalized)) {
+        return "A estrutura da Salinha Meier inclui projetor e, se nao incluir, qual recurso disponivel pode substituir para apresentacao?";
+      }
+      if (/\bestacionamento\b/.test(normalized)) {
+        return "A estrutura da Salinha Meier inclui estacionamento?";
+      }
+      if (/\bimpressora\b/.test(normalized)) {
+        return "A estrutura da Salinha Meier inclui impressora?";
+      }
+      if (/\bmesa de som\b/.test(normalized)) {
+        return "A estrutura da Salinha Meier inclui mesa de som?";
+      }
       if (/\binternet|wifi|wi-fi/.test(normalized)) {
         return "A estrutura da Salinha Meier inclui internet?";
       }

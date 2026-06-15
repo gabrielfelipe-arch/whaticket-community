@@ -87,7 +87,8 @@ const isClearKnowledgeBaseQuestion = (message = ""): boolean => {
     /\b(onde|endereco|localizacao|fica|perto|referencia)\b/.test(normalized) ||
     /\b(tabela|preco|precos|valor|valores|quanto custa|pacotes?|planos?)\b/.test(normalized) ||
     /\b(cabe|cabem|capacidade|quantas pessoas|quantas oessoas|quantos participantes)\b/.test(normalized) ||
-    /\b(ar|ar condicionado|internet|wifi|tv|cafe|copa|microondas|micro ondas|incluso|inclui|estrutura)\b/.test(normalized) ||
+    /\b(ar|ar condicionado|internet|wifi|tv|projetor|estacionamento|impressora|mesa de som|quadro|quadri|lousa|cafe|copa|microondas|micro ondas|incluso|inclui|estrutura)\b/.test(normalized) ||
+    /\btem\b.{0,20}\b(mais|mas|oq|o que)\b/.test(normalized) ||
     /\b(pix|cartao|debito|credito|pagamento|divide|parcel)\b/.test(normalized) ||
     /\b(desconto|promocao|condicao especial|barato|negocia)\b/.test(normalized) ||
     /\b(reserva|reservar|sinal|disponibilidade|horario|agenda|sabado|domingo)\b/.test(normalized) ||
@@ -156,19 +157,26 @@ const isIdentityOrRoleQuestion = (message = ""): boolean => {
   const normalized = normalizeText(message);
   const talksToAssistant = /\b(voce|vc|tu|mari|assistente|robo|bot)\b/.test(normalized);
   const asksIdentity =
-    /\b(quem e voce|quem voce e|qual seu nome|seu nome|voce e robo|vc e robo|voce e atendente|vc e atendente|quantos anos voce tem|voce tem quantos anos|qual sua idade|sua idade)\b/.test(normalized);
+    /\b(quem e voce|quem voce e|qual seu nome|seu nome|voce e robo|vc e robo|voce e atendente|vc e atendente)\b/.test(normalized);
   const asksRole =
     talksToAssistant &&
-    /\b(faz o que|faz oq|faz o q|voce faz|vc faz|ajuda com o que|ajuda em que|qual sua funcao|pra que voce serve|para que voce serve)\b/.test(normalized);
-  const asksPersonalAttribute =
-    talksToAssistant &&
-    /\b(bonita|bonito|linda|lindo|casada|casado|namora|idade|anos)\b/.test(normalized);
+    /\b(faz o que|faz oq|faz o q|voce faz|vc faz|como voce pode me ajudar|como vc pode me ajudar|ajuda com o que|ajuda em que|qual sua funcao|pra que voce serve|para que voce serve)\b/.test(normalized);
 
-  return asksIdentity || asksRole || asksPersonalAttribute;
+  return asksIdentity || asksRole;
 };
 
 const isLoopOrBugComplaint = (message = ""): boolean =>
   /\b(loop|looping|repetindo|repetiu|mesma coisa|bugou|travou|nao foi isso|nao entendeu|voce nao entendeu|vc nao entendeu|ja falei|ja respondi|acabei de responder)\b/.test(normalizeText(message));
+
+const isPersonalToneOrBoundaryTurn = (message = ""): boolean => {
+  const normalized = normalizeText(message);
+  const talksToAssistant = /\b(voce|vc|tu|mari|assistente|robo|bot)\b/.test(normalized);
+
+  return (
+    talksToAssistant &&
+    /\b(bonita|bonito|linda|lindo|simpatica|simpatico|legal|engracada|engracado|gata|gato|casada|casado|solteira|solteiro|namora|sair comigo|idade|anos)\b/.test(normalized)
+  );
+};
 
 const isNonQuoteCustomerTurn = (message = ""): boolean => {
   const normalized = normalizeText(message);
@@ -176,9 +184,21 @@ const isNonQuoteCustomerTurn = (message = ""): boolean => {
   return (
     isClearKnowledgeBaseQuestion(message) ||
     isIdentityOrRoleQuestion(message) ||
+    isPersonalToneOrBoundaryTurn(message) ||
     isLoopOrBugComplaint(message) ||
     /\b(calcinha|sexual|sexo|nude|pelada|pelado)\b/.test(normalized) ||
     /\b(placar|jogo|futebol|flamengo|vasco|botafogo|fluminense|dolar|euro|moeda|cambio)\b/.test(normalized)
+  );
+};
+
+const isQuoteRelatedCustomerTurn = (message = ""): boolean => {
+  const normalized = normalizeText(message);
+
+  return (
+    /^\d{1,3}$/.test(normalized) ||
+    /\b(orcamento|orcamento|cotacao|simulacao|simular|valor|preco|quanto fica|quanto custa|recalcular|refazer|mudar|alterar|ajustar|nova simulacao|novo orcamento)\b/.test(normalized) ||
+    /\b\d{1,3}\s*(pessoas?|participantes?|dias?|encontros?|aulas?|horas?|h)\b/.test(normalized) ||
+    /\b(pessoas|participantes|dias|encontros|aulas|horas|duracao|tempo)\b/.test(normalized)
   );
 };
 
@@ -772,49 +792,6 @@ const buildFieldAnswerDecision = (
   });
 };
 
-const buildLoopRecoveryDecision = (
-  message: string,
-  state: OperationalState
-): OperationalDecision => {
-  const response = "Voce tem razao, me perdi aqui. Me diga em uma frase qual duvida voce quer resolver agora.";
-  const nextState: OperationalState = {
-    ...state,
-    repeatedResponseCount: Number(state.repeatedResponseCount || 0) + 1,
-    lastOfferType: null,
-    awaitingConfirmationFor: null,
-    lastQuestionKey: null,
-    lastQuestionText: response,
-    quoteRevisionMode: null
-  };
-
-  return buildDecision({
-    detectedIntent: "reclamacao_loop_ou_erro",
-    isReplyToPreviousQuestion: false,
-    answeredField: null,
-    isReplyToPreviousOffer: false,
-    acceptedPreviousOffer: false,
-    previousOfferType: state.lastOfferType || null,
-    requiresTool: false,
-    toolToCall: null,
-    shouldAskClarification: true,
-    nextQuestionKey: nextState.lastQuestionKey || null,
-    responseGoal: "recuperar_loop",
-    mustNotRepeatLastAnswer: true,
-    nextState,
-    aiDecision: {
-      intencao: "reclamacao_loop_ou_erro",
-      confianca: "alta",
-      mensagemInterpretada: message,
-      contexto: "Cliente apontou repeticao, bug ou erro de entendimento.",
-      baseEncontrada: false,
-      respostaSegura: true,
-      acao: "pedir_mais_informacoes",
-      motivo: "Estado operacional: recuperar conversa sem repetir ultima resposta.",
-      resposta: response
-    }
-  });
-};
-
 const persistOperationalDecision = async (
   ticket: Ticket,
   decision: OperationalDecision
@@ -907,9 +884,7 @@ export const EvaluateAiConversationStateService = async ({
   }
 
   if ((!semanticDecision && isLoopOrBugComplaint(message)) || semanticIntent === "reclamacao") {
-    const decision = buildLoopRecoveryDecision(message, state);
-    await persistOperationalDecision(ticket, decision);
-    return decision;
+    return null;
   }
 
   if (
@@ -1093,6 +1068,7 @@ export const ApplyAiResponseAntiLoopService = async (
   const nextCount = Number(state.repeatedResponseCount || 0) + 1;
   const customerMessage = decision.mensagemInterpretada || "";
   if (
+    !isQuoteRelatedCustomerTurn(customerMessage) ||
     isNonQuoteCustomerTurn(customerMessage) ||
     decision.acao === "sem_resposta_segura" ||
     decision.intencao === "inappropriate_message" ||
@@ -1133,9 +1109,7 @@ export const ApplyAiResponseAntiLoopService = async (
     ? questionForField(requestedField)
     : "Me passa os novos dados em uma frase, por exemplo: 5 pessoas, 3 encontros de 4h.";
   const fallback = hasQuote ? quoteQuestion : "Para quantas pessoas?";
-  const loopFallback = hasQuote
-    ? `Voce tem razao, me repeti. ${quoteQuestion}`
-    : "Para quantas pessoas?";
+  const loopFallback = hasQuote ? quoteQuestion : "Para quantas pessoas?";
   const nextResponse = nextCount >= 2 ? loopFallback : fallback;
   const nextState: OperationalState = {
     ...state,

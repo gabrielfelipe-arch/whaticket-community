@@ -51,3 +51,4 @@ Error: EBUSY: resource busy or locked, open 'C:\Rocketservice\backend\src\servic
   syscall: 'open',
   path: 'C:\\Rocketservice\\backend\\src\\services\\AiServices\\PostQuoteMenuService.ts'
 }
+Compilation error in C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts

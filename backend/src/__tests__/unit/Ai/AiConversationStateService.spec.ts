@@ -201,7 +201,7 @@ describe("AiConversationStateService", () => {
     expect(decision?.toolToCall).toBe("calcularOrcamento");
   });
 
-  it.each(["quem e voce?", "e voce faz o que?", "voce e robo?", "voce tem quantos anos?", "vc e bonita?"])(
+  it.each(["quem e voce?", "e voce faz o que?", "voce e robo?"])(
     "answers identity or role question as in-context: %s",
     async message => {
       const decision = await EvaluateAiConversationStateService({
@@ -217,7 +217,7 @@ describe("AiConversationStateService", () => {
     }
   );
 
-  it("recovers route when customer reports loop", async () => {
+  it("does not force fixed operational text when customer reports loop", async () => {
     const decision = await EvaluateAiConversationStateService({
       ticket: ticket(),
       aiSetting: aiSetting(),
@@ -227,13 +227,10 @@ describe("AiConversationStateService", () => {
       })
     });
 
-    expect(decision?.detectedIntent).toBe("reclamacao_loop_ou_erro");
-    expect(decision?.aiDecision.resposta).toContain("qual duvida voce quer resolver");
-    expect(decision?.nextState.lastQuestionKey).toBeNull();
-    expect(decision?.nextState.repeatedResponseCount).toBe(1);
+    expect(decision).toBeNull();
   });
 
-  it.each(["Aceita cartao?", "Pix?", "Qual endereco da sala?"])(
+  it.each(["Aceita cartao?", "Pix?", "Qual endereco da sala?", "Tem projetor?"])(
     "does not keep post quote menu active for clear knowledge question: %s",
     async message => {
       const decision = await EvaluateAiConversationStateService({
@@ -250,6 +247,39 @@ describe("AiConversationStateService", () => {
       expect(decision).toBeNull();
     }
   );
+
+  it.each(["Tem mas oq?", "E tem quadri verde?"])(
+    "does not treat structure question as quote data while quote revision is pending: %s",
+    async message => {
+      const decision = await EvaluateAiConversationStateService({
+        ticket: ticket(),
+        aiSetting: aiSetting(),
+        message,
+        context: context({
+          lastQuestionKey: "people",
+          quoteRevisionMode: "awaiting_scope",
+          lastQuote: { people: 2, meetingCount: 3, hoursPerMeeting: 2, total: 420 }
+        })
+      });
+
+      expect(decision).toBeNull();
+    }
+  );
+
+  it("does not answer with fixed operational text when customer makes a light personal comment while quote exists", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "Vc e simpatica?",
+      context: context({
+        lastQuestionKey: "people",
+        quoteRevisionMode: "awaiting_scope",
+        lastQuote: { people: 2, meetingCount: 3, hoursPerMeeting: 2, total: 420 }
+      })
+    });
+
+    expect(decision).toBeNull();
+  });
 
   it("updates people and requests quote calculation when last quote has enough data", async () => {
     const decision = await EvaluateAiConversationStateService({
@@ -305,7 +335,7 @@ describe("AiConversationStateService", () => {
       {
         intencao: "expressando_objecao",
         confianca: "alta",
-        mensagemInterpretada: "quero",
+        mensagemInterpretada: "quero mudar horas",
         contexto: "",
         baseEncontrada: true,
         respostaSegura: true,
@@ -316,14 +346,14 @@ describe("AiConversationStateService", () => {
       previous
     );
 
-    expect(result.response).toContain("Me passa os novos dados");
+    expect(result.response).toContain("Quantas horas");
     expect(result.decision.acao).toBe("pedir_mais_informacoes");
     expect(UpdateAiTicketContextService).toHaveBeenCalledWith(
       expect.objectContaining({
         source: "anti_loop",
         operationalState: expect.objectContaining({
           repeatedResponseCount: 1,
-          lastQuestionKey: "quote_revision_scope"
+          lastQuestionKey: "hoursPerMeeting"
         })
       })
     );

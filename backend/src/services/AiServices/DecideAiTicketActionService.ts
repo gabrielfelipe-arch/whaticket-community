@@ -1,4 +1,4 @@
-import AiSetting from "../../models/AiSetting";
+﻿import AiSetting from "../../models/AiSetting";
 import AiTicketContext from "../../models/AiTicketContext";
 import KnowledgeBaseArticle from "../../models/KnowledgeBaseArticle";
 import Message from "../../models/Message";
@@ -275,26 +275,26 @@ const hasDurationOrOccurrenceDetail = (value = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return /\b(\d+\s*h|\d+\s*hora|hora|horas|encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias|turno|diaria|recorrente|semanal|mensal|duracao|duração|periodo|período|manha|manhã|tarde|noite)\b/.test(normalized);
+  return /\b(\d+\s*h|\d+\s*hora|hora|horas|encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias|turno|diaria|recorrente|semanal|mensal|duracao|duraÃ§Ã£o|periodo|perÃ­odo|manha|manhÃ£|tarde|noite)\b/.test(normalized);
 };
 
 const isDurationOrOccurrenceQuestion = (value = ""): boolean => {
   const normalized = normalizeText(getActiveQuestionText(value));
   return (
-    /\b(duracao|duração|quanto tempo|quantas horas|horas|periodo|período)\b/.test(normalized) ||
-    /\b(unico|único|mais de um|quantos|quantas).{0,80}\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b/.test(normalized) ||
-    /\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b.{0,80}\b(unico|único|mais de um|quantos|quantas)\b/.test(normalized)
+    /\b(duracao|duraÃ§Ã£o|quanto tempo|quantas horas|horas|periodo|perÃ­odo)\b/.test(normalized) ||
+    /\b(unico|Ãºnico|mais de um|quantos|quantas).{0,80}\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b/.test(normalized) ||
+    /\b(encontro|encontros|aula|aulas|curso|cursos|cuso|cusos|treinamento|treinamentos|workshop|workshops|palestra|palestras|reuniao|reunioes|sessao|sessoes|consulta|consultas|turma|turmas|evento|eventos|modulo|modulos|mentoria|mentorias|visita|visitas|atendimento|atendimentos|dia|dias)\b.{0,80}\b(unico|Ãºnico|mais de um|quantos|quantas)\b/.test(normalized)
   );
 };
 
 const isHourQuestion = (value = ""): boolean => {
   const normalized = normalizeText(getActiveQuestionText(value));
-  return /\b(quantas horas|quantos horas|horas|duracao|duração|tempo)\b/.test(normalized);
+  return /\b(quantas horas|quantos horas|horas|duracao|duraÃ§Ã£o|tempo)\b/.test(normalized);
 };
 
 const isOccurrenceCountQuestion = (value = ""): boolean => {
   const normalized = normalizeText(getActiveQuestionText(value));
-  if (/\b(horas|hora|duracao|duração|tempo)\b/.test(normalized)) return false;
+  if (/\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(normalized)) return false;
 
   return /\b(quantos|quantas|qtd|quantidade|numero)\b.{0,80}\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|cursos|curso|treinamentos|treinamento|sessoes|sessao|consultas|consulta)\b/.test(normalized) ||
     /\b(unico|mais de um|mais de uma)\b.{0,80}\b(dia|dias|encontro|encontros)\b/.test(normalized);
@@ -313,7 +313,7 @@ const hasHourDurationDetail = (value = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return /\b(\d+\s*h|\d+\s*hora|hora|horas|manha|manhã|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/.test(normalized);
+  return /\b(\d+\s*h|\d+\s*hora|hora|horas|manha|manhÃ£|tarde|noite|turno|diaria|dia inteiro|o dia todo)\b/.test(normalized);
 };
 
 const hasOccurrenceCountDetail = (value = ""): boolean => {
@@ -429,7 +429,7 @@ const buildSingleOccurrenceHoursQuestionDecision = (message: string): AiDecision
   motivo: "Formulario/contexto indica encontro unico; nao perguntar quantidade de dias/encontros novamente.",
   resposta: [
     "Perfeito, anotei.",
-    "Quantas horas terá esse encontro único?"
+    "Quantas horas terÃ¡ esse encontro Ãºnico?"
   ].join("\n\n")
 });
 
@@ -444,7 +444,7 @@ const buildMultipleOccurrencesQuestionDecision = (message: string): AiDecision =
   motivo: "Formulario/contexto indica mais de um encontro; perguntar quantidade de dias/encontros antes das horas.",
   resposta: [
     "Perfeito, anotei a quantidade de pessoas.",
-    "Quantos dias/encontros serão ao todo?"
+    "Quantos dias/encontros serÃ£o ao todo?"
   ].join("\n\n")
 });
 
@@ -459,7 +459,7 @@ const buildHoursPerOccurrenceQuestionDecision = (message: string): AiDecision =>
   motivo: "Quantidade de ocorrencias coletada; perguntar horas por ocorrencia.",
   resposta: [
     "Perfeito, anotei.",
-    "Quantas horas terá cada dia/encontro?"
+    "Quantas horas terÃ¡ cada dia/encontro?"
   ].join("\n\n")
 });
 
@@ -516,12 +516,12 @@ const bareNumericAnswerToValue = (message = ""): string | null => {
 
 const answersOccurrenceButMissingHours = (message: string, ticket: Ticket): boolean => {
   const lastQuestion = normalizeText(getActiveQuestionText(ticket.lastAiMessage || ""));
-  if (/\b(horas|hora|duracao|duração|tempo)\b/.test(lastQuestion)) return false;
+  if (/\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(lastQuestion)) return false;
 
   const lastAskedOccurrenceCount =
     /\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|sessoes|sessao|consultas|consulta)\b/.test(lastQuestion) &&
-    /\b(quantos|quantas|qtd|quantidade|numero|ao todo|serao|serão)\b/.test(lastQuestion) &&
-    !/\b(horas|hora|duracao|duração|tempo)\b/.test(lastQuestion);
+    /\b(quantos|quantas|qtd|quantidade|numero|ao todo|serao|serÃ£o)\b/.test(lastQuestion) &&
+    !/\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(lastQuestion);
 
   if (!isDurationOrOccurrenceQuestion(ticket.lastAiMessage || "") && !lastAskedOccurrenceCount) return false;
   if (isHourQuestion(ticket.lastAiMessage || "") && !lastAskedOccurrenceCount) return false;
@@ -535,8 +535,8 @@ const answersOccurrenceButMissingHours = (message: string, ticket: Ticket): bool
   return (
     (lastAskedOccurrenceCount && isBareNumericAnswer(message)) ||
     (isOccurrenceCountQuestion(ticket.lastAiMessage || "") && isBareNumericAnswer(message)) ||
-    /\b(apenas|so|só|somente|unico|único|um|uma|\d+)\b.{0,40}\b(dia|dias|encontro|encontros|aula|aulas|reuniao|reunioes|curso|cursos|treinamento|treinamentos)\b/.test(normalized) ||
-    /^(?:apenas|so|só|somente)?\s*(?:um|uma|1)\s*$/.test(normalized)
+    /\b(apenas|so|sÃ³|somente|unico|Ãºnico|um|uma|\d+)\b.{0,40}\b(dia|dias|encontro|encontros|aula|aulas|reuniao|reunioes|curso|cursos|treinamento|treinamentos)\b/.test(normalized) ||
+    /^(?:apenas|so|sÃ³|somente)?\s*(?:um|uma|1)\s*$/.test(normalized)
   );
 };
 
@@ -571,15 +571,15 @@ const QUESTION_TOKEN_STOPWORDS = new Set([
   "quais",
   "sera",
   "serao",
-  "será",
-  "serão",
+  "serÃ¡",
+  "serÃ£o",
   "voce",
-  "você",
+  "vocÃª",
   "me",
   "te",
   "se",
   "ja",
-  "já"
+  "jÃ¡"
 ]);
 
 const getQuestionTokens = (value = ""): string[] =>
@@ -603,7 +603,7 @@ const getQuestionSimilarity = (current = "", previous = ""): number => {
 
 const isQuestionLike = (value = ""): boolean =>
   /\?/.test(value) ||
-  /\b(qual|quais|quanto|quantos|quantas|quando|onde|como|me diga|informe|voce sabe|você sabe|preciso saber)\b/i.test(normalizeText(value));
+  /\b(qual|quais|quanto|quantos|quantas|quando|onde|como|me diga|informe|voce sabe|vocÃª sabe|preciso saber)\b/i.test(normalizeText(value));
 
 const hasConcreteAnswerSignal = (value = ""): boolean => {
   const normalized = normalizeText(value)
@@ -616,7 +616,7 @@ const hasConcreteAnswerSignal = (value = ""): boolean => {
   return (
     hasExplicitNumericDetail(normalized) ||
     hasDurationOrOccurrenceDetail(normalized) ||
-    /\b(sim|nao|não|recorrente|pontual|mensal|semanal|manha|manhã|tarde|noite|presencial|online|processo seletivo|reuniao|reunião|curso|treinamento|pos|pós)\b/.test(normalized) ||
+    /\b(sim|nao|nÃ£o|recorrente|pontual|mensal|semanal|manha|manhÃ£|tarde|noite|presencial|online|processo seletivo|reuniao|reuniÃ£o|curso|treinamento|pos|pÃ³s)\b/.test(normalized) ||
     normalized.split(/\s+/).length >= 4
   );
 };
@@ -639,7 +639,7 @@ const isLikelyParticipantCountAnswer = (message: string, ticket: Ticket): boolea
   const lastQuestion = normalizeText(getActiveQuestionText(ticket.lastAiMessage || ""));
   const lastAskedParticipantCount =
     /\b(pessoas|participantes|participar|alunos|clientes|convidados|candidatos|equipe)\b/.test(lastQuestion) &&
-    /\b(quantas|quantos|qtd|quantidade|numero|vao|vão|serao|serão)\b/.test(lastQuestion);
+    /\b(quantas|quantos|qtd|quantidade|numero|vao|vÃ£o|serao|serÃ£o)\b/.test(lastQuestion);
 
   if (!isParticipantCountQuestion(ticket.lastAiMessage || "") && !lastAskedParticipantCount) return false;
   if (hasDurationOrOccurrenceDetail(message)) return false;
@@ -650,7 +650,7 @@ const isLikelyParticipantCountAnswer = (message: string, ticket: Ticket): boolea
     .trim();
 
   if (!normalized) return false;
-  if (/\b(apenas|so|só|somente|unico|único)\b/.test(normalized)) return false;
+  if (/\b(apenas|so|sÃ³|somente|unico|Ãºnico)\b/.test(normalized)) return false;
 
   return (
     (lastAskedParticipantCount && isBareNumericAnswer(message)) ||
@@ -756,15 +756,15 @@ const isPackageCompositionOrTotalHoursMessage = (message = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  const hasPackageTerm = /\b(pacote|pacotes|plano|planos|bloco|blocos|composicao|composição|compor|montar)\b/.test(normalized);
-  const hasQuoteTerm = /\b(orcamento|orcamento|simulacao|simulação|calcular|calculo|valor)\b/.test(normalized);
+  const hasPackageTerm = /\b(pacote|pacotes|plano|planos|bloco|blocos|composicao|composiÃ§Ã£o|compor|montar)\b/.test(normalized);
+  const hasQuoteTerm = /\b(orcamento|orcamento|simulacao|simulaÃ§Ã£o|calcular|calculo|valor)\b/.test(normalized);
   const hasSumSignal = /(?:\+|\bmais\b|\bsomando\b|\bjunto\b)/.test(normalized);
   const hasHourValue = new RegExp(`\\b${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b`).test(normalized);
   const hasTotalSignal =
     new RegExp(`\\b(?:total|totais|ao todo|no total)\\b.{0,25}\\b${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b`).test(normalized) ||
     new RegExp(`\\b${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b.{0,25}\\b(?:total|totais|ao todo|no total)\\b`).test(normalized);
   const isCorrectionAboutTotal =
-    new RegExp(`\\b(?:to|estou|tou|tô)\\s+falando\\b.{0,30}\\b${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b`).test(normalized) ||
+    new RegExp(`\\b(?:to|estou|tou|tÃ´)\\s+falando\\b.{0,30}\\b${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b`).test(normalized) ||
     new RegExp(`\\bnao\\s+ha\\s+(?:encontro|encontros|dia|dias)\\s+de\\s+${numberLikeTokenPattern}\\s*(?:h|hora|horas)\\b`).test(normalized);
 
   return (
@@ -784,7 +784,7 @@ const extractRequestedTotalHours = (message = ""): number | null => {
     .trim();
 
   const correctionMatch = normalized.match(
-    new RegExp(`\\b(?:to|estou|tou|tô)\\s+falando\\b.{0,30}\\b(${numberLikeTokenPattern})\\s*(?:h|hora|horas)\\b`)
+    new RegExp(`\\b(?:to|estou|tou|tÃ´)\\s+falando\\b.{0,30}\\b(${numberLikeTokenPattern})\\s*(?:h|hora|horas)\\b`)
   ) || normalized.match(
     new RegExp(`\\bnao\\s+ha\\s+(?:encontro|encontros|dia|dias)\\s+de\\s+(${numberLikeTokenPattern})\\s*(?:h|hora|horas)\\b`)
   ) || normalized.match(
@@ -1021,7 +1021,7 @@ const getRecentHistory = async (ticket: Ticket): Promise<string> => {
             : senderType === "human"
               ? "ATENDENTE HUMANO"
               : senderType === "system" || senderType === "ura" || String(message.id || "").startsWith("ticket-history-") ||
-                  /atendimento encerrado|atendimento assumido|transferido|\bfila\b|\bura\b|\bmenu\b|seja bem-vindo|mensagem de opcao invalida|mensagem de opção inválida/i.test(body)
+                  /atendimento encerrado|atendimento assumido|transferido|\bfila\b|\bura\b|\bmenu\b|seja bem-vindo|mensagem de opcao invalida|mensagem de opÃ§Ã£o invÃ¡lida/i.test(body)
                 ? "SISTEMA"
                 : "IA";
 
@@ -1097,7 +1097,7 @@ const cleanCustomerAiAnswer = (value = ""): string => {
     .replace(/^\u200e+/, "")
     .trim();
 
-  const forbiddenBlockPattern = /^(?:#+\s*)?(?:base\s+de\s+conhecimento|conhecimento\s+encontrado|manual|artigo\s+encontrado|documento\s+interno)\s*:?\s*[\s\S]*?(?:-{3,}|={3,}|\n\s*\n(?=(?:entendi|certo|ol[aá]|nesse|para|a orienta[cç][aã]o|pelo que|conforme)\b))/i;
+  const forbiddenBlockPattern = /^(?:#+\s*)?(?:base\s+de\s+conhecimento|conhecimento\s+encontrado|manual|artigo\s+encontrado|documento\s+interno)\s*:?\s*[\s\S]*?(?:-{3,}|={3,}|\n\s*\n(?=(?:entendi|certo|ol[aÃ¡]|nesse|para|a orienta[cÃ§][aÃ£]o|pelo que|conforme)\b))/i;
   answer = answer.replace(forbiddenBlockPattern, "").trim();
 
   answer = answer
@@ -1175,7 +1175,7 @@ const extractIncludedItemsFromAnswer = (value = ""): string[] => {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    const bullet = trimmed.match(/^[-*•]\s*(.+?)\s*[.;:]?$/);
+    const bullet = trimmed.match(/^[-*â€¢]\s*(.+?)\s*[.;:]?$/);
     if (bullet?.[1]) {
       items.push(bullet[1].trim());
       continue;
@@ -1210,7 +1210,7 @@ const stripIncludedSection = (answer = ""): string => {
       const normalizedTrimmed = normalizeText(trimmed);
       const isIncludedItem =
         !trimmed ||
-        /^[-•*]/.test(trimmed) ||
+        /^[-â€¢*]/.test(trimmed) ||
         /^(?:sala|internet|wi|wifi|ar|capacidade|tv|quadro|recepcao|banheiro|copa|cafeteira|micro|filtro|agua|estrutura)\b/.test(normalizedTrimmed);
 
       if (isIncludedItem) continue;
@@ -1272,7 +1272,7 @@ const buildOutOfScopeDecision = (message: string, aiSetting: AiSetting): AiDecis
 
 const isAddressQuestion = (message = ""): boolean => {
   const normalized = normalizeText(message);
-  return /\b(endereco|endere[cç]o|onde fica|localizacao|localiza[cç][aã]o|rua|bairro|como chegar)\b/.test(normalized);
+  return /\b(endereco|endere[cÃ§]o|onde fica|localizacao|localiza[cÃ§][aÃ£]o|rua|bairro|como chegar)\b/.test(normalized);
 };
 
 const buildAddressAnswerDecision = (message: string): AiDecision => ({
@@ -1292,7 +1292,7 @@ const buildAddressAnswerDecision = (message: string): AiDecision => ({
 
 const isCapacityInfoQuestion = (message = ""): boolean => {
   const normalized = normalizeText(message);
-  return /\b(capacidade|maxima|maximo|comporta|cabem|quantas pessoas|lotacao|lota[cç][aã]o)\b/.test(normalized);
+  return /\b(capacidade|maxima|maximo|comporta|cabem|quantas pessoas|lotacao|lota[cÃ§][aÃ£]o)\b/.test(normalized);
 };
 
 const buildCapacityInfoAnswerDecision = (message: string): AiDecision => ({
@@ -1353,11 +1353,11 @@ const buildIdentityAnswerDecision = (message: string, aiSetting: AiSetting): AiD
   baseEncontrada: true,
   respostaSegura: true,
   acao: "responder_com_base",
-  motivo: "Responder identidade/função sem repetir orcamento.",
+  motivo: "Responder identidade/funÃ§Ã£o sem repetir orcamento.",
   resposta: [
     `Eu sou a ${aiSetting.name || "assistente virtual"}, assistente da ${aiSetting.companyName || "empresa"}.`,
-    "Posso te ajudar com valores, estrutura, capacidade, endereço, inclusos e simulações de orçamento.",
-    "Me diga o que você quer ver agora 🙂"
+    "Posso te ajudar com valores, estrutura, capacidade, endereÃ§o, inclusos e simulaÃ§Ãµes de orÃ§amento.",
+    "Me diga o que vocÃª quer ver agora ðŸ™‚"
   ].join("\n\n")
 });
 
@@ -1395,74 +1395,14 @@ const isPersonalFlirtQuestion = (message = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return /\b(voce|vc|tu)\b.{0,25}\b(bonita|bonito|linda|lindo|gata|gato|casada|casado|solteira|solteiro|namora|sair comigo)\b/.test(normalized);
+  return /\b(voce|vc|tu)\b.{0,25}\b(bonita|bonito|linda|lindo|simpatica|simpatico|legal|engracada|engracado|gata|gato|casada|casado|solteira|solteiro|namora|sair comigo)\b/.test(normalized);
 };
-
-const buildPersonalFlirtAnswerDecision = (message: string, aiSetting: AiSetting): AiDecision => ({
-  intencao: "pergunta_sobre_produto_ou_servico",
-  confianca: "alta",
-  mensagemInterpretada: message,
-  contexto: "Cliente fez pergunta pessoal ou flerte para a assistente virtual.",
-  baseEncontrada: true,
-  respostaSegura: true,
-  acao: "responder_com_base",
-  motivo: "Contornar pergunta pessoal com leveza e voltar ao foco do atendimento.",
-  resposta: [
-    `Sou a ${aiSetting.name || "assistente virtual"}, assistente virtual da ${aiSetting.companyName || "empresa"} 🙂`,
-    "Posso te ajudar com valores, estrutura, disponibilidade ou reserva?"
-  ].join("\n\n")
-});
 
 const isLoopingComplaint = (message = ""): boolean => {
   const normalized = normalizeText(message);
   return /\b(looping|repetindo|repetiu|mesma coisa|ja falei|ja respondi|nao entendeu|voce nao entendeu|vc nao entendeu|nao foi isso|nao era isso|nao e isso|nao to perguntando isso|nao estou perguntando isso|para de perguntar|pare de perguntar|voce nao perguntou|vc nao perguntou|bugou|hugou|travou|se perdeu|voce se perdeu|vc se perdeu)\b/.test(normalized);
 };
 
-const buildLoopingComplaintDecision = (message: string): AiDecision => ({
-  intencao: "cliente_nao_satisfeito",
-  confianca: "alta",
-  mensagemInterpretada: message,
-  contexto: "Cliente reclamou de repeticao ou falta de entendimento.",
-  baseEncontrada: false,
-  respostaSegura: true,
-  acao: "pedir_mais_informacoes",
-  motivo: "Reconhecer looping sem repetir resposta anterior.",
-  resposta: [
-    "Você tem razão, eu me repeti. Desculpa.",
-    "Vou seguir pelo que você perguntar agora, sem repetir o orçamento anterior.",
-    "Qual ponto você quer ajustar ou esclarecer?"
-  ].join("\n\n")
-});
-
-const buildContextualLoopingComplaintDecision = (
-  message: string,
-  structuredContext = ""
-): AiDecision => {
-  const currentQuoteData = getCurrentQuoteDataFromContext(structuredContext);
-  const hasQuoteContext = currentQuoteData.participantCount !== null ||
-    currentQuoteData.occurrenceCount !== null ||
-    currentQuoteData.durationHours !== null;
-
-  return {
-    intencao: "cliente_nao_satisfeito",
-    confianca: "alta",
-    mensagemInterpretada: message,
-    contexto: "Cliente reclamou de repeticao, bug ou falta de entendimento.",
-    baseEncontrada: false,
-    respostaSegura: true,
-    acao: "pedir_mais_informacoes",
-    motivo: "Reconhecer looping e mudar estrategia sem repetir resposta anterior.",
-    resposta: hasQuoteContext
-      ? [
-          "Voce tem razao, eu me perdi e acabei repetindo.",
-          "Vou retomar direto: quer ajustar pessoas, dias ou horas do orcamento?"
-        ].join("\n\n")
-      : [
-          "Voce tem razao, eu me perdi aqui.",
-          "Vou retomar direto: me diga o que voce precisa ajustar ou confirmar."
-        ].join("\n\n")
-  };
-};
 
 const isHumanHandoffConfirmationComplaint = (message = ""): boolean => {
   const normalized = normalizeText(message)
@@ -1473,28 +1413,6 @@ const isHumanHandoffConfirmationComplaint = (message = ""): boolean => {
   return /\b(voce|vc)\b.{0,40}\b(nao perguntou|perguntou)\b.{0,80}\b(atendente|humano|pessoa|equipe|encaminhar|transferir)\b/.test(normalized);
 };
 
-const buildNeutralLoopRecoveryDecision = (message: string): AiDecision => ({
-  intencao: "cliente_nao_satisfeito",
-  confianca: "alta",
-  mensagemInterpretada: message,
-  contexto: "Cliente reclamou de repeticao ou pediu para parar de puxar o fluxo anterior.",
-  baseEncontrada: false,
-  respostaSegura: true,
-  acao: "pedir_mais_informacoes",
-  motivo: "Resetar estado operacional e retomar pela pergunta atual do cliente.",
-  resposta: [
-    "Voce tem razao, eu me perdi e acabei repetindo.",
-    "Vou parar de puxar o orcamento anterior.",
-    "Me manda sua pergunta atual que eu respondo por ela."
-  ].join("\n\n"),
-  operationalStatePatch: {
-    lastOfferType: null,
-    awaitingConfirmationFor: null,
-    lastQuestionKey: null,
-    lastQuestionText: null,
-    quoteRevisionMode: null
-  }
-});
 
 const buildHumanHandoffConfirmationComplaintDecision = (message: string): AiDecision => ({
   intencao: "cliente_nao_satisfeito",
@@ -1516,7 +1434,7 @@ const buildHumanHandoffConfirmationComplaintDecision = (message: string): AiDeci
 const isUnknownColorOrVisualQuestion = (message = ""): boolean => {
   const normalized = normalizeText(message);
   return /\b(cor|cores|aparencia|foto|imagem|parece|visual)\b/.test(normalized) &&
-    /\b(sala|salinha|espaco|espaço|parede|mesa|cadeira)\b/.test(normalized);
+    /\b(sala|salinha|espaco|espaÃ§o|parede|mesa|cadeira)\b/.test(normalized);
 };
 
 const buildUnknownVisualAnswerDecision = (message: string): AiDecision => ({
@@ -1529,8 +1447,8 @@ const buildUnknownVisualAnswerDecision = (message: string): AiDecision => ({
   acao: "responder_com_base",
   motivo: "Nao inventar detalhe visual sem cadastro; contornar com alternativa util.",
   resposta: [
-    "Essa informação visual específica eu não tenho cadastrada com segurança.",
-    "Posso te ajudar com estrutura, capacidade, endereço, itens inclusos ou montar uma simulação de valor."
+    "Essa informaÃ§Ã£o visual especÃ­fica eu nÃ£o tenho cadastrada com seguranÃ§a.",
+    "Posso te ajudar com estrutura, capacidade, endereÃ§o, itens inclusos ou montar uma simulaÃ§Ã£o de valor."
   ].join("\n\n")
 });
 
@@ -1621,17 +1539,17 @@ const buildCorrected15hQuoteAnswer = (
     : "";
 
   return appendPostQuoteMenu([
-    "📌 Orçamento estimado",
+    "ðŸ“Œ OrÃ§amento estimado",
     "",
     currentQuoteData?.participantCount || peopleMatch?.[1]
-      ? `👥 Pessoas: ${currentQuoteData?.participantCount || peopleMatch?.[1]}`
+      ? `ðŸ‘¥ Pessoas: ${currentQuoteData?.participantCount || peopleMatch?.[1]}`
       : "",
-    `📅 Uso: ${occurrences} encontros de ${duration}h`,
-    "⏱️ Total: 15h",
+    `ðŸ“… Uso: ${occurrences} encontros de ${duration}h`,
+    "â±ï¸ Total: 15h",
     "",
-    "Composição:",
+    "ComposiÃ§Ã£o:",
     "",
-    "Pacote flexível 15h",
+    "Pacote flexÃ­vel 15h",
     "R$ 900,00",
     "",
     "Total estimado: R$ 900,00",
@@ -1639,7 +1557,7 @@ const buildCorrected15hQuoteAnswer = (
     "",
     "Para uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas.",
     "",
-    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
+    "SimulaÃ§Ã£o informativa: este orÃ§amento precisa ser validado por um atendente, assim como disponibilidade, reserva e condiÃ§Ãµes finais."
   ].join("\n").replace(/\n{3,}/g, "\n\n").trim());
 };
 
@@ -1679,7 +1597,7 @@ const extractHourlyPackageOptions = (knowledge = ""): HourlyPackageOption[] => {
     if (/^\|/.test(line) || /^total solicitado\b/i.test(normalized)) continue;
     if (/\b(melhor que|alternativa|observacao|cobre|sobra|total real|nao oferecer|nao usar)\b/.test(normalized)) continue;
     if (/\b(semanal|semanais|mensal|mensais|mes|meses)\b/.test(normalized)) continue;
-    if (!/\b(pacote|bloco|periodo|período|turno|diaria|diária)\b/.test(normalized)) continue;
+    if (!/\b(pacote|bloco|periodo|perÃ­odo|turno|diaria|diÃ¡ria)\b/.test(normalized)) continue;
 
     const hourMatch = line.match(/\b(\d{1,3})\s*h\b/i);
     const priceMatch = line.match(/R\$\s*([\d.]+(?:,\d{2})?)/i);
@@ -1698,7 +1616,7 @@ const extractHourlyPackageOptions = (knowledge = ""): HourlyPackageOption[] => {
       ? `bloco de ${hours}h`
       : normalized.includes("turno")
         ? `turno de ${hours}h`
-        : normalized.includes("diaria") || normalized.includes("diária")
+        : normalized.includes("diaria") || normalized.includes("diÃ¡ria")
           ? `diaria de ${hours}h`
           : `pacote de ${hours}h`;
     const label = cleanedLabel && cleanedLabel.length <= 80 ? cleanedLabel : fallbackLabel;
@@ -1860,7 +1778,7 @@ const describeQuoteCandidate = (
 ): string => {
   const saldo = candidate.totalHours - targetHours;
   return [
-    "Composição:",
+    "ComposiÃ§Ã£o:",
     "",
     summarizePackageItems(candidate.items),
     "",
@@ -2020,12 +1938,12 @@ const shouldReplaceHourlyQuoteAnswer = (
 
 const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
   const structureMatch = knowledge.match(
-    /(?:estrutura inclusa|o valor da contratacao inclui|o valor da contratação inclui|inclui:)([\s\S]*?)(?:\n\s*(?:\d+\.\s+|#{1,6}\s+|===)|$)/i
+    /(?:estrutura inclusa|o valor da contratacao inclui|o valor da contrataÃ§Ã£o inclui|inclui:)([\s\S]*?)(?:\n\s*(?:\d+\.\s+|#{1,6}\s+|===)|$)/i
   );
   const source = structureMatch?.[1] || "";
   if (!source.trim()) return [];
 
-  const stopWords = /\b(usos indicados|valores oficiais|observacoes|observações|pacotes|planos|educacao|educação|corporativo|rh e selecao|rh e seleção)\b/i;
+  const stopWords = /\b(usos indicados|valores oficiais|observacoes|observaÃ§Ãµes|pacotes|planos|educacao|educaÃ§Ã£o|corporativo|rh e selecao|rh e seleÃ§Ã£o)\b/i;
   const items: string[] = [];
 
   for (const line of source.split("\n")) {
@@ -2033,7 +1951,7 @@ const extractIncludedItemsFromKnowledge = (knowledge = ""): string[] => {
     if (!trimmed) continue;
     if (stopWords.test(trimmed)) break;
 
-    const bullet = trimmed.match(/^[-*•]\s*(.+?)\s*[.;:]?$/);
+    const bullet = trimmed.match(/^[-*â€¢]\s*(.+?)\s*[.;:]?$/);
     if (!bullet?.[1]) continue;
 
     const item = bullet[1].trim();
@@ -2197,7 +2115,7 @@ const buildCommercialQuoteAnswer = ({
     ? quoteData.occurrenceCount * quoteData.durationHours
     : quoteResult.requestedQuantity;
   const peopleLine = quoteData.participantCount
-    ? `👥 Pessoas: ${quoteData.participantCount}`
+    ? `ðŸ‘¥ Pessoas: ${quoteData.participantCount}`
     : "";
   const occurrenceText = quoteData.occurrenceCount && quoteData.durationHours
     ? `${pluralizePt(quoteData.occurrenceCount, "dia/encontro", "dias/encontros")} de ${quoteData.durationHours}h`
@@ -2208,17 +2126,17 @@ const buildCommercialQuoteAnswer = ({
 
   const scenarioLines = [
     peopleLine,
-    `📅 Uso: ${occurrenceText}`,
-    `⏱️ Total: ${totalHours}h`
+    `ðŸ“… Uso: ${occurrenceText}`,
+    `â±ï¸ Total: ${totalHours}h`
   ].filter(Boolean).join("\n");
 
   const baseAnswer = [
-    "📌 Orçamento estimado",
+    "ðŸ“Œ OrÃ§amento estimado",
     scenarioLines,
-    ["Composição:", "", lineText].join("\n"),
+    ["ComposiÃ§Ã£o:", "", lineText].join("\n"),
     totalLine,
     overageNote,
-    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
+    "SimulaÃ§Ã£o informativa: este orÃ§amento precisa ser validado por um atendente, assim como disponibilidade, reserva e condiÃ§Ãµes finais."
   ].filter(Boolean).join("\n\n");
 
   return appendPostQuoteMenu(baseAnswer);
@@ -2428,25 +2346,25 @@ const buildTotalHoursCommercialQuoteDecision = async ({
       ].join("\n")
     : "";
 
-  const correctionIntro = /\b(nao ha|to falando|estou falando|tou falando|tô falando)\b/i.test(normalizeText(message))
-    ? "Você tem razão, vou considerar como total de horas, não como horas por encontro."
-    : "Entendi, você quer simular pelo total de horas/pacotes.";
+  const correctionIntro = /\b(nao ha|to falando|estou falando|tou falando|tÃ´ falando)\b/i.test(normalizeText(message))
+    ? "VocÃª tem razÃ£o, vou considerar como total de horas, nÃ£o como horas por encontro."
+    : "Entendi, vocÃª quer simular pelo total de horas/pacotes.";
 
   const scenarioLines = [
-    participantCount ? `👥 Pessoas: ${participantCount}` : "",
-    "📅 Uso: total de horas informado",
-    `⏱️ Total: ${totalHours}h`
+    participantCount ? `ðŸ‘¥ Pessoas: ${participantCount}` : "",
+    "ðŸ“… Uso: total de horas informado",
+    `â±ï¸ Total: ${totalHours}h`
   ].filter(Boolean).join("\n");
 
   const baseAnswer = [
-    "📌 Orçamento estimado",
+    "ðŸ“Œ OrÃ§amento estimado",
     correctionIntro,
     scenarioLines,
     comparisonNote,
-    ["Composição:", "", lineText].join("\n"),
+    ["ComposiÃ§Ã£o:", "", lineText].join("\n"),
     `Total estimado: ${formatMoney(Number(recommended.total))}`,
     overageNote,
-    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
+    "SimulaÃ§Ã£o informativa: este orÃ§amento precisa ser validado por um atendente, assim como disponibilidade, reserva e condiÃ§Ãµes finais."
   ].filter(Boolean).join("\n\n");
   const resposta = appendPostQuoteMenu(baseAnswer);
 
@@ -2484,7 +2402,7 @@ const buildIncludedItemsAnswerFromKnowledge = (knowledge = ""): string | null =>
   if (!includedItems.length) return null;
 
   return [
-    "O que está incluso é o mesmo para qualquer opção/pacote:",
+    "O que estÃ¡ incluso Ã© o mesmo para qualquer opÃ§Ã£o/pacote:",
     "",
     "*Incluso:*",
     ...includedItems.map(item => `- ${item}`)
@@ -2600,7 +2518,7 @@ const buildAnswerPrompt = ({
   "Escreva a resposta final para o cliente em portugues do Brasil.",
   "Use linguagem natural, educada, objetiva e humana.",
   "Prefira respostas curtas, em estilo WhatsApp. Evite textos longos: normalmente use 2 a 6 linhas, salvo se o cliente pedir detalhes.",
-  "Pode usar emojis com moderacao para deixar a conversa mais amigavel, no maximo 1 ou 2 por resposta. Use emojis simples como 🙂, ✅, 💰, 📌 ou 👍 quando fizer sentido.",
+  "Pode usar emojis com moderacao para deixar a conversa mais amigavel, no maximo 1 ou 2 por resposta. Use emojis simples como ðŸ™‚, âœ…, ðŸ’°, ðŸ“Œ ou ðŸ‘ quando fizer sentido.",
   "Para orcamentos, seja enxuto: informe o contexto em 1 linha, mostre a melhor opcao recomendada e finalize com uma pergunta simples. Nao liste opcoes empatadas ou mais caras se elas nao trazem vantagem real para o cliente.",
   "Em orcamentos, mostre a conta de forma transparente e nomeie o item da tabela antes da multiplicacao. Exemplos: 'pacote de 3h x 2 = R$ 210 x 2 = R$ 420', 'bloco de 2h x 3 = R$ 140 x 3 = R$ 420', 'turno de 5h x 2 = R$ 300 x 2 = R$ 600'. Evite escrever apenas '2 x 3h'.",
   "Nunca transforme o total solicitado em nome de pacote. Se a base nao listar pacote direto de 12h, 13h, 14h ou outro total, diga que e uma composicao e mostre os itens oficiais usados. Exemplo: 12h pode ser pacote 10h + bloco 2h, nao 'pacote de 12h'.",
@@ -2680,7 +2598,7 @@ const buildAnswerPrompt = ({
   "Se a ultima pergunta da IA pediu duracao, horas, quantidade de ocorrencias, encontros, aulas, reunioes, cursos, sessoes, consultas ou dias, e a mensagem atual trouxe esses dados, nao faca a mesma pergunta novamente. Use os dados atuais para calcular, responder, ou pedir apenas outro dado que ainda falte.",
   "Interprete respostas naturais e variadas do cliente como resposta a pergunta pendente. Exemplos: 'serao 4 dias para 6 horas cada', 'umas 6h por dia', 'de manha e tarde', '16 pessoas', 'recorrente' ou 'so um dia' podem responder a pergunta anterior mesmo sem repetir as mesmas palavras.",
   "Se a resposta trouxer duracao e quantidade de dias/encontros separados, como '3 horas em 3 dias diferentes', trate como 3 ocorrencias de 3h cada, totalizando 9h. Nao trate como 3h totais nem como diaria de um unico dia.",
-  "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, interprete respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 aulas de 4 horas', 'três reuniões de quatro horas', '3 x 4h' ou 'três por quatro horas' como 3 ocorrencias da unidade em contexto, com 4 horas cada.",
+  "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, interprete respostas abreviadas como '3 de 4 horas', 'trÃªs de quatro horas', '3 aulas de 4 horas', 'trÃªs reuniÃµes de quatro horas', '3 x 4h' ou 'trÃªs por quatro horas' como 3 ocorrencias da unidade em contexto, com 4 horas cada.",
   "Entenda sinonimos de uso em um dia: 'unico dia', 'so um dia', 'um dia apenas' significam 1 ocorrencia/dia. Se o cliente disser 'dia inteiro', 'o dia todo' ou 'diaria', trate como diaria quando a base tiver diaria cadastrada.",
   "Se o cliente disser apenas 'unico dia' e ainda nao informou horas nem dia inteiro, nao liste todas as opcoes. Pergunte curto: 'Nesse unico dia seria diaria/dia inteiro ou algumas horas?'.",
   "Se a mensagem estiver ambigua, com erro de digitacao que permita mais de uma leitura, ou se voce nao tiver certeza do dado informado, nao chute. Faca uma pergunta curta de confirmacao antes de calcular ou orientar.",
@@ -2691,7 +2609,7 @@ const buildAnswerPrompt = ({
   "Em recalculo de orcamento na mesma conversa, nao repita inclusos/estrutura ja explicados antes, a menos que o cliente pergunte especificamente o que inclui.",
   "Se o cliente alterar apenas um dado, como quantidade de pessoas, itens, dias ou horas, aproveite os demais dados ja coletados no Estado vivo. Nao se apresente de novo e nao reinicie a qualificacao; no maximo confirme de forma curta se os demais dados continuam iguais.",
   "Se a base informar capacidade maxima, limite, disponibilidade, regra de elegibilidade ou restricao, compare com os dados atuais do cliente. Se o dado do cliente exceder o limite, avise claramente e nao passe orcamento como se fosse viavel.",
-  "Se o estado vivo indicar que a resposta anterior foi rejeitada, a solução não funcionou, houve objeção ou o cliente mudou de cenário, não repita o mesmo caminho nem encerre. Reconheça o ponto do cliente e ofereça o próximo caminho sustentado pela base.",
+  "Se o estado vivo indicar que a resposta anterior foi rejeitada, a soluÃ§Ã£o nÃ£o funcionou, houve objeÃ§Ã£o ou o cliente mudou de cenÃ¡rio, nÃ£o repita o mesmo caminho nem encerre. ReconheÃ§a o ponto do cliente e ofereÃ§a o prÃ³ximo caminho sustentado pela base.",
   "Se a pergunta pedir calculo simples e a base trouxer o numero necessario, calcule o resultado e mostre a conta de forma curta. Exemplo: diaria de R$ 300 por 10 dias = R$ 3.000.",
   "Mesmo que a base antiga mencione desconto, nao calcule desconto nem mostre percentuais. Desconto/condicao especial exige atendimento humano.",
   "Se a base trouxer plano avulso de 2 horas por R$ 140 e o cliente pedir valor por hora, explique que o plano avulso cadastrado e de 2 horas por R$ 140. Se pedir 3h, 5h, 10h, 15h ou 20h e a base tiver pacote direto para essa quantidade, use o pacote direto; se nao houver pacote ou complemento cadastrado, nao invente valor por hora.",
@@ -2964,7 +2882,7 @@ const isBusinessCloseRequest = (message: string): boolean => {
   if (!normalized) return false;
 
   return (
-    /\b(fechar|finalizar|seguir|prosseguir|continuar|avancar|avanÃ§ar)\b.{0,80}\b(negocio|reserva|agendamento|contrato|contratacao|contrataÃ§Ã£o|compra|pedido|pacote|plano|orcamento|orÃ§amento|proposta)\b/.test(normalized) ||
+    /\b(fechar|finalizar|seguir|prosseguir|continuar|avancar|avanÃƒÂ§ar)\b.{0,80}\b(negocio|reserva|agendamento|contrato|contratacao|contrataÃƒÂ§ÃƒÂ£o|compra|pedido|pacote|plano|orcamento|orÃƒÂ§amento|proposta)\b/.test(normalized) ||
     /\b(quero|queria|gostaria|vamos|bora|preciso|desejo)\b.{0,80}\b(fechar|finalizar|reservar|contratar|agendar)\b/.test(normalized)
   );
 };
@@ -2975,7 +2893,7 @@ const isCriticalKnowledgeQuestion = (message = ""): boolean => {
     .replace(/\s+/g, " ")
     .trim();
 
-  return /\b(pix|cartao|cartão|debito|débito|credito|crédito|reserva|reservar|desconto|professor|mensalista|endereco|endereço|onde|capacidade|cabe|pessoas|tabela|valores|precos|preços|incluso|inclui|ar condicionado|ar-condicionado|ar)\b/.test(normalized);
+  return /\b(pix|cartao|cartÃ£o|debito|dÃ©bito|credito|crÃ©dito|reserva|reservar|desconto|professor|mensalista|endereco|endereÃ§o|onde|capacidade|cabe|pessoas|tabela|valores|precos|preÃ§os|incluso|inclui|ar condicionado|ar-condicionado|ar)\b/.test(normalized);
 };
 
 const shouldAnswerCurrentKnowledgeQuestionFirst = (intent?: string | null): boolean =>
@@ -3065,11 +2983,11 @@ const buildPriceObjectionDecision = (message: string): AiDecision => ({
   intencao: "cliente_nao_satisfeito",
   confianca: "alta",
   mensagemInterpretada: message,
-  contexto: "Cliente achou o valor caro ou fora do orçamento.",
+  contexto: "Cliente achou o valor caro ou fora do orÃ§amento.",
   baseEncontrada: true,
   respostaSegura: true,
   acao: "pedir_mais_informacoes",
-  motivo: "Objeção de preço; contornar sem repetir a mesma proposta.",
+  motivo: "ObjeÃ§Ã£o de preÃ§o; contornar sem repetir a mesma proposta.",
   resposta: [
     "Entendo. O valor pode pesar dependendo do formato.",
     "Posso refazer a simulacao com outro cenario de uso, usando os valores cadastrados, se voce quiser comparar uma alternativa."
@@ -3193,7 +3111,7 @@ const isOperationalHandoffRequest = (message: string): boolean => {
   return (
     isBusinessCloseRequest(message) ||
     /\b(quero|queria|gostaria|posso|pode|vamos|bora|preciso|desejo|vou).{0,80}\b(reservar|reserva|agendar|agenda|fechar|finalizar|contratar|contratacao|pagar|pagamento|sinal|disponibilidade)\b/.test(normalized) ||
-    /\b(seguir|prosseguir|continuar|avancar|avançar).{0,80}\b(com|para|pra).{0,40}\b(reserva|agendamento|contratacao|contratação|pagamento)\b/.test(normalized) ||
+    /\b(seguir|prosseguir|continuar|avancar|avanÃ§ar).{0,80}\b(com|para|pra).{0,40}\b(reserva|agendamento|contratacao|contrataÃ§Ã£o|pagamento)\b/.test(normalized) ||
     /\b(reservar|agendar|fechar|contratar|pagar|disponibilidade)\b/.test(normalized)
   );
 };
@@ -3289,7 +3207,7 @@ const isNegativeExitConfirmation = (message: string, ticket: Ticket): boolean =>
     .replace(/\s+/g, " ")
     .trim();
 
-  return /^(nao|n|nao quero|n quero|continuar|quero continuar|ainda nao|não|não quero)$/.test(normalized);
+  return /^(nao|n|nao quero|n quero|continuar|quero continuar|ainda nao|nÃ£o|nÃ£o quero)$/.test(normalized);
 };
 
 const shouldPreferKnowledgeFallback = (
@@ -3347,7 +3265,7 @@ const historyHasRecentAiAnswer = (history: string): boolean => {
 
   const relevantAiLines = lines.filter(line =>
     (line.startsWith("IA:") || line.startsWith("IA/Sistema:") || line.startsWith("[IA")) &&
-    !/menu|opcao|opção|ola como posso ajudar|seja bem-vindo/i.test(line)
+    !/menu|opcao|opÃ§Ã£o|ola como posso ajudar|seja bem-vindo/i.test(line)
   );
 
   return relevantAiLines.length > 0;
@@ -3361,7 +3279,7 @@ const lastAiAskedToFinish = (history: string): boolean => {
   const lastAiLine =
     [...lines].reverse().find(line => line.startsWith("IA:") || line.startsWith("IA/Sistema:") || line.startsWith("[IA")) || "";
 
-  return /posso finalizar|pode finalizar|finalizar seu atendimento|posso encerrar|pode encerrar|ajudo em algo mais|ajuda em algo mais|algo mais|mais alguma coisa|posso ajudar em mais alguma coisa|consegui te ajudar|consegui ajudar|te ajudei|essa informacao te ajudou|essa informação te ajudou/i.test(lastAiLine);
+  return /posso finalizar|pode finalizar|finalizar seu atendimento|posso encerrar|pode encerrar|ajudo em algo mais|ajuda em algo mais|algo mais|mais alguma coisa|posso ajudar em mais alguma coisa|consegui te ajudar|consegui ajudar|te ajudei|essa informacao te ajudou|essa informaÃ§Ã£o te ajudou/i.test(lastAiLine);
 };
 
 const isAffirmativeShortAnswer = (normalized: string): boolean =>
@@ -3425,7 +3343,7 @@ const isContextualClosingIntent = (
 
   const isSatisfactionAfterAnswer =
     historyHasRecentAiAnswer(history) &&
-    /\b(certo|ok|okay|ta bom|esta bom|beleza|blz|perfeito|show|entendi|combinado|obrigado|obrigada|obg|valeu|agradeco|agradeço)\b/.test(normalized) &&
+    /\b(certo|ok|okay|ta bom|esta bom|beleza|blz|perfeito|show|entendi|combinado|obrigado|obrigada|obg|valeu|agradeco|agradeÃ§o)\b/.test(normalized) &&
     normalized.length <= 80;
 
   return isSatisfactionAfterAnswer;
@@ -3453,7 +3371,7 @@ const isAffirmativeAnswerToProceedQuestion = (message: string, ticket: Ticket): 
     return false;
   }
 
-  return /\b(gostaria|quer|queria|pode).{0,80}\b(seguir|fechar|reservar|dar continuidade|continuar).{0,80}\b(opcao|orçamento|orcamento|reserva|essa)\b/.test(last) ||
+  return /\b(gostaria|quer|queria|pode).{0,80}\b(seguir|fechar|reservar|dar continuidade|continuar).{0,80}\b(opcao|orÃ§amento|orcamento|reserva|essa)\b/.test(last) ||
     /\bseguir com essa opcao\b/.test(last);
 };
 
@@ -3539,10 +3457,10 @@ const getQuoteRevisionField = (message = ""): "participant_count" | "occurrences
     .replace(/\s+/g, " ")
     .trim();
 
-  if (/\b(do zero|zerar|recomecar|recomeçar|novo cenario|novo cenário|tudo|todos os dados)\b/.test(normalized)) return "reset";
+  if (/\b(do zero|zerar|recomecar|recomeÃ§ar|novo cenario|novo cenÃ¡rio|tudo|todos os dados)\b/.test(normalized)) return "reset";
   if (/\b(pessoas|participantes|alunos|clientes|convidados|quantidade)\b/.test(normalized)) return "participant_count";
   if (/\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|quantos)\b/.test(normalized)) return "occurrences";
-  if (/\b(horas|hora|duracao|duração|tempo)\b/.test(normalized)) return "duration";
+  if (/\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(normalized)) return "duration";
 
   return null;
 };
@@ -3723,7 +3641,7 @@ const buildDecisionPrompt = ({
     "Exemplo obrigatorio: 3 aulas, encontros ou dias de 5h = 15h no total. Mesmo se o cliente disser que sera por 2 meses, recomende pacote de 15h = R$ 900 e nao pacote 20h.",
     "Se a ultima pergunta foi sobre duracao, horas, dias, encontros, aulas, reunioes, cursos, sessoes ou consultas e a mensagem atual respondeu com esses dados, nao repita essa pergunta. Avance para resposta com base ou peca somente o proximo dado realmente ausente.",
     "Sempre avalie se a mensagem atual responde a pergunta pendente de forma indireta, abreviada ou com erro de digitacao. Nao exija que o cliente use as mesmas palavras da pergunta.",
-    "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, respostas abreviadas como '3 de 4 horas', 'três de quatro horas', '3 aulas de 4 horas', 'três reuniões de quatro horas', '3 x 4h' ou 'três por quatro horas' significam 3 ocorrencias da unidade em contexto, com 4 horas cada.",
+    "Se a pergunta anterior pediu duracao e quantidade de ocorrencias/unidades, respostas abreviadas como '3 de 4 horas', 'trÃªs de quatro horas', '3 aulas de 4 horas', 'trÃªs reuniÃµes de quatro horas', '3 x 4h' ou 'trÃªs por quatro horas' significam 3 ocorrencias da unidade em contexto, com 4 horas cada.",
     "Entenda sinonimos de uso em um dia: 'unico dia', 'so um dia', 'um dia apenas' significam 1 ocorrencia/dia. Se ainda faltar duracao, pergunte se sera diaria/dia inteiro ou algumas horas.",
     "Se o cliente disser 'dia inteiro', 'o dia todo' ou 'diaria', e a base tiver diaria cadastrada, trate como diaria em vez de pedir a mesma informacao novamente.",
     "Se a mensagem atual estiver ambigua, truncada, com erro de digitacao relevante ou permitir mais de uma leitura, nao chute e nao calcule. Use pedir_confirmacao ou pedir_mais_informacoes com uma pergunta curta e especifica.",
@@ -3738,6 +3656,13 @@ const buildDecisionPrompt = ({
     "Se o cliente perguntar assunto fora do escopo do atendimento e da base, como camisa de time, futebol, politica, celebridade, receita, roupa, curiosidade geral ou produto externo, use sem_resposta_segura com resposta curta e educada: diga que nao consegue ajudar com esse assunto por ali, que o foco e o atendimento da empresa/servico, e redirecione para valores, estrutura, reserva, suporte ou duvidas relacionadas. Nao responda usando conhecimento geral e nao repita orcamento antigo.",
     "Pode responder perguntas sobre quem e a IA, qual seu papel, ou explicar uma resposta anterior usando o perfil configurado e o historico da conversa.",
     "Pode conversar de forma natural e humanizada, mas sem criar informacoes comerciais, tecnicas, promocionais, financeiras, medicas, juridicas ou operacionais fora da base.",
+    "Elogios, brincadeiras leves, flertes leves, mensagens invasivas, mensagens sexuais, ofensas e reclamacoes devem ser tratados por diretriz de comportamento, nunca por frase pronta.",
+    "Para elogio ou brincadeira leve: acolha com simpatia e humor discreto quando couber, sem prolongar conversa pessoal, e redirecione naturalmente para o atendimento.",
+    "Para flerte leve: seja cordial e leve, mas nao alimente romance, nao prolongue assunto pessoal e retome o foco da Salinha Meier.",
+    "Para mensagem sexual, invasiva ou constrangedora: nao responda ao conteudo; estabeleca limite educado, sem piada sexual e sem agressividade, e retome o atendimento.",
+    "Para ofensa ou grosseria: nao revide, nao ironize, mantenha postura profissional e tente retomar a conversa objetivamente.",
+    "Para reclamacao seria sobre atendimento, pagamento, reserva, sala ou experiencia ruim: nao use humor; responda com seriedade, empatia e encaminhe quando necessario.",
+    "Nao copie exemplos literalmente e nao use uma frase fixa para esses tratamentos. A resposta deve soar contextual e humana.",
     "Pode vender, orientar, sugerir possiveis causas, explicar promocao, informar preco, conduzir agendamento, acompanhar pedido ou tirar duvidas somente quando houver base suficiente.",
     "Pode fazer calculos simples quando a base trouxer os dados numericos necessarios, como diaria x quantidade de dias, valor unitario x unidades ou soma simples.",
     "Se o cliente perguntar 'o que tenho direito?', 'o que entra?', 'o que inclui?', 'o que esta incluso?' ou equivalente, interprete como pergunta sobre inclusos/estrutura/beneficios do servico ou plano. Use responder_com_base se houver base.",
@@ -3904,7 +3829,7 @@ const DecideAiTicketActionService = async ({
       intencao: "possivel_pedido_encerramento",
       confianca: "media",
       mensagemInterpretada: message,
-      contexto: "Cliente usou termo de saida ambíguo; confirmar antes de encerrar.",
+      contexto: "Cliente usou termo de saida ambÃ­guo; confirmar antes de encerrar.",
       baseEncontrada: false,
       respostaSegura: true,
       acao: "pedir_confirmacao",
@@ -4102,7 +4027,7 @@ const DecideAiTicketActionService = async ({
       respostaSegura: true,
       acao: "pedir_mais_informacoes",
       motivo: "Opcao 3 do menu pos-orcamento deve abrir espaco para duvida, nao iniciar novo orcamento.",
-      resposta: "Claro. Qual é a dúvida?"
+      resposta: "Claro. Qual Ã© a dÃºvida?"
     };
   }
 
@@ -4226,7 +4151,7 @@ const DecideAiTicketActionService = async ({
       respostaSegura: false,
       acao: "sem_resposta_segura",
       motivo: "RAG sem retrievedChunks confiaveis; bloqueio contra resposta inventada.",
-      resposta: "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar?"
+      resposta: "NÃ£o encontrei essa informaÃ§Ã£o confirmada aqui. Posso encaminhar para a equipe verificar?"
     };
   }
   if (isIdentityQuestion(message)) {
@@ -4524,8 +4449,8 @@ const DecideAiTicketActionService = async ({
   if (
     isBareNumericAnswer(message) &&
     (
-      /\b(horas|hora|duracao|duração|tempo)\b/.test(normalizedActiveLastQuestion) ||
-      /\b(horas|hora|duracao|duração|tempo)\b/.test(normalizedLastAiMessage)
+      /\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(normalizedActiveLastQuestion) ||
+      /\b(horas|hora|duracao|duraÃ§Ã£o|tempo)\b/.test(normalizedLastAiMessage)
     )
   ) {
     const duration = bareNumericAnswerToValue(message);
@@ -4740,14 +4665,6 @@ const DecideAiTicketActionService = async ({
     return buildContextualIdentityAnswerDecision(message, aiSetting, getActiveConversationHistory(history));
   }
 
-  if (isPersonalFlirtQuestion(message)) {
-    return buildPersonalFlirtAnswerDecision(message, aiSetting);
-  }
-
-  if (isLoopingComplaint(message)) {
-    return buildNeutralLoopRecoveryDecision(message);
-  }
-
   const operationalDecision = await EvaluateAiConversationStateService({
     ticket,
     message,
@@ -4826,14 +4743,6 @@ const DecideAiTicketActionService = async ({
 
   if (isIdentityQuestion(message)) {
     return buildContextualIdentityAnswerDecision(message, aiSetting, getActiveConversationHistory(history));
-  }
-
-  if (isPersonalFlirtQuestion(message)) {
-    return buildPersonalFlirtAnswerDecision(message, aiSetting);
-  }
-
-  if (isLoopingComplaint(message)) {
-    return buildNeutralLoopRecoveryDecision(message);
   }
 
   if (isClearlyOutOfScopeMessage(message)) {
@@ -5000,7 +4909,7 @@ const DecideAiTicketActionService = async ({
       respostaSegura: false,
       acao: "encaminhar_atendente",
       motivo: "Confirmacao curta apos pergunta de seguir com a opcao deve acionar handoff, nao repetir o orcamento.",
-      resposta: "Perfeito, vamos seguir com essa opção. Vou encaminhar para a equipe confirmar disponibilidade e finalizar os detalhes."
+      resposta: "Perfeito, vamos seguir com essa opÃ§Ã£o. Vou encaminhar para a equipe confirmar disponibilidade e finalizar os detalhes."
     };
   }
 
@@ -5134,7 +5043,7 @@ const DecideAiTicketActionService = async ({
         baseEncontrada: true,
         respostaSegura: true,
         acao: "responder_com_base",
-        motivo: "Responder inclusos diretamente sem repetir orçamento.",
+        motivo: "Responder inclusos diretamente sem repetir orÃ§amento.",
         resposta: includedAnswer,
         knowledgeIds: articles.map(article => article.id)
       };

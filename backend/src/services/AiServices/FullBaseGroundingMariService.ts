@@ -124,6 +124,46 @@ const isFactQuestion = (intent = "", message = ""): boolean => {
   );
 };
 
+const isUnavailableStructureQuestion = (intent = "", message = ""): boolean =>
+  intent === "request_included_structure" &&
+  asksAbout(message, [/\bestacionamento\b/, /\bprojetor\b/, /\bmesa de som\b/, /\bimpressora\b/, /\bquadro verde\b/, /\bquadri verde\b/, /\blousa verde\b/]);
+
+const isUnavailableStructureAnswerAligned = (answer = ""): boolean => {
+  const normalized = normalizeText(answer);
+
+  return (
+    /\b(nao temos|nao tem|infelizmente nao)\b/.test(normalized) &&
+    !/\b(base|sistema|prompt|api|json|orcamento|novos dados|me passa os novos dados)\b/.test(normalized)
+  );
+};
+
+const cleanCustomerAnswer = (answer = "", intent = "", message = ""): string => {
+  let cleaned = answer.trim();
+  const normalizedMessage = normalizeText(message);
+
+  cleaned = cleaned
+    .replace(/\b[Aa]\s+base\s+(oficial\s+)?(informa|diz|traz|mostra)\s+que\s+/g, "")
+    .replace(/\b[Nn]a base\s+(oficial\s+)?(informa|diz|traz|mostra)\s+que\s+/g, "")
+    .replace(/\b[Ss]egundo a base[, ]+\s*/g, "")
+    .replace(/\bnao temos confirmacao de\b/gi, "nao temos")
+    .replace(/\bnão temos confirmação de\b/gi, "não temos")
+    .replace(/\bnao consta confirmado(?: na estrutura)?\b/gi, "nao temos")
+    .replace(/\bnão consta confirmado(?: na estrutura)?\b/gi, "não temos")
+    .replace(/\bnao esta confirmado(?: na estrutura)?\b/gi, "nao temos")
+    .replace(/\bnão está confirmado(?: na estrutura)?\b/gi, "não temos");
+
+  if (intent === "request_included_structure") {
+    if (/\bquadro verde\b|\bquadri verde\b|\blousa verde\b/.test(normalizedMessage)) {
+      cleaned = cleaned.replace(/\bmas\s+(nao|não)\s+temos quadro verde\b/gi, "não temos quadro verde");
+    }
+    if (/\bimpressora\b/.test(normalizedMessage)) {
+      cleaned = cleaned.replace(/não temos impressora(?:\s+confirmada)?(?:\s+na estrutura da Salinha M[eé]ier)?/gi, "não temos impressora");
+    }
+  }
+
+  return cleaned.trim();
+};
+
 const validatesCriticalAnswer = (intent = "", answer = ""): boolean => {
   const normalized = normalizeText(answer);
 
@@ -192,8 +232,8 @@ const answerMatchesIntent = (intent = "", message = "", answer = ""): boolean =>
     case "request_packages":
       return /\b(pacote|horas livres|6 horas|12 horas|24 horas)\b/.test(normalizedAnswer);
     case "request_included_structure":
-      if (asksAbout(message, [/\bestacionamento\b/, /\bprojetor\b/, /\bmesa de som\b/, /\bimpressora\b/])) {
-        return /\b(nao encontrei|não encontrei|confirmar|verificar|equipe)\b/.test(normalizedAnswer);
+      if (asksAbout(message, [/\bestacionamento\b/, /\bprojetor\b/, /\bmesa de som\b/, /\bimpressora\b/, /\bquadro verde\b/, /\bquadri verde\b/, /\blousa verde\b/])) {
+        return /\b(nao temos|nao tem|infelizmente nao)\b/.test(normalizedAnswer);
       }
       if (asksAbout(message, [/\bar\b/, /\bar condicionado\b/, /\bar-condicionado\b/])) {
         return /\bar\b/.test(normalizedAnswer) && /\b(condicionado|sim)\b/.test(normalizedAnswer);
@@ -283,15 +323,22 @@ const buildDeterministicGroundedAnswer = (
       return {
         foundInBase: true,
         baseSectionsUsed: ["Pacote Professor Particular"],
-        customerAnswer: "O Pacote Professor Particular tem contratacao minima de 1 mes e esta disponivel as tercas e quintas, das 13h as 17h30. A base informa opcoes por dias de uso, nao como pacote avulso de 1 hora."
+        customerAnswer: "O Pacote Professor Particular tem contratacao minima de 1 mes e esta disponivel as tercas e quintas, das 13h as 17h30. Ele funciona por dias de uso, nao como pacote avulso de 1 hora."
       };
     case "request_included_structure":
-      if (/\bestacionamento\b|projetor|mesa de som|impressora/.test(normalizedMessage)) {
+      if (/\bestacionamento\b|projetor|mesa de som|impressora|quadro verde|quadri verde|lousa verde/.test(normalizedMessage)) {
+        const isProjector = /\bprojetor\b/.test(normalizedMessage);
+        const isGreenBoard = /\bquadro verde\b|\bquadri verde\b|\blousa verde\b/.test(normalizedMessage);
+        const confirmedAlternative = isProjector
+          ? "Mas temos TV para reproducao de conteudo."
+          : isGreenBoard
+            ? "Mas temos quadro branco."
+            : "Temos ar-condicionado, internet, TV, quadro branco, recepcao, banheiro e copa compartilhavel.";
         return {
           foundInBase: false,
           baseSectionsUsed: [],
-          needsHuman: true,
-          customerAnswer: SAFE_NOT_FOUND
+          needsHuman: false,
+          customerAnswer: `Infelizmente, nao temos ${isProjector ? "projetor" : isGreenBoard ? "quadro verde" : "esse item"}. ${confirmedAlternative}`
         };
       }
       if (/\bar\b|ar condicionado|ar-condicionado/.test(normalizedMessage)) {
@@ -424,7 +471,16 @@ const buildFullBasePrompt = ({
   "Nao invente informacao.",
   "Nao responda assuntos que nao foram perguntados.",
   "Se o cliente perguntar uma coisa simples, responda apenas aquela coisa.",
-  "Se a informacao nao estiver na base, use exatamente o fallback seguro.",
+  "Se a informacao nao estiver na base, nao invente.",
+  "Para pergunta sobre item de estrutura que nao esteja listado como incluso, responda com uma negativa cordial, simpatica e curta, deixando claro que a Salinha nao tem aquele item. Nao seja seco e nao diga 'nao consta confirmado' ou 'nao encontrei confirmado'.",
+  "Exemplo de estilo, nao de frase: acolha com 'infelizmente' ou tom gentil, informe que nao temos o item e, quando houver alternativa listada, sugira essa alternativa de forma util.",
+  "Quando fizer sentido, sugira de forma curta um item listado que ajude no mesmo uso. Exemplo de regra, nao de frase: se perguntar projetor e houver TV, pode sugerir TV para reproducao de conteudo.",
+  "Nao encaminhe para equipe automaticamente quando for apenas item de estrutura nao listado; encaminhe apenas se o cliente pedir alternativa operacional, disponibilidade, reserva, negociacao ou validacao humana.",
+  "Para elogios, brincadeiras leves, flertes leves, mensagens inadequadas, ofensas e reclamacoes, responda pela diretriz de comportamento, sem copiar frases da base e sem usar formula fixa.",
+  "Nao use estas frases ou variacoes como resposta ao cliente: 'Nao consigo ajudar com esse tipo de assunto por aqui', 'Esse atendimento e focado na Salinha Meier', 'Posso continuar com informacoes sobre valores, estrutura, disponibilidade ou encaminhar para a equipe'.",
+  "Para flerte leve, responda com simpatia, nao alimente o flerte e redirecione naturalmente para o atendimento.",
+  "Para mensagem sexual ou invasiva, estabeleca limite educado de forma natural e curta, sem responder ao conteudo e sem usar frase pronta.",
+  "Para reclamacao de loop, repeticao ou erro de entendimento, reconheca de forma breve e pergunte qual e a duvida atual. Nao colete pessoas, dias ou horas nesse turno, mesmo que a mensagem cite orcamento.",
   "Nunca mencione base, prompt, sistema, API ou JSON para o cliente.",
   "Retorne somente JSON valido, sem markdown.",
   "O backend enviara ao WhatsApp apenas customerAnswer.",
@@ -591,6 +647,15 @@ const FullBaseGroundingMariService = async ({
       baseVersion,
       rewrite
     });
+    const deterministicAnswer = buildDeterministicGroundedAnswer(rewrite, message);
+
+    if (deterministicAnswer) {
+      fallback.foundInBase = deterministicAnswer.foundInBase ?? fallback.foundInBase;
+      fallback.baseSectionsUsed = deterministicAnswer.baseSectionsUsed || fallback.baseSectionsUsed;
+      fallback.needsHuman = deterministicAnswer.needsHuman ?? fallback.needsHuman;
+      fallback.customerAnswer = deterministicAnswer.customerAnswer || fallback.customerAnswer;
+      fallback.shouldTransfer = deterministicAnswer.shouldTransfer ?? fallback.shouldTransfer;
+    }
 
     logger.warn(
       {
@@ -635,6 +700,21 @@ const FullBaseGroundingMariService = async ({
     model: aiSetting.model || ""
   };
 
+  result.customerAnswer = cleanCustomerAnswer(result.customerAnswer, rewrite.detectedIntent, message);
+
+  if (
+    rewrite.detectedIntent === "frustration_or_loop_complaint" &&
+    /\b(quantas pessoas|quantos participantes|pessoas ou participantes|dias|encontros|horas)\b/i.test(result.customerAnswer)
+  ) {
+    result.customerAnswer = "Entendi. Vou seguir pela sua pergunta atual, sem puxar o orçamento anterior. Qual ponto você quer resolver agora?";
+    result.needsQuoteCalculation = false;
+    result.shouldTransfer = false;
+    result.reasoningSummary = [
+      result.reasoningSummary,
+      "Resposta ajustada para reclamacao de loop nao voltar automaticamente ao fluxo de orcamento."
+    ].filter(Boolean).join(" ");
+  }
+
   if (!result.customerAnswer) {
     result.customerAnswer = SAFE_NOT_FOUND;
     result.foundInBase = false;
@@ -675,7 +755,17 @@ const FullBaseGroundingMariService = async ({
     result.customerAnswer
   );
 
-  if (deterministicAnswer && (!answerIsAligned || !result.foundInBase)) {
+  const unavailableStructure = isUnavailableStructureQuestion(rewrite.detectedIntent, message);
+
+  if (
+    unavailableStructure &&
+    isUnavailableStructureAnswerAligned(result.customerAnswer)
+  ) {
+    result.foundInBase = false;
+    result.baseSectionsUsed = result.baseSectionsUsed.filter(section => !/secao errada/i.test(section));
+    result.needsHuman = false;
+    result.shouldTransfer = false;
+  } else if (deterministicAnswer && !unavailableStructure && (!answerIsAligned || !result.foundInBase)) {
     result.foundInBase = deterministicAnswer.foundInBase ?? result.foundInBase;
     result.baseSectionsUsed = deterministicAnswer.baseSectionsUsed || result.baseSectionsUsed;
     result.needsHuman = deterministicAnswer.needsHuman ?? result.needsHuman;
@@ -686,7 +776,11 @@ const FullBaseGroundingMariService = async ({
     ].filter(Boolean).join(" ");
   }
 
-  if (isFactQuestion(rewrite.detectedIntent, message) && !result.foundInBase) {
+  if (
+    isFactQuestion(rewrite.detectedIntent, message) &&
+    !result.foundInBase &&
+    !unavailableStructure
+  ) {
     result.customerAnswer = SAFE_NOT_FOUND;
   }
 

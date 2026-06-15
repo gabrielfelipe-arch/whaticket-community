@@ -20805,3 +20805,2162 @@ VAI!
     missingCount: 0
     contradictionCount: 0
     lastAiAction: "responder_com_base"
+[INFO] 00:03:16 Restarting: C:\Rocketservice\backend\src\services\AiServices\AiConversationStateService.ts has been modified
+[2026-06-15 00:03:29.086 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[INFO] 00:03:32 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 00:03:44.041 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:03:55.365 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:03:59.137 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 00:05:54 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 00:06:05.134 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:06:16.963 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:06:20.900 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 00:08:07 Restarting: C:\Rocketservice\backend\src\services\AiServices\BuildKnowledgeBaseQueryService.ts has been modified
+[2026-06-15 00:08:17.813 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:08:27.829 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:08:30.788 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 00:12:56.408 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:12:59.211 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Tem projetor?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "request_included_structure"
+    detectedIntent: "request_included_structure"
+    directedKnowledgeBaseQuery: "A estrutura da Salinha Meier inclui projetor e, se nao incluir, qual recurso confirmado pode substituir para apresentacao?"
+    entities: {
+      "topic": "estrutura_projetor"
+    }
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Infelizmente, nao encontrei projetor confirmado na base. A alternativa confirmada na base e TV para reproducao de conteudo."
+    customerAnswer: "Infelizmente, nao encontrei projetor confirmado na base. A alternativa confirmada na base e TV para reproducao de conteudo."
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:12:59.261 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:12:59.789 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:12:59.813 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[INFO] 00:14:03 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 00:14:13.095 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:14:23.803 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:14:28.230 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 00:20:16.685 -0300] [33mWARN[39m:
+    message: "Invalid token. We'll try to assign a new one on next request"
+    statusCode: 403
+[2026-06-15 00:29:03.448 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:29:10.125 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "E tem quadri verde?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "e tem quadri verde"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Infelizmente, não encontrei quadri verde confirmado na base. A estrutura inclui um quadro branco, mas não há menção a quadri verde."
+    customerAnswer: "Infelizmente, não encontrei quadri verde confirmado na base. A estrutura inclui um quadro branco, mas não há menção a quadri verde."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:29:10.165 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:10.674 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:10.694 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:20.726 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:23.982 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Tem ar?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "request_included_structure"
+    detectedIntent: "request_included_structure"
+    directedKnowledgeBaseQuery: "A estrutura da Salinha Meier inclui ar-condicionado?"
+    entities: {
+      "topic": "estrutura_ar_condicionado"
+    }
+    foundInBase: true
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Sim, a Salinha Méier inclui ar-condicionado."
+    customerAnswer: "Sim, a Salinha Méier inclui ar-condicionado."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:29:24.005 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:29:24.441 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:29:24.469 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:29:42.841 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:29:47.129 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Tem mas oq?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "tem mas oq"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Além do ar-condicionado, a Salinha Méier inclui: \n- capacidade para até 20 pessoas;\n- quadro branco;\n- TV para reprodução de conteúdo;\n- internet;\n- recepção;\n- banheiro;\n- copa compartilhável;\n- cafeteira;\n- micro-ondas;\n- filtro com água gelada."
+    customerAnswer: "Além do ar-condicionado, a Salinha Méier inclui: \n- capacidade para até 20 pessoas;\n- quadro branco;\n- TV para reprodução de conteúdo;\n- internet;\n- recepção;\n- banheiro;\n- copa compartilhável;\n- cafeteira;\n- micro-ondas;\n- filtro com água gelada."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:29:47.154 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:47.591 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:47.607 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:29:57.724 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:30:01.233 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc é bonita?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc e bonita"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    customerAnswer: "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:30:01.255 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:30:01.720 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:30:01.736 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:30:38.671 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 00:30:42.377 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc é simpática?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc e simpatica"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Sim, sou simpática! Estou aqui para ajudar com informações sobre a Salinha Méier. 😊"
+    customerAnswer: "Sim, sou simpática! Estou aqui para ajudar com informações sobre a Salinha Méier. 😊"
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 00:30:42.409 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:30:42.821 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 00:30:42.836 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[INFO] 00:33:03 Restarting: C:\Rocketservice\backend\src\services\AiServices\AiConversationStateService.ts has been modified
+[2026-06-15 00:33:16.529 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[INFO] 00:33:22 Restarting: C:\Rocketservice\backend\src\services\AiServices\BuildKnowledgeBaseQueryService.ts has been modified
+[2026-06-15 00:33:35.449 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:33:45.892 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:33:49.048 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 00:33:56 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 00:34:09.950 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[INFO] 00:34:11 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 00:34:21.957 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:34:32.554 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:34:37.540 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 00:34:46 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 00:35:03.001 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:35:14.803 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:35:19.596 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 00:39:58 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 00:40:13.528 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 00:40:29.663 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 00:40:33.869 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 01:05:58.809 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Started[39m
+    ticketId: 810
+    formId: 4
+    responseId: 78
+[2026-06-15 01:06:02.878 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Tags applied from answer[39m
+    ticketId: 810
+    contactId: 1
+    requestedTags: [
+      "4"
+    ]
+    appliedTagIds: [
+      4
+    ]
+    missingTags: []
+[2026-06-15 01:06:05.880 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Tags applied from answer[39m
+    ticketId: 810
+    contactId: 1
+    requestedTags: [
+      "13"
+    ]
+    appliedTagIds: [
+      13
+    ]
+    missingTags: []
+[2026-06-15 01:06:05.920 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "qualification_form"
+    collectedKeys: [
+      "escolha_a_opcao_que_mais_combina_com_a_sua_necessidade",
+      "voce_ja_realizou_esse_tipo_de_encontro_antes"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: null
+[2026-06-15 01:06:05.921 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Completed[39m
+    ticketId: 810
+    responseId: 78
+    afterAction: "START_AI"
+[2026-06-15 01:06:06.360 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:06:09.815 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "participant_count"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:06:10.244 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "3"
+    detectedIntent: "provide_quote_data"
+    directedKnowledgeBaseQuery: "Quais dados ainda faltam para continuar o orcamento personalizado da Salinha Meier?"
+    entities: {
+      "quantity": 3
+    }
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "dados ainda faltam continuar orcamento personalizado salinha meier"
+    retrievedChunks: [
+      {
+        "chunkId": 54,
+        "articleId": 1,
+        "section": "10. ALTERAÇÃO DE UM ORÇAMENTO ANTERIOR",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6652961908833852,
+        "semanticScore": 0.4850710628975158,
+        "keywordScore": 2,
+        "contentPreview": "Se o cliente não pedir um novo orçamento genérico, mas informar diretamente uma alteração, a IA pode reaproveitar os dados anteriores e alterar apenas o campo informado."
+      },
+      {
+        "chunkId": 77,
+        "articleId": 1,
+        "section": "Exemplo:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6570962081868629,
+        "semanticScore": 0.472455704902866,
+        "keywordScore": 1.73,
+        "contentPreview": "3 encontros de 4h = 12h no total.\nPacote de 10h por R$ 600 não cobre 12h; faltam 2h.\nPacote de 20h por R$ 1.000 cobre 12h e deixa 8h de saldo.\nPara 12h, a opção mais simples dentro dos pacotes pode se"
+      },
+      {
+        "chunkId": 56,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6389254149501505,
+        "semanticScore": 0.444500638384847,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a quantidade de pessoas para 10;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": 61,
+        "articleId": 1,
+        "section": "Se estiver ambíguo, perguntar:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6105797108646138,
+        "semanticScore": 0.40089186286863665,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "“Você quer começar uma nova simulação do zero ou ajustar o orçamento anterior?”"
+      },
+      {
+        "chunkId": 66,
+        "articleId": 1,
+        "section": "11.2. Curso recorrente",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6100000919235931,
+        "semanticScore": 0.4000001414209125,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "Se o cliente quer curso com vários encontros:\ncalcular o total de horas;\nse forem datas diferentes, comparar o cenário consecutivo por encontro/dia com pacotes de horas livres;\nse houver frequência se"
+      },
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:06:10.258 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "participant_count"
+    ]
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:06:10.580 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:10.600 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:12.662 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "occurrences"
+    ]
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:12.996 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "4"
+    detectedIntent: "provide_quote_data"
+    directedKnowledgeBaseQuery: "Quais dados ainda faltam para continuar o orcamento personalizado da Salinha Meier?"
+    entities: {
+      "quantity": 4
+    }
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "dados ainda faltam continuar orcamento personalizado salinha meier"
+    retrievedChunks: [
+      {
+        "chunkId": 54,
+        "articleId": 1,
+        "section": "10. ALTERAÇÃO DE UM ORÇAMENTO ANTERIOR",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6652961908833852,
+        "semanticScore": 0.4850710628975158,
+        "keywordScore": 2,
+        "contentPreview": "Se o cliente não pedir um novo orçamento genérico, mas informar diretamente uma alteração, a IA pode reaproveitar os dados anteriores e alterar apenas o campo informado."
+      },
+      {
+        "chunkId": 77,
+        "articleId": 1,
+        "section": "Exemplo:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6570962081868629,
+        "semanticScore": 0.472455704902866,
+        "keywordScore": 1.73,
+        "contentPreview": "3 encontros de 4h = 12h no total.\nPacote de 10h por R$ 600 não cobre 12h; faltam 2h.\nPacote de 20h por R$ 1.000 cobre 12h e deixa 8h de saldo.\nPara 12h, a opção mais simples dentro dos pacotes pode se"
+      },
+      {
+        "chunkId": 56,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6389254149501505,
+        "semanticScore": 0.444500638384847,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a quantidade de pessoas para 10;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": 61,
+        "articleId": 1,
+        "section": "Se estiver ambíguo, perguntar:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6105797108646138,
+        "semanticScore": 0.40089186286863665,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "“Você quer começar uma nova simulação do zero ou ajustar o orçamento anterior?”"
+      },
+      {
+        "chunkId": 66,
+        "articleId": 1,
+        "section": "11.2. Curso recorrente",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6100000919235931,
+        "semanticScore": 0.4000001414209125,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "Se o cliente quer curso com vários encontros:\ncalcular o total de horas;\nse forem datas diferentes, comparar o cenário consecutivo por encontro/dia com pacotes de horas livres;\nse houver frequência se"
+      },
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:06:13.012 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "occurrences"
+    ]
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:13.340 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:13.355 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:15.293 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:15.642 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "3"
+    detectedIntent: "provide_quote_data"
+    directedKnowledgeBaseQuery: "Quais dados ainda faltam para continuar o orcamento personalizado da Salinha Meier?"
+    entities: {
+      "quantity": 3
+    }
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "dados ainda faltam continuar orcamento personalizado salinha meier"
+    retrievedChunks: [
+      {
+        "chunkId": 54,
+        "articleId": 1,
+        "section": "10. ALTERAÇÃO DE UM ORÇAMENTO ANTERIOR",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6652961908833852,
+        "semanticScore": 0.4850710628975158,
+        "keywordScore": 2,
+        "contentPreview": "Se o cliente não pedir um novo orçamento genérico, mas informar diretamente uma alteração, a IA pode reaproveitar os dados anteriores e alterar apenas o campo informado."
+      },
+      {
+        "chunkId": 77,
+        "articleId": 1,
+        "section": "Exemplo:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6570962081868629,
+        "semanticScore": 0.472455704902866,
+        "keywordScore": 1.73,
+        "contentPreview": "3 encontros de 4h = 12h no total.\nPacote de 10h por R$ 600 não cobre 12h; faltam 2h.\nPacote de 20h por R$ 1.000 cobre 12h e deixa 8h de saldo.\nPara 12h, a opção mais simples dentro dos pacotes pode se"
+      },
+      {
+        "chunkId": 56,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6389254149501505,
+        "semanticScore": 0.444500638384847,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a quantidade de pessoas para 10;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": 61,
+        "articleId": 1,
+        "section": "Se estiver ambíguo, perguntar:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6105797108646138,
+        "semanticScore": 0.40089186286863665,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "“Você quer começar uma nova simulação do zero ou ajustar o orçamento anterior?”"
+      },
+      {
+        "chunkId": 66,
+        "articleId": 1,
+        "section": "11.2. Curso recorrente",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6100000919235931,
+        "semanticScore": 0.4000001414209125,
+        "keywordScore": 1.6099999999999999,
+        "contentPreview": "Se o cliente quer curso com vários encontros:\ncalcular o total de horas;\nse forem datas diferentes, comparar o cenário consecutivo por encontro/dia com pacotes de horas livres;\nse houver frequência se"
+      },
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:06:15.652 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:06:16.093 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:16.108 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:33.134 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:33.147 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:57.242 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:57.677 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:06:57.709 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:07:14.429 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:07:19.906 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc é gostosa"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc e gostosa"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    customerAnswer: "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:07:20.292 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:07:20.307 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:31.681 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:34.231 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Tem quadro branco?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "request_included_structure"
+    detectedIntent: "request_included_structure"
+    directedKnowledgeBaseQuery: "A estrutura da Salinha Meier inclui quadro branco?"
+    entities: {
+      "topic": "estrutura_quadro"
+    }
+    foundInBase: true
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Sim, a Salinha Méier inclui quadro branco na estrutura."
+    customerAnswer: "Sim, a Salinha Méier inclui quadro branco na estrutura."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:08:34.264 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:34.662 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:34.673 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:45.046 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:47.982 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Tem quadro azul?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "request_included_structure"
+    detectedIntent: "request_included_structure"
+    directedKnowledgeBaseQuery: "A estrutura da Salinha Meier inclui quadro branco?"
+    entities: {
+      "topic": "estrutura_quadro"
+    }
+    foundInBase: true
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "A Salinha Méier inclui quadro branco, mas não temos quadro azul na estrutura."
+    customerAnswer: "A Salinha Méier inclui quadro branco, mas não temos quadro azul na estrutura."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:08:48.016 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:48.362 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:08:48.373 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:09:03.339 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:09:05.405 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "E ten fichário?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-14T16:18:55.672Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "e ten fichario"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: true
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você."
+    customerAnswer: "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você."
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:09:05.405 -0300] [32mINFO[39m: [36m[AI ACTION] Handoff requested[39m
+    ticketId: 810
+    action: "encaminhar_atendente"
+    intent: "knowledge_base_question"
+    reason: "A pergunta sobre a presença de fichários não está coberta nas informações disponíveis sobre a estrutura da Salinha Méier."
+    baseFound: false
+    safeAnswer: true
+[2026-06-15 01:09:06.701 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "encaminhar_atendente"
+[2026-06-15 01:09:06.724 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "encaminhar_atendente"
+[2026-06-15 01:12:26.577 -0300] [32mINFO[39m: [36mMonitor session: Salinha, OPENING[39m
+[2026-06-15 01:12:30.638 -0300] [32mINFO[39m: [36mMonitor session: Salinha, PAIRING[39m
+[2026-06-15 01:12:30.644 -0300] [32mINFO[39m: [36mMonitor session: Salinha, CONNECTED[39m
+[INFO] 01:12:44 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:12:57.153 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+[INFO] 01:12:57 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:13:06.013 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+[INFO] 01:13:06 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:13:15.624 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:13:26.965 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:13:30.804 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:15:35 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:15:48.552 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:15:58.507 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:16:00.702 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:16:15 Restarting: C:\Rocketservice\backend\src\services\AiServices\AiConversationStateService.ts has been modified
+[2026-06-15 01:16:26.160 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[INFO] 01:16:33 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:16:38.217 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:16:50.200 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:16:59.547 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:17:03.391 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:17:13 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:17:25.585 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:17:33.418 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:17:36.202 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:19:35 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:19:47.898 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:20:03.580 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:20:07.735 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:22:15 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:22:30.023 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:22:39.917 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:22:43.631 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:24:22 Restarting: C:\Rocketservice\backend\src\services\AiServices\AiConversationStateService.ts has been modified
+[2026-06-15 01:24:32.288 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:24:42.520 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:24:44.679 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:24:51 Restarting: C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts has been modified
+[2026-06-15 01:25:06.261 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:25:47.165 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:25:51.691 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 01:26:52.364 -0300] [32mINFO[39m: [36mMonitor session: Salinha, OPENING[39m
+[2026-06-15 01:26:58.821 -0300] [32mINFO[39m: [36mMonitor session: Salinha, PAIRING[39m
+[2026-06-15 01:26:58.833 -0300] [32mINFO[39m: [36mMonitor session: Salinha, CONNECTED[39m
+[INFO] 01:35:48 Restarting: C:\Rocketservice\backend\src\services\AiServices\BuildKnowledgeBaseQueryService.ts has been modified
+[2026-06-15 01:35:58.394 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:36:09.676 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:36:12.043 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:36:30 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:36:38.550 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:36:44.483 -0300] [31mERROR[39m: [36mError on whatsapp session[39m
+    Error: net::ERR_NETWORK_CHANGED at https://web.whatsapp.com/
+        at navigate (C:\Rocketservice\backend\node_modules\puppeteer-core\src\cdp\Frame.ts:211:13)
+        at Function.race (C:\Rocketservice\backend\node_modules\puppeteer-core\src\util\Deferred.ts:49:14)
+        at CdpFrame.goto (C:\Rocketservice\backend\node_modules\puppeteer-core\src\cdp\Frame.ts:164:17)
+        at CdpPage.goto (C:\Rocketservice\backend\node_modules\puppeteer-core\src\api\Page.ts:1773:12)
+        at Client.initialize (C:\Rocketservice\backend\node_modules\whatsapp-web.js\src\Client.js:492:9)
+[2026-06-15 01:36:44.646 -0300] [33mWARN[39m: [36mCould not clear whatsapp chrome locks[39m
+    whatsappId: 1
+    sessionPath: "C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1"
+    err: {
+      "type": "Error",
+      "message": "EBUSY: resource busy or locked, unlink 'C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1\\Default\\Extension State\\LOCK'",
+      "stack":
+          Error: EBUSY: resource busy or locked, unlink 'C:\Rocketservice\backend\.wwebjs_auth\session-bd_1\Default\Extension State\LOCK'
+              at unlinkSync (node:fs:1952:11)
+              at _unlinkSync (node:internal/fs/rimraf:215:14)
+              at rimrafSync (node:internal/fs/rimraf:196:7)
+              at rmSync (node:fs:1247:10)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:19:13
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:14:7
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:14:7
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at ClearWhatsAppChromeLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:34:5)
+              at C:\Rocketservice\backend\src\providers\WhatsApp\Implementations\wwebjs.ts:714:29
+              at Generator.throw (<anonymous>)
+              at rejected (C:\Rocketservice\backend\src\providers\WhatsApp\Implementations\wwebjs.ts:6:65)
+      "errno": -4082,
+      "code": "EBUSY",
+      "syscall": "unlink",
+      "path": "C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1\\Default\\Extension State\\LOCK"
+    }
+[INFO] 01:36:52 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:37:01.537 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:37:05.481 -0300] [31mERROR[39m: [36mError on whatsapp session[39m
+    Error: net::ERR_NETWORK_CHANGED at https://web.whatsapp.com/
+        at navigate (C:\Rocketservice\backend\node_modules\puppeteer-core\src\cdp\Frame.ts:211:13)
+        at Function.race (C:\Rocketservice\backend\node_modules\puppeteer-core\src\util\Deferred.ts:49:14)
+        at CdpFrame.goto (C:\Rocketservice\backend\node_modules\puppeteer-core\src\cdp\Frame.ts:164:17)
+        at CdpPage.goto (C:\Rocketservice\backend\node_modules\puppeteer-core\src\api\Page.ts:1773:12)
+        at Client.initialize (C:\Rocketservice\backend\node_modules\whatsapp-web.js\src\Client.js:492:9)
+[2026-06-15 01:37:05.569 -0300] [33mWARN[39m: [36mCould not clear whatsapp chrome locks[39m
+    whatsappId: 1
+    sessionPath: "C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1"
+    err: {
+      "type": "Error",
+      "message": "EBUSY: resource busy or locked, unlink 'C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1\\Default\\Extension State\\LOCK'",
+      "stack":
+          Error: EBUSY: resource busy or locked, unlink 'C:\Rocketservice\backend\.wwebjs_auth\session-bd_1\Default\Extension State\LOCK'
+              at unlinkSync (node:fs:1952:11)
+              at _unlinkSync (node:internal/fs/rimraf:215:14)
+              at rimrafSync (node:internal/fs/rimraf:196:7)
+              at rmSync (node:fs:1247:10)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:19:13
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:14:7
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:14:7
+              at Array.forEach (<anonymous>)
+              at clearNestedLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:10:45)
+              at ClearWhatsAppChromeLocks (C:\Rocketservice\backend\src\helpers\ClearWhatsAppChromeLocks.ts:34:5)
+              at C:\Rocketservice\backend\src\providers\WhatsApp\Implementations\wwebjs.ts:714:29
+              at Generator.throw (<anonymous>)
+              at rejected (C:\Rocketservice\backend\src\providers\WhatsApp\Implementations\wwebjs.ts:6:65)
+      "errno": -4082,
+      "code": "EBUSY",
+      "syscall": "unlink",
+      "path": "C:\\Rocketservice\\backend\\.wwebjs_auth\\session-bd_1\\Default\\Extension State\\LOCK"
+    }
+[INFO] 01:37:24 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:37:34.608 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[INFO] 01:37:38 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:37:47.352 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:37:56.389 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:37:59.397 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 01:39:12.705 -0300] [32mINFO[39m: [36mMonitor session: Salinha, OPENING[39m
+[2026-06-15 01:39:24.296 -0300] [32mINFO[39m: [36mMonitor session: Salinha, PAIRING[39m
+[2026-06-15 01:39:24.306 -0300] [32mINFO[39m: [36mMonitor session: Salinha, CONNECTED[39m
+[INFO] 01:39:27 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:39:36.584 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:39:47.185 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:39:50.935 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:43:25 Restarting: C:\Rocketservice\backend\src\services\AiServices\BuildKnowledgeBaseQueryService.ts has been modified
+[2026-06-15 01:43:36.794 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:43:47.759 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:43:52.417 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[INFO] 01:44:40 Restarting: C:\Rocketservice\backend\src\services\AiServices\FullBaseGroundingMariService.ts has been modified
+[2026-06-15 01:44:47.681 -0300] [32mINFO[39m: [36mServer started on port: 8080[39m
+VAI!
+[2026-06-15 01:44:56.583 -0300] [32mINFO[39m: [36mSession: Salinha AUTHENTICATED[39m
+[2026-06-15 01:45:01.260 -0300] [32mINFO[39m: [36mSession: Salinha READY[39m
+[2026-06-15 01:45:42.776 -0300] [33mWARN[39m:
+    message: "Invalid token. We'll try to assign a new one on next request"
+    statusCode: 403
+[2026-06-15 01:45:50.920 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:45:50.923 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:45:50.930 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:45:50.932 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:45:54.839 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:45:54.843 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:45:54.894 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:45:54.898 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:45:54.900 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:45:54.902 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:45:59.931 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:45:59.936 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:46:00.014 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:00.018 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:00.023 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:46:00.025 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:46:11.140 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:46:11.145 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:46:14.339 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.954 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.959 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.965 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.968 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.972 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.974 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.978 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:14.983 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:15.112 -0300] [32mINFO[39m: [36mA client joined notification channel[39m
+[2026-06-15 01:46:15.150 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:46:15.153 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:46:15.154 -0300] [32mINFO[39m: [36mA client joined to open tickets channel.[39m
+[2026-06-15 01:46:15.156 -0300] [32mINFO[39m: [36mA client joined to pending tickets channel.[39m
+[2026-06-15 01:46:15.157 -0300] [32mINFO[39m: [36mA client joined to pending tickets channel.[39m
+[2026-06-15 01:46:22.163 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:46:22.167 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:46:22.252 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:22.253 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:46:22.256 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:46:22.257 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:47:04.398 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:47:04.401 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:47:05.533 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:47:05.535 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:47:06.092 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:47:06.094 -0300] [32mINFO[39m: [36mA client joined a ticket channel[39m
+[2026-06-15 01:47:06.326 -0300] [32mINFO[39m: [36mClient Connected[39m
+[2026-06-15 01:47:14.689 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:47:14.691 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:47:14.708 -0300] [32mINFO[39m: [36mClient disconnected[39m
+[2026-06-15 01:47:38.139 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Started[39m
+    ticketId: 810
+    formId: 4
+    responseId: 79
+[2026-06-15 01:47:40.400 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Tags applied from answer[39m
+    ticketId: 810
+    contactId: 1
+    requestedTags: [
+      "5"
+    ]
+    appliedTagIds: [
+      5
+    ]
+    missingTags: []
+[2026-06-15 01:47:42.818 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Tags applied from answer[39m
+    ticketId: 810
+    contactId: 1
+    requestedTags: [
+      "13"
+    ]
+    appliedTagIds: [
+      13
+    ]
+    missingTags: []
+[2026-06-15 01:47:42.883 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "qualification_form"
+    collectedKeys: [
+      "escolha_a_opcao_que_mais_combina_com_a_sua_necessidade",
+      "voce_ja_realizou_esse_tipo_de_encontro_antes"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: null
+[2026-06-15 01:47:42.884 -0300] [32mINFO[39m: [36m[QUALIFICATION FORM] Completed[39m
+    ticketId: 810
+    responseId: 79
+    afterAction: "START_AI"
+[2026-06-15 01:47:43.392 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:47:48.537 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "participant_count"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:47:49.084 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "Sete"
+    detectedIntent: "indefinido"
+    directedKnowledgeBaseQuery: "sete"
+    entities: {}
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "sete"
+    retrievedChunks: [
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:47:49.103 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "participant_count"
+    ]
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "saudacao_pos_formulario"
+[2026-06-15 01:47:49.466 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:47:49.489 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 2
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:47:58.269 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "occurrences"
+    ]
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:47:58.887 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "Tres"
+    detectedIntent: "resposta_ao_fluxo_pendente"
+    directedKnowledgeBaseQuery: "tres"
+    entities: {}
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "tres"
+    retrievedChunks: [
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:47:58.911 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "occurrences"
+    ]
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:47:59.262 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:47:59.281 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 1
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:48:17.502 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:48:18.262 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "Duas"
+    detectedIntent: "resposta_ao_fluxo_pendente"
+    directedKnowledgeBaseQuery: "duas"
+    entities: {}
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "duas"
+    retrievedChunks: [
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:48:18.290 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:48:18.968 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:48:18.997 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:48:47.973 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:48:58.620 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc e gatinha"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc e gatinha"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Agradeço o elogio! 😊 Mas vamos focar no que você precisa. Como posso ajudar com a Salinha Méier?"
+    customerAnswer: "Agradeço o elogio! 😊 Mas vamos focar no que você precisa. Como posso ajudar com a Salinha Méier?"
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:48:59.047 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:48:59.105 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:49:22.898 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:49:22.949 -0300] [32mINFO[39m: [36m[AI FULL BASE] Quote delegated to official flow[39m
+    ticketId: 810
+    contactId: 1
+    assistantId: 1
+    userMessage: "Simula com 5 horaa?"
+    detectedIntent: "request_custom_quote"
+    directedKnowledgeBaseQuery: "Quais dados sao obrigatorios para orcamento personalizado da Salinha Meier?"
+    entities: {
+      "quantity": 5
+    }
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    retrievedChunks: [
+      "Orcamento personalizado"
+    ]
+    needsQuoteCalculation: true
+    finalAnswer: ""
+    customerAnswer: ""
+    grounded: true
+    sentToWhatsapp: false
+    usedOldFlow: false
+[2026-06-15 01:49:23.608 -0300] [32mINFO[39m: [36m[AI RAG] Retrieved chunks before answer[39m
+    ticketId: 810
+    companyId: null
+    assistantId: 1
+    userMessage: "Simula com 5 horaa?"
+    detectedIntent: "request_custom_quote"
+    directedKnowledgeBaseQuery: "Quais dados sao obrigatorios para orcamento personalizado da Salinha Meier?"
+    entities: {
+      "quantity": 5
+    }
+    pendingResolved: false
+    knowledgeBaseSearch: true
+    searchQuery: "dados sao obrigatorios orcamento personalizado salinha meier"
+    retrievedChunks: [
+      {
+        "chunkId": 45,
+        "articleId": 1,
+        "section": "8. REGRAS DE ORÇAMENTO PERSONALIZADO",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6693473948863363,
+        "semanticScore": 0.4913036844405175,
+        "keywordScore": 2,
+        "contentPreview": "Para qualquer orçamento personalizado da Salinha Méier, são obrigatórios 3 dados principais:\nquantidade de pessoas;\nquantidade de dias ou encontros;\nquantidade de horas por dia ou encontro."
+      },
+      {
+        "chunkId": 60,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6237264824915909,
+        "semanticScore": 0.42111766537167833,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a duração por dia/encontro para 6h;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": 58,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6237264824915909,
+        "semanticScore": 0.42111766537167833,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a quantidade de dias/encontros para 4;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": 23,
+        "articleId": 1,
+        "section": "5.3. Planos mensalistas",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6237262791723974,
+        "semanticScore": 0.4211173525729192,
+        "keywordScore": 1.73,
+        "contentPreview": "Planos mensalistas são indicados para quem precisa de frequência semanal fixa."
+      },
+      {
+        "chunkId": 56,
+        "articleId": 1,
+        "section": "Ação esperada:",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.6147494015640839,
+        "semanticScore": 0.4073067716370521,
+        "keywordScore": 1.73,
+        "contentPreview": "usar o orçamento anterior;\nalterar apenas a quantidade de pessoas para 10;\nrecalcular se os demais dados já existirem."
+      },
+      {
+        "chunkId": null,
+        "articleId": 1,
+        "section": "BASE COMPLETA AUTORIZADA",
+        "title": "Salinha Meier - Base de conhecimento revisada",
+        "score": 0.01,
+        "semanticScore": 0,
+        "keywordScore": 0,
+        "contentPreview": "BASE DE CONHECIMENTO — SALINHA MÉIER\r\nVersão revisada e atualizada\r\n1. INFORMAÇÕES GERAIS\r\nNome: Salinha Méier.\r\nConceito: A Salinha Méier é um espaço comercial pronto para uso, indicado para profissi"
+      }
+    ]
+    toolCalled: null
+    toolResult: null
+    finalAnswer: null
+    grounded: true
+    usedOldFlow: false
+[2026-06-15 01:49:23.687 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "operational_state"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:49:23.688 -0300] [32mINFO[39m: [36m[AI OPERATIONAL STATE] Decision applied before orchestrator[39m
+    ticketId: 810
+    aiSettingId: 1
+    detectedIntent: "baixa_confianca"
+    responseGoal: "pedir_esclarecimento_curto"
+    previousOfferType: null
+    nextQuestionKey: null
+[2026-06-15 01:49:24.176 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:49:24.195 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:49:42.023 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:49:42.056 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: [
+      "duration"
+    ]
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "pedir_mais_informacoes"
+[2026-06-15 01:49:42.683 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:49:42.706 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:01.619 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:12.563 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "E tem estacionamento?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "request_included_structure"
+    detectedIntent: "request_included_structure"
+    directedKnowledgeBaseQuery: "A estrutura da Salinha Meier inclui estacionamento?"
+    entities: {
+      "topic": "estrutura_estacionamento"
+    }
+    foundInBase: false
+    baseSectionsUsed: [
+      "ESTRUTURA INCLUSA"
+    ]
+    retrievedChunks: [
+      "ESTRUTURA INCLUSA"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Infelizmente, a Salinha Méier não possui estacionamento. Mas temos uma localização bem acessível!"
+    customerAnswer: "Infelizmente, a Salinha Méier não possui estacionamento. Mas temos uma localização bem acessível!"
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:50:13.032 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:13.055 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:43.888 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:46.965 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "E tem fraudario?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "e tem fraudario"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Infelizmente, a Salinha Méier não possui fraudário. Mas temos uma estrutura completa para atender suas necessidades!"
+    customerAnswer: "Infelizmente, a Salinha Méier não possui fraudário. Mas temos uma estrutura completa para atender suas necessidades!"
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:50:46.988 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:47.373 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:50:47.391 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:16.198 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:18.973 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Posso levar quantos?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "posso levar quantos"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: [
+      "CAPACIDADE"
+    ]
+    retrievedChunks: [
+      "CAPACIDADE"
+    ]
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa."
+    customerAnswer: "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:51:18.994 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:19.437 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:19.456 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:51.337 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:53.918 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vamos transar?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vamos transar"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não consigo ajudar com esse tipo de assunto. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    customerAnswer: "Não consigo ajudar com esse tipo de assunto. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe."
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:51:53.946 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:54.311 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:51:54.328 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:25.595 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:28.065 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc é simpática"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "personal_tone_or_light_flirt"
+    detectedIntent: "personal_tone_or_light_flirt"
+    directedKnowledgeBaseQuery: "Diretriz de comportamento para elogio, brincadeira leve ou flerte leve no atendimento da Salinha Meier, sem frase pronta."
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Obrigada! 😊 Estou aqui para ajudar com o que precisar sobre a Salinha Méier! Como posso te ajudar hoje?"
+    customerAnswer: "Obrigada! 😊 Estou aqui para ajudar com o que precisar sobre a Salinha Méier! Como posso te ajudar hoje?"
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:52:28.085 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:28.514 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:28.532 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:52.382 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:55.393 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc tem quantos anos?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc tem quantos anos"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não tenho idade, mas estou aqui para ajudar você com o que precisar sobre a Salinha Méier! Como posso te ajudar hoje?"
+    customerAnswer: "Não tenho idade, mas estou aqui para ajudar você com o que precisar sobre a Salinha Méier! Como posso te ajudar hoje?"
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:52:55.418 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:55.829 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:52:55.847 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:53:34.382 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:53:36.364 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc tem profissão?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc tem profissao"
+    entities: {}
+    foundInBase: false
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não tenho uma profissão, mas estou aqui para ajudar você com informações sobre a Salinha Méier! Como posso te ajudar hoje?"
+    customerAnswer: "Não tenho uma profissão, mas estou aqui para ajudar você com informações sobre a Salinha Méier! Como posso te ajudar hoje?"
+    grounded: false
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:53:36.389 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:53:36.744 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:53:36.767 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:01.758 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:03.755 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Sua profissão não é ser assistente?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "sua profissao nao e ser assistente"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Não tenho uma profissão, mas estou aqui para ajudar você com informações sobre a Salinha Méier! Como posso te ajudar hoje?"
+    customerAnswer: "Não tenho uma profissão, mas estou aqui para ajudar você com informações sobre a Salinha Méier! Como posso te ajudar hoje?"
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:54:03.778 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:04.131 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:04.151 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:18.799 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "customer_message"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:21.213 -0300] [32mINFO[39m: [36m[AI FULL BASE] Grounded answer ready[39m
+    ticketId: 810
+    contactId: 1
+    companyId: null
+    assistantId: 1
+    userMessage: "Vc é ia?"
+    baseSentToModel: true
+    baseVersion: "1:2026-06-15T04:41:16.267Z"
+    promptVersion: "full-base-grounding-mari-v2"
+    model: "gpt-4o-mini"
+    intent: "knowledge_base_question"
+    detectedIntent: "knowledge_base_question"
+    directedKnowledgeBaseQuery: "vc e ia"
+    entities: {}
+    foundInBase: true
+    baseSectionsUsed: []
+    retrievedChunks: []
+    needsHuman: false
+    needsQuoteCalculation: false
+    shouldTransfer: false
+    finalAnswer: "Sou a Mari, assistente virtual da Salinha Méier. Te ajudo com valores, estrutura, orçamento e encaminhamento para a equipe quando for reserva ou disponibilidade."
+    customerAnswer: "Sou a Mari, assistente virtual da Salinha Méier. Te ajudo com valores, estrutura, orçamento e encaminhamento para a equipe quando for reserva ou disponibilidade."
+    grounded: true
+    sentToWhatsapp: true
+    usedOldFlow: false
+[2026-06-15 01:54:21.231 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "anti_loop"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:21.657 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_decision"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:54:21.676 -0300] [32mINFO[39m: [36m[AI CONTEXT] Ticket context updated[39m
+    ticketId: 810
+    source: "ai_response"
+    collectedKeys: []
+    missingCount: 0
+    contradictionCount: 0
+    lastAiAction: "responder_com_base"
+[2026-06-15 01:55:22.327 -0300] [32mINFO[39m: [36mMonitor session: Salinha, OPENING[39m
+[2026-06-15 01:55:26.247 -0300] [32mINFO[39m: [36mMonitor session: Salinha, PAIRING[39m
+[2026-06-15 01:55:26.253 -0300] [32mINFO[39m: [36mMonitor session: Salinha, CONNECTED[39m
