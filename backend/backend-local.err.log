@@ -1,0 +1,53 @@
+Error: Cannot find module './SearchKnowledgeBaseService'
+Require stack:
+- C:\Rocketservice\backend\src\services\AiServices\GenerateAiResponseService.ts
+- C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts
+- C:\Rocketservice\backend\src\handlers\handleWhatsappEvents.ts
+- C:\Rocketservice\backend\src\providers\WhatsApp\Implementations\wwebjs.ts
+- C:\Rocketservice\backend\src\providers\WhatsApp\whatsappProvider.ts
+- C:\Rocketservice\backend\src\providers\WhatsApp\index.ts
+- C:\Rocketservice\backend\src\helpers\SetTicketMessagesAsRead.ts
+- C:\Rocketservice\backend\src\services\TicketServices\UpdateTicketService.ts
+- C:\Rocketservice\backend\src\helpers\UpdateDeletedUserOpenTicketsStatus.ts
+- C:\Rocketservice\backend\src\services\UserServices\DeleteUserService.ts
+- C:\Rocketservice\backend\src\controllers\UserController.ts
+- C:\Rocketservice\backend\src\routes\userRoutes.ts
+- C:\Rocketservice\backend\src\routes\index.ts
+- C:\Rocketservice\backend\src\app.ts
+- C:\Rocketservice\backend\src\server.ts
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1383:15)
+    at defaultResolveImpl (node:internal/modules/cjs/loader:1025:19)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1030:22)
+    at Function._load (node:internal/modules/cjs/loader:1192:37)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Module.require (node:internal/modules/cjs/loader:1463:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (C:\Rocketservice\backend\src\services\AiServices\GenerateAiResponseService.ts:6:1)
+    at Module.<anonymous> (node:internal/modules/cjs/loader:1706:14)
+    at Module._compile (C:\Rocketservice\backend\node_modules\source-map-support\source-map-support.js:568:25)
+    at Module.m._compile (C:\Users\Gabriel\AppData\Local\Temp\ts-node-dev-hook-41418908195852966.js:69:33)
+    at node:internal/modules/cjs/loader:1839:10
+    at require.extensions.<computed> (C:\Users\Gabriel\AppData\Local\Temp\ts-node-dev-hook-41418908195852966.js:71:20)
+    at Object.nodeDevHook [as .ts] (C:\Rocketservice\backend\node_modules\ts-node-dev\lib\hook.js:63:13)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:237:24)
+    at Module.require (node:internal/modules/cjs/loader:1463:12)
+    at require (node:internal/modules/helpers:147:16)
+    at Object.<anonymous> (C:\Rocketservice\backend\src\services\AiServices\DecideAiTicketActionService.ts:8:1)
+Error: EBUSY: resource busy or locked, open 'C:\Rocketservice\backend\src\services\AiServices\PostQuoteMenuService.ts'
+    at Object.readFileSync (node:fs:441:20)
+    at Object.compileChanged (C:\Rocketservice\backend\node_modules\ts-node-dev\lib\compiler.js:203:41)
+    at FSWatcher.restart (C:\Rocketservice\backend\node_modules\ts-node-dev\lib\index.js:226:18)
+    at FSWatcher.emit (node:events:519:28)
+    at FSWatcher.emit (node:domain:489:12)
+    at FSWatcher.emitWithAll (C:\Rocketservice\backend\node_modules\chokidar\index.js:540:8)
+    at FSWatcher._emit (C:\Rocketservice\backend\node_modules\chokidar\index.js:632:8)
+    at listener (C:\Rocketservice\backend\node_modules\chokidar\lib\nodefs-handler.js:370:20) {
+  errno: -4082,
+  code: 'EBUSY',
+  syscall: 'open',
+  path: 'C:\\Rocketservice\\backend\\src\\services\\AiServices\\PostQuoteMenuService.ts'
+}

@@ -103,6 +103,56 @@ describe("AiConversationStateService", () => {
     expect(decision?.toolToCall).toBe("transferirParaFila");
   });
 
+  it("routes post quote option 1 to the team without confirming reservation", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "1",
+      context: context({
+        lastOfferType: "post_quote_menu",
+        awaitingConfirmationFor: "post_quote_menu"
+      })
+    });
+
+    expect(decision?.detectedIntent).toBe("confirmar_reserva_com_equipe");
+    expect(decision?.aiDecision.acao).toBe("encaminhar_atendente");
+    expect(decision?.aiDecision.resposta).toContain("validar disponibilidade");
+    expect(decision?.aiDecision.resposta).not.toContain("reserva confirmada");
+  });
+
+  it("routes post quote option 2 to a new simulation", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "2",
+      context: context({
+        lastOfferType: "post_quote_menu",
+        awaitingConfirmationFor: "post_quote_menu",
+        lastQuote: { people: 10, totalHours: 15, total: 900 }
+      })
+    });
+
+    expect(decision?.detectedIntent).toBe("nova_simulacao");
+    expect(decision?.aiDecision.acao).toBe("pedir_mais_informacoes");
+    expect(decision?.nextQuestionKey).toBe("people");
+  });
+
+  it("routes post quote option 3 to free question collection", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "3",
+      context: context({
+        lastOfferType: "post_quote_menu",
+        awaitingConfirmationFor: "post_quote_menu"
+      })
+    });
+
+    expect(decision?.detectedIntent).toBe("outra_duvida");
+    expect(decision?.aiDecision.acao).toBe("pedir_mais_informacoes");
+    expect(decision?.aiDecision.resposta).toContain("Qual e a sua duvida");
+  });
+
   it("routes affirmative answer to close ticket when previous offer was close ticket", async () => {
     const decision = await EvaluateAiConversationStateService({
       ticket: ticket(),
@@ -151,7 +201,7 @@ describe("AiConversationStateService", () => {
     expect(decision?.toolToCall).toBe("calcularOrcamento");
   });
 
-  it.each(["quem e voce?", "e voce faz o que?", "voce e robo?"])(
+  it.each(["quem e voce?", "e voce faz o que?", "voce e robo?", "voce tem quantos anos?", "vc e bonita?"])(
     "answers identity or role question as in-context: %s",
     async message => {
       const decision = await EvaluateAiConversationStateService({
@@ -178,9 +228,28 @@ describe("AiConversationStateService", () => {
     });
 
     expect(decision?.detectedIntent).toBe("reclamacao_loop_ou_erro");
-    expect(decision?.aiDecision.resposta).toContain("pessoas, dias ou horas");
+    expect(decision?.aiDecision.resposta).toContain("qual duvida voce quer resolver");
+    expect(decision?.nextState.lastQuestionKey).toBeNull();
     expect(decision?.nextState.repeatedResponseCount).toBe(1);
   });
+
+  it.each(["Aceita cartao?", "Pix?", "Qual endereco da sala?"])(
+    "does not keep post quote menu active for clear knowledge question: %s",
+    async message => {
+      const decision = await EvaluateAiConversationStateService({
+        ticket: ticket(),
+        aiSetting: aiSetting(),
+        message,
+        context: context({
+          lastOfferType: "post_quote_menu",
+          awaitingConfirmationFor: "post_quote_menu",
+          lastQuote: { people: 5, meetingCount: 6, hoursPerMeeting: 3, total: 1000 }
+        })
+      });
+
+      expect(decision).toBeNull();
+    }
+  );
 
   it("updates people and requests quote calculation when last quote has enough data", async () => {
     const decision = await EvaluateAiConversationStateService({
@@ -247,7 +316,7 @@ describe("AiConversationStateService", () => {
       previous
     );
 
-    expect(result.response).toContain("pessoas, dias ou horas");
+    expect(result.response).toContain("Me passa os novos dados");
     expect(result.decision.acao).toBe("pedir_mais_informacoes");
     expect(UpdateAiTicketContextService).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -255,6 +324,54 @@ describe("AiConversationStateService", () => {
         operationalState: expect.objectContaining({
           repeatedResponseCount: 1,
           lastQuestionKey: "quote_revision_scope"
+        })
+      })
+    );
+  });
+
+  it("does not replace repeated factual payment answer with quote revision prompt", async () => {
+    const previous = "A Salinha Meier aceita Pix, cartao de debito e cartao de credito.";
+    (AiTicketContext.findOne as jest.Mock).mockResolvedValue(context({
+      lastAssistantMessage: previous,
+      lastAssistantAction: "responder_com_base",
+      lastResponseGoal: "Full Base Grounding respondeu com base completa enviada ao modelo.",
+      lastOfferType: "post_quote_menu",
+      awaitingConfirmationFor: "post_quote_menu",
+      lastQuote: {
+        people: 5,
+        meetingCount: 6,
+        hoursPerMeeting: 3
+      }
+    }));
+
+    const decision = {
+      intencao: "request_payment_info",
+      confianca: "alta",
+      mensagemInterpretada: "Aceita Pix?",
+      contexto: "Full Base Grounding respondeu com base completa enviada ao modelo.",
+      baseEncontrada: true,
+      respostaSegura: true,
+      acao: "responder_com_base",
+      motivo: "teste",
+      resposta: previous
+    } as any;
+
+    const result = await ApplyAiResponseAntiLoopService(
+      ticket({ lastAiMessage: previous, lastAiAction: "responder_com_base" }),
+      decision,
+      previous
+    );
+
+    expect(result.response).toBe(previous);
+    expect(result.decision.acao).toBe("responder_com_base");
+    expect(result.response).not.toContain("Me passa os novos dados");
+    expect(UpdateAiTicketContextService).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "anti_loop",
+        operationalState: expect.objectContaining({
+          lastOfferType: null,
+          awaitingConfirmationFor: null,
+          lastQuestionKey: null
         })
       })
     );

@@ -10,6 +10,7 @@ import Ticket from "../../models/Ticket";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
 import CalculateCommercialQuoteService from "../CommercialServices/CalculateCommercialQuoteService";
+import { appendPostQuoteMenu } from "./PostQuoteMenuService";
 
 export type AiToolName =
   | "registrarLead"
@@ -164,15 +165,17 @@ const calculateQuote = async (
     ? `\n\nIncluso:\n${result.includedItems.map(item => `- ${item}`).join("\n")}`
     : "";
 
+  const customerMessage = [
+    `Simulação de orçamento para ${result.requestedQuantity}h no total.`,
+    lines,
+    recommended ? `Total estimado: R$ ${recommended.total.toFixed(2).replace(".", ",")}` : "",
+    included,
+    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
+  ].filter(Boolean).join("\n");
+
   return {
     ok: true,
-    customerMessage: [
-      `Simulei o orcamento para ${result.requestedQuantity} unidade(s).`,
-      lines,
-      recommended ? `Total: R$ ${recommended.total.toFixed(2).replace(".", ",")}` : "",
-      "Essa simulacao precisa ser validada por um atendente antes da confirmacao.",
-      included
-    ].filter(Boolean).join("\n"),
+    customerMessage: appendPostQuoteMenu(customerMessage),
     data: result as any
   };
 };

@@ -15,12 +15,14 @@ import {
   UpdateAiTicketContextService
 } from "./AiTicketContextService";
 import CalculateCommercialQuoteService from "../CommercialServices/CalculateCommercialQuoteService";
-import AiConversationOrchestratorService from "./AiConversationOrchestratorService";
 import {
   EvaluateAiConversationStateService,
   OperationalState
 } from "./AiConversationStateService";
 import AiSemanticDecisionService from "./AiSemanticDecisionService";
+import { appendPostQuoteMenu } from "./PostQuoteMenuService";
+import BuildKnowledgeBaseQueryService from "./BuildKnowledgeBaseQueryService";
+import FullBaseGroundingMariService from "./FullBaseGroundingMariService";
 
 export type AiTicketAction =
   | "responder_com_base"
@@ -1047,13 +1049,14 @@ const hasHumanMessageInCurrentAiSession = async (ticket: Ticket): Promise<boolea
 };
 
 const buildKnowledgeText = (fragments: KnowledgeFragment[]): string =>
-  fragments
-    .map((fragment, index) => [
-      `#${index + 1} ${fragment.title}`,
+  [
+    "CONTEXTO AUTORIZADO DA BASE:",
+    ...fragments.map(fragment => [
+      `[Secao: ${fragment.section || fragment.title}]`,
       fragment.tags ? `Tags: ${fragment.tags}` : "",
       fragment.fragment
     ].filter(Boolean).join("\n"))
-    .join("\n\n");
+  ].join("\n\n");
 
 const buildTicketStateText = (ticket: Ticket): string => [
   `Ultima acao da IA: ${ticket.lastAiAction || "nao registrada"}`,
@@ -1412,7 +1415,7 @@ const buildPersonalFlirtAnswerDecision = (message: string, aiSetting: AiSetting)
 
 const isLoopingComplaint = (message = ""): boolean => {
   const normalized = normalizeText(message);
-  return /\b(looping|repetindo|repetiu|mesma coisa|ja falei|ja respondi|nao entendeu|voce nao entendeu|vc nao entendeu|nao foi isso|nao era isso|voce nao perguntou|vc nao perguntou|bugou|hugou|travou|se perdeu|voce se perdeu|vc se perdeu)\b/.test(normalized);
+  return /\b(looping|repetindo|repetiu|mesma coisa|ja falei|ja respondi|nao entendeu|voce nao entendeu|vc nao entendeu|nao foi isso|nao era isso|nao e isso|nao to perguntando isso|nao estou perguntando isso|para de perguntar|pare de perguntar|voce nao perguntou|vc nao perguntou|bugou|hugou|travou|se perdeu|voce se perdeu|vc se perdeu)\b/.test(normalized);
 };
 
 const buildLoopingComplaintDecision = (message: string): AiDecision => ({
@@ -1470,6 +1473,29 @@ const isHumanHandoffConfirmationComplaint = (message = ""): boolean => {
   return /\b(voce|vc)\b.{0,40}\b(nao perguntou|perguntou)\b.{0,80}\b(atendente|humano|pessoa|equipe|encaminhar|transferir)\b/.test(normalized);
 };
 
+const buildNeutralLoopRecoveryDecision = (message: string): AiDecision => ({
+  intencao: "cliente_nao_satisfeito",
+  confianca: "alta",
+  mensagemInterpretada: message,
+  contexto: "Cliente reclamou de repeticao ou pediu para parar de puxar o fluxo anterior.",
+  baseEncontrada: false,
+  respostaSegura: true,
+  acao: "pedir_mais_informacoes",
+  motivo: "Resetar estado operacional e retomar pela pergunta atual do cliente.",
+  resposta: [
+    "Voce tem razao, eu me perdi e acabei repetindo.",
+    "Vou parar de puxar o orcamento anterior.",
+    "Me manda sua pergunta atual que eu respondo por ela."
+  ].join("\n\n"),
+  operationalStatePatch: {
+    lastOfferType: null,
+    awaitingConfirmationFor: null,
+    lastQuestionKey: null,
+    lastQuestionText: null,
+    quoteRevisionMode: null
+  }
+});
+
 const buildHumanHandoffConfirmationComplaintDecision = (message: string): AiDecision => ({
   intencao: "cliente_nao_satisfeito",
   confianca: "alta",
@@ -1515,7 +1541,9 @@ type CurrentQuoteData = {
 };
 
 const formatMoney = (value: number): string =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" })
+    .format(value)
+    .replace(/\s+/g, " ");
 
 const getCurrentQuoteDataFromContext = (structuredContext = ""): CurrentQuoteData => {
   const normalized = normalizeText(structuredContext)
@@ -1583,11 +1611,6 @@ const buildCorrected15hQuoteAnswer = (
 ): string => {
   const normalized = normalizeText(context);
   const peopleMatch = normalized.match(/\b(\d{1,2})\s+pessoas?\b/);
-  const peopleText = currentQuoteData?.participantCount
-    ? ` para ${currentQuoteData.participantCount} pessoas`
-    : peopleMatch?.[1]
-      ? ` para ${peopleMatch[1]} pessoas`
-      : "";
   const occurrences = currentQuoteData?.occurrenceCount || 3;
   const duration = currentQuoteData?.durationHours || 5;
   const recurrenceNote = hasLessThanThreeMonths(context)
@@ -1597,18 +1620,27 @@ const buildCorrected15hQuoteAnswer = (
       ].join("\n")
     : "";
 
-  return [
-    `Para ${occurrences} encontros de ${duration}h${peopleText}, sao 15h no total.`,
+  return appendPostQuoteMenu([
+    "📌 Orçamento estimado",
     "",
-    "- Melhor opcao: pacote de 15h = R$ 900",
+    currentQuoteData?.participantCount || peopleMatch?.[1]
+      ? `👥 Pessoas: ${currentQuoteData?.participantCount || peopleMatch?.[1]}`
+      : "",
+    `📅 Uso: ${occurrences} encontros de ${duration}h`,
+    "⏱️ Total: 15h",
+    "",
+    "Composição:",
+    "",
+    "Pacote flexível 15h",
+    "R$ 900,00",
+    "",
+    "Total estimado: R$ 900,00",
     recurrenceNote,
     "",
     "Para uso semanal por 3 meses ou mais, tambem existem condicoes especiais em planos mensalistas.",
     "",
-    "Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente.",
-    "",
-    "Quer seguir com essa opcao?"
-  ].join("\n").replace(/\n{3,}/g, "\n\n").trim();
+    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
+  ].join("\n").replace(/\n{3,}/g, "\n\n").trim());
 };
 
 type HourlyPackageOption = {
@@ -1828,15 +1860,15 @@ const describeQuoteCandidate = (
 ): string => {
   const saldo = candidate.totalHours - targetHours;
   return [
-    `*Melhor opcao*`,
-    summarizePackageItems(candidate.items),
-    `Total: ${formatBrazilianCurrency(candidate.totalPrice)}`,
+    "Composição:",
     "",
-    "*Por que esta opcao*",
+    summarizePackageItems(candidate.items),
+    "",
+    `Total estimado: ${formatBrazilianCurrency(candidate.totalPrice)}`,
     saldo > 0
-      ? `Ela cobre as ${targetHours}h solicitadas e ainda deixa ${saldo}h de saldo. Foi a melhor composicao encontrada com os itens oficiais da tabela.`
-      : `Ela cobre exatamente as ${targetHours}h solicitadas, sem sobrar horas alem do necessario.`
-  ].join("\n");
+      ? `Observacao: cobre ${candidate.totalHours}h e deixa ${saldo}h de saldo.`
+      : ""
+  ].filter(Boolean).join("\n");
 };
 
 const buildHourlyPackageComparisonHint = (structuredContext = "", knowledge = ""): string => {
@@ -1965,12 +1997,10 @@ const buildProfessionalHourlyQuoteAnswer = (
       : "",
     "",
     "*Observacao*",
-    "Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente.",
-    "",
-    "Quer seguir com essa opcao?"
+    "Simulacao informativa: disponibilidade, reserva e condicoes finais precisam ser confirmadas por um atendente."
   ];
 
-  return lines.filter(Boolean).join("\n");
+  return appendPostQuoteMenu(lines.filter(Boolean).join("\n"));
 };
 
 const shouldReplaceHourlyQuoteAnswer = (
@@ -2102,6 +2132,26 @@ const formatCommercialLineForProposal = (line: any): string => {
   return `${line.name}\nCalculo: ${formatMoney(total)}`;
 };
 
+const formatCommercialCompositionLines = (lines: any[] = []): string => {
+  const items: string[] = [];
+
+  lines.forEach((line: any) => {
+    const count = Math.max(1, Number(line.count || 1));
+    const unitPrice = Number(line.unitPrice || line.total || 0);
+    const total = Number(line.total || 0);
+    const itemValue = count > 1 && unitPrice ? unitPrice : total;
+
+    for (let index = 0; index < count; index += 1) {
+      items.push([
+        line.name,
+        formatMoney(itemValue)
+      ].join("\n"));
+    }
+  });
+
+  return items.join("\n+\n");
+};
+
 const buildBestValueExplanation = (
   recommended: any,
   requestedHours: number,
@@ -2119,6 +2169,14 @@ const buildBestValueExplanation = (
   }
 
   return `Ela foi escolhida porque cobre 100% da ${exactText} usando os valores cadastrados.`;
+};
+
+const buildShortOverageNote = (recommended: any, requestedHours: number): string => {
+  const overage = Number(recommended?.overage || 0);
+  const covered = Number(recommended?.coveredQuantity || 0);
+  if (!overage) return "";
+
+  return `Observacao: essa composicao cobre ${covered || requestedHours + overage}h e deixa ${overage}h de saldo, mas ainda e a opcao mais vantajosa pela tabela.`;
 };
 
 const buildCommercialQuoteAnswer = ({
@@ -2139,50 +2197,31 @@ const buildCommercialQuoteAnswer = ({
     ? quoteData.occurrenceCount * quoteData.durationHours
     : quoteResult.requestedQuantity;
   const peopleLine = quoteData.participantCount
-    ? `- Pessoas: ${quoteData.participantCount}`
+    ? `👥 Pessoas: ${quoteData.participantCount}`
     : "";
   const occurrenceText = quoteData.occurrenceCount && quoteData.durationHours
-    ? `${pluralizePt(quoteData.occurrenceCount, "dia/encontro", "dias/encontros")} de ${quoteData.durationHours}h cada`
+    ? `${pluralizePt(quoteData.occurrenceCount, "dia/encontro", "dias/encontros")} de ${quoteData.durationHours}h`
     : `${quoteResult.requestedQuantity} unidade(s)`;
-  const lineText = recommended.lines
-    .map(formatCommercialLineForProposal)
-    .join("\n\n");
-  const overage = Number(recommended.overage || 0);
-  const overageText = overage > 0
-    ? `Essa composicao cobre ${recommended.coveredQuantity}h e deixa ${overage}h de saldo/margem.`
-    : "Essa composicao cobre exatamente a necessidade informada.";
-  const bestValueText = buildBestValueExplanation(recommended, Number(totalHours || 0), "necessidade");
-  const totalLine = `*Total estimado: ${formatMoney(Number(recommended.total))}*`;
+  const lineText = formatCommercialCompositionLines(recommended.lines);
+  const overageNote = buildShortOverageNote(recommended, Number(totalHours || 0));
+  const totalLine = `Total estimado: ${formatMoney(Number(recommended.total))}`;
 
   const scenarioLines = [
-    peopleLine ? peopleLine.replace("- ", "") : "",
-    `Uso: ${occurrenceText}`,
-    `Total: ${totalHours}h`
+    peopleLine,
+    `📅 Uso: ${occurrenceText}`,
+    `⏱️ Total: ${totalHours}h`
   ].filter(Boolean).join("\n");
 
   const baseAnswer = [
-    ["*Orcamento estimado*", "Montei com os valores cadastrados."].join("\n"),
-    ["*Cenario considerado*", scenarioLines].join("\n"),
-    ["*Melhor opcao*", lineText].join("\n"),
+    "📌 Orçamento estimado",
+    scenarioLines,
+    ["Composição:", "", lineText].join("\n"),
     totalLine,
-    ["*Por que esta opcao*", bestValueText || overageText].join("\n"),
-    ["*Observacao*", "Simulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente."].join("\n"),
-    "Quer seguir com essa opcao?"
+    overageNote,
+    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
   ].filter(Boolean).join("\n\n");
-  const shouldSendIncluded =
-    quoteResult.includedItems?.length &&
-    !isIncludedItemsQuestion(message) &&
-    !historyHasIncludedSection(activeHistory) &&
-    !answerHasCommercialIncludedSection(baseAnswer);
 
-  if (!shouldSendIncluded) return baseAnswer;
-
-  return [
-    baseAnswer,
-    "",
-    "*Incluso:*",
-    ...quoteResult.includedItems.map((item: string) => `- ${item}`)
-  ].join("\n");
+  return appendPostQuoteMenu(baseAnswer);
 };
 
 const buildCommercialQuoteDecision = async ({
@@ -2216,6 +2255,70 @@ const buildCommercialQuoteDecision = async ({
   });
 
   if (quoteResult.status === "capacity_exceeded") {
+    const capacityLimit = quoteResult.service?.capacityMax || null;
+    if (capacityLimit) {
+      const adjustedQuoteData: CurrentQuoteData = {
+        ...quoteData,
+        participantCount: capacityLimit
+      };
+      const adjustedQuoteResult = await CalculateCommercialQuoteService({
+        aiSettingId: aiSetting.id,
+        ticketId: ticket.id,
+        contactId: ticket.contactId || undefined,
+        pricingDimension: "hours",
+        participantCount: capacityLimit,
+        occurrenceCount: quoteData.occurrenceCount,
+        durationPerOccurrence: quoteData.durationHours,
+        includeAlternatives: false
+      });
+      const adjustedAnswer = adjustedQuoteResult.ok
+        ? buildCommercialQuoteAnswer({
+            quoteData: adjustedQuoteData,
+            quoteResult: adjustedQuoteResult,
+            activeHistory,
+            message
+          })
+        : null;
+
+      if (adjustedAnswer) {
+        return {
+          intencao: "consulta_valor",
+          confianca: "alta",
+          mensagemInterpretada: message,
+          contexto: quoteResult.validationMessage || `Quantidade informada excede a capacidade maxima de ${capacityLimit}.`,
+          baseEncontrada: true,
+          respostaSegura: true,
+          acao: "responder_com_base",
+          motivo: "Calculador comercial ajustou automaticamente a simulacao para o limite de capacidade cadastrado.",
+          resposta: [
+            `A capacidade informada da Salinha Meier e de ate ${capacityLimit} pessoas.`,
+            quoteData.participantCount
+              ? `Como voce pediu para ${quoteData.participantCount} pessoas, montei a estimativa considerando o limite de ${capacityLimit} pessoas.`
+              : `Montei a estimativa considerando o limite de ${capacityLimit} pessoas.`,
+            adjustedAnswer
+          ].join("\n\n"),
+          knowledgeIds,
+          operationalStatePatch: {
+            lastQuote: {
+              people: capacityLimit,
+              meetingCount: adjustedQuoteData.occurrenceCount || null,
+              hoursPerMeeting: adjustedQuoteData.durationHours || null,
+              totalHours: adjustedQuoteData.occurrenceCount && adjustedQuoteData.durationHours
+                ? adjustedQuoteData.occurrenceCount * adjustedQuoteData.durationHours
+                : adjustedQuoteResult.requestedQuantity || null,
+              recommendedOption: adjustedQuoteResult.recommended?.lines?.map((line: any) => line.name).join(" + ") || null,
+              total: adjustedQuoteResult.recommended?.total ? Number(adjustedQuoteResult.recommended.total) : null
+            },
+            lastOfferType: "post_quote_menu",
+            awaitingConfirmationFor: "post_quote_menu",
+            lastQuestionKey: null,
+            lastQuestionText: "Como deseja prosseguir?",
+            quoteRevisionMode: null
+          }
+        };
+      }
+    }
+
     return {
       intencao: "consulta_valor",
       confianca: "alta",
@@ -2265,10 +2368,10 @@ const buildCommercialQuoteDecision = async ({
         recommendedOption: quoteResult.recommended?.lines?.map((line: any) => line.name).join(" + ") || null,
         total: quoteResult.recommended?.total ? Number(quoteResult.recommended.total) : null
       },
-      lastOfferType: null,
-      awaitingConfirmationFor: null,
+      lastOfferType: "post_quote_menu",
+      awaitingConfirmationFor: "post_quote_menu",
       lastQuestionKey: null,
-      lastQuestionText: null,
+      lastQuestionText: "Como deseja prosseguir?",
       quoteRevisionMode: null
     }
   };
@@ -2307,12 +2410,8 @@ const buildTotalHoursCommercialQuoteDecision = async ({
   if (!quoteResult.ok || !quoteResult.recommended?.lines?.length) return null;
 
   const recommended = quoteResult.recommended;
-  const lineText = recommended.lines.map(formatCommercialLineForProposal).join("\n\n");
-  const overage = Number(recommended.overage || 0);
-  const overageText = overage > 0
-    ? `Essa composicao cobre ${recommended.coveredQuantity}h e deixa ${overage}h de saldo/margem.`
-    : "Essa composicao cobre exatamente as horas informadas.";
-  const bestValueText = buildBestValueExplanation(recommended, totalHours, "necessidade");
+  const lineText = formatCommercialCompositionLines(recommended.lines);
+  const overageNote = buildShortOverageNote(recommended, totalHours);
   const specificCompositionRequested = /(?:\+|\bmais\b|\bjunto\b|\bsomando\b)/.test(normalizeText(message)) &&
     /\b(pacote|pacotes|plano|planos|bloco|blocos)\b/.test(normalizeText(message));
   const exactRequestedAlternative = specificCompositionRequested
@@ -2324,7 +2423,6 @@ const buildTotalHoursCommercialQuoteDecision = async ({
     : null;
   const comparisonNote = exactRequestedAlternative
     ? [
-        "*Comparacao rapida*",
         `A composicao que voce pediu tambem fecha ${totalHours}h: ${formatMoney(Number(exactRequestedAlternative.total))}.`,
         `Pela tabela, a opcao recomendada fica melhor: ${formatMoney(Number(recommended.total))}.`
       ].join("\n")
@@ -2335,31 +2433,22 @@ const buildTotalHoursCommercialQuoteDecision = async ({
     : "Entendi, você quer simular pelo total de horas/pacotes.";
 
   const scenarioLines = [
-    participantCount ? `Pessoas: ${participantCount}` : "",
-    `Total: ${totalHours}h`
+    participantCount ? `👥 Pessoas: ${participantCount}` : "",
+    "📅 Uso: total de horas informado",
+    `⏱️ Total: ${totalHours}h`
   ].filter(Boolean).join("\n");
 
   const baseAnswer = [
-    ["*Orcamento estimado*", correctionIntro].join("\n"),
-    ["*Cenario considerado*", scenarioLines].join("\n"),
+    "📌 Orçamento estimado",
+    correctionIntro,
+    scenarioLines,
     comparisonNote,
-    ["*Melhor opcao*", lineText].join("\n"),
-    `*Total estimado: ${formatMoney(Number(recommended.total))}*`,
-    ["*Por que esta opcao*", bestValueText || overageText].join("\n"),
-    ["*Observacao*", "Simulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente."].join("\n"),
-    "Quer seguir com essa opcao?"
+    ["Composição:", "", lineText].join("\n"),
+    `Total estimado: ${formatMoney(Number(recommended.total))}`,
+    overageNote,
+    "Simulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais."
   ].filter(Boolean).join("\n\n");
-
-  const resposta = quoteResult.includedItems?.length &&
-    !historyHasIncludedSection(activeHistory) &&
-    !answerHasCommercialIncludedSection(baseAnswer)
-    ? [
-        baseAnswer,
-        "",
-        "*Incluso:*",
-        ...quoteResult.includedItems.map((item: string) => `- ${item}`)
-      ].join("\n")
-    : baseAnswer;
+  const resposta = appendPostQuoteMenu(baseAnswer);
 
   return {
     intencao: "consulta_valor",
@@ -2381,10 +2470,10 @@ const buildTotalHoursCommercialQuoteDecision = async ({
         recommendedOption: recommended.lines?.map((line: any) => line.name).join(" + ") || null,
         total: recommended.total ? Number(recommended.total) : null
       },
-      lastOfferType: null,
-      awaitingConfirmationFor: null,
+      lastOfferType: "post_quote_menu",
+      awaitingConfirmationFor: "post_quote_menu",
       lastQuestionKey: null,
-      lastQuestionText: null,
+      lastQuestionText: "Como deseja prosseguir?",
       quoteRevisionMode: null
     }
   };
@@ -2494,7 +2583,8 @@ const buildAnswerPrompt = ({
   knowledge,
   ticket,
   aiSetting,
-  structuredContext
+  structuredContext,
+  directedKnowledgeBaseQuery
 }: {
   message: string;
   history: string;
@@ -2502,6 +2592,7 @@ const buildAnswerPrompt = ({
   ticket: Ticket;
   aiSetting: AiSetting;
   structuredContext?: string;
+  directedKnowledgeBaseQuery?: string;
 }): string => {
   const packageComparisonHint = buildHourlyPackageComparisonHint(structuredContext || "", knowledge);
 
@@ -2534,6 +2625,9 @@ const buildAnswerPrompt = ({
   "Use somente as INFORMACOES INTERNAS ENCONTRADAS.",
   "Responda somente assuntos relacionados ao atendimento configurado e a base encontrada. Se o cliente perguntar curiosidade geral, roupa, esporte, produto externo, politica, celebridade, futebol ou qualquer tema fora do escopo, diga de forma educada que nao consegue ajudar com esse assunto por ali, que o foco e o atendimento da empresa/servico, e redirecione para valores, estrutura, reserva, suporte ou duvidas relacionadas. Nao responda com conhecimento geral e nao repita orcamento antigo.",
   "Nao copie a base literalmente quando puder explicar melhor. Reescreva de forma clara, humana e especifica para a pergunta do cliente.",
+  "Responda usando somente o CONTEXTO AUTORIZADO DA BASE abaixo e resultados de ferramentas executadas pelo backend.",
+  "Se a informacao solicitada nao estiver no CONTEXTO AUTORIZADO DA BASE, nao invente, nao complete por conhecimento geral e diga que precisa confirmar com a equipe.",
+  "Para fatos da Salinha como pix, cartao, reserva, desconto, professor, mensalista, endereco, capacidade, tabela, valores, precos, itens inclusos e ar-condicionado, a resposta precisa estar explicitamente sustentada pelo contexto autorizado.",
   "Nao invente valores, prazos, links, telefones, regras, procedimentos ou nomes que nao estejam na base.",
   "Se o cliente pedir para simular usando um valor que nao existe na base, nao aceite o valor inventado. Diga que nao consegue simular fora da tabela cadastrada e informe o valor oficial mais proximo da base.",
   "Quando a base de conhecimento trouxer valores oficiais, eles tem prioridade sobre qualquer valor citado anteriormente no historico ou pela propria IA. Nao reutilize valor antigo se ele conflitar com a base encontrada.",
@@ -2570,6 +2664,10 @@ const buildAnswerPrompt = ({
   "Nao cole o bloco interno da base na resposta. Extraia apenas a orientacao util e responda como atendente.",
   "Nao retorne JSON, markdown tecnico, tags internas ou explicacoes do sistema.",
   `Mensagem atual do cliente, que deve guiar a resposta: ${message}`,
+  directedKnowledgeBaseQuery
+    ? `Pergunta direcionada usada para consultar a base: ${directedKnowledgeBaseQuery}`
+    : "",
+  "Responda a mensagem atual, nao a pergunta anterior. Se o historico falar de outro assunto, use apenas para entender contexto, mas nao para escolher o tema da resposta.",
   "A mensagem atual tem prioridade sobre respostas anteriores. Se ela responder uma pergunta que a IA acabou de fazer, trate como continuidade e avance a conversa.",
   "Se o cliente escolher uma opcao textual como 'por hora', 'mensal', 'pacote', '10 horas' ou informar uma quantidade como '3 horas', use essa informacao para responder. Nao pergunte novamente a mesma coisa.",
   "Se a ultima pergunta da IA foi sobre quantidade de pessoas/participantes e o cliente respondeu apenas um numero, trate esse numero como quantidade de pessoas. Nao liste valores ainda; pergunte duracao e se sera em um unico encontro/dia ou em mais de um encontro.",
@@ -2617,7 +2715,7 @@ const buildAnswerPrompt = ({
   aiSetting.name ? `Nome da IA, se precisar se apresentar: ${aiSetting.name}.` : "",
   aiSetting.companyName ? `Empresa ou servico: ${aiSetting.companyName}.` : "",
   `Historico recente:\n${history || "Sem historico."}`,
-  `INFORMACOES INTERNAS ENCONTRADAS:\n${knowledge}`,
+  knowledge,
   "Resposta final ao cliente:"
   ].filter(Boolean).join("\n\n");
 };
@@ -2629,7 +2727,8 @@ const generateAnswerFromKnowledge = async ({
   contactName,
   history,
   knowledge,
-  structuredContext
+  structuredContext,
+  directedKnowledgeBaseQuery
 }: {
   aiSetting: AiSetting;
   ticket: Ticket;
@@ -2638,6 +2737,7 @@ const generateAnswerFromKnowledge = async ({
   history: string;
   knowledge: string;
   structuredContext?: string;
+  directedKnowledgeBaseQuery?: string;
 }): Promise<string | null> => {
   if (!knowledge) return null;
 
@@ -2658,7 +2758,8 @@ const generateAnswerFromKnowledge = async ({
     knowledge,
     ticket,
     aiSetting,
-    structuredContext
+    structuredContext,
+    directedKnowledgeBaseQuery
   });
 
   try {
@@ -2729,7 +2830,8 @@ const withGeneratedKnowledgeAnswer = async ({
   history,
   knowledge,
   articles,
-  structuredContext
+  structuredContext,
+  directedKnowledgeBaseQuery
 }: {
   decision: AiDecision;
   aiSetting: AiSetting;
@@ -2740,8 +2842,15 @@ const withGeneratedKnowledgeAnswer = async ({
   knowledge: string;
   articles: KnowledgeFragment[];
   structuredContext?: string;
+  directedKnowledgeBaseQuery?: string;
 }): Promise<AiDecision> => {
   let generatedAnswer: string | null = null;
+  const finalKnowledgeQuery = directedKnowledgeBaseQuery || BuildKnowledgeBaseQueryService({
+    userMessage: message,
+    detectedIntent: decision.intencao,
+    history,
+    structuredContext
+  }).directedKnowledgeBaseQuery;
 
   try {
     generatedAnswer = await generateAnswerFromKnowledge({
@@ -2751,7 +2860,8 @@ const withGeneratedKnowledgeAnswer = async ({
       contactName,
       history,
       knowledge,
-      structuredContext
+      structuredContext,
+      directedKnowledgeBaseQuery: finalKnowledgeQuery
     });
   } catch (error) {
     if (error instanceof AiProviderError) {
@@ -2788,8 +2898,21 @@ const withGeneratedKnowledgeAnswer = async ({
       {
         ticketId: ticket.id,
         aiSettingId: aiSetting.id,
+        userMessage: message,
+        detectedIntent: decision.intencao,
+        directedKnowledgeBaseQuery: finalKnowledgeQuery,
         action: "responder_com_base",
-        responsePreview: generatedAnswer.slice(0, 240)
+        retrievedChunks: articles.map(article => ({
+          chunkId: article.chunkId || null,
+          articleId: article.articleId || article.id,
+          section: article.section || article.title,
+          title: article.title,
+          score: article.rank,
+          contentPreview: article.fragment.slice(0, 200)
+        })),
+        grounded: articles.length > 0,
+        usedOldFlow: false,
+        finalAnswer: generatedAnswer.slice(0, 500)
       },
       "[AI ANSWER] Final answer generated from knowledge"
     );
@@ -2845,6 +2968,51 @@ const isBusinessCloseRequest = (message: string): boolean => {
     /\b(quero|queria|gostaria|vamos|bora|preciso|desejo)\b.{0,80}\b(fechar|finalizar|reservar|contratar|agendar)\b/.test(normalized)
   );
 };
+
+const isCriticalKnowledgeQuestion = (message = ""): boolean => {
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return /\b(pix|cartao|cartão|debito|débito|credito|crédito|reserva|reservar|desconto|professor|mensalista|endereco|endereço|onde|capacidade|cabe|pessoas|tabela|valores|precos|preços|incluso|inclui|ar condicionado|ar-condicionado|ar)\b/.test(normalized);
+};
+
+const shouldAnswerCurrentKnowledgeQuestionFirst = (intent?: string | null): boolean =>
+  [
+    "request_payment_info",
+    "request_reservation_rules",
+    "request_availability",
+    "request_location",
+    "request_capacity",
+    "request_included_structure",
+    "request_price_table",
+    "request_packages",
+    "request_monthly_plans",
+    "request_teacher_package",
+    "request_discount_rules",
+    "out_of_scope",
+    "inappropriate_message"
+  ].includes(intent || "");
+
+const buildCurrentKnowledgeQuestionDecision = (
+  message: string,
+  intent: string,
+  articles: KnowledgeFragment[]
+): AiDecision => ({
+  intencao: intent || "pergunta_sobre_produto_ou_servico",
+  confianca: "alta",
+  mensagemInterpretada: message,
+  contexto: "Pergunta atual identificada como assunto da base; responder esse assunto antes de qualquer fluxo pendente.",
+  baseEncontrada: articles.length > 0,
+  respostaSegura: articles.length > 0,
+  acao: articles.length ? "responder_com_base" : "sem_resposta_segura",
+  motivo: "RAG prioritario para a mensagem atual, com query direcionada e chunks recuperados antes da resposta.",
+  resposta: articles.length
+    ? undefined
+    : "Nao encontrei essa informacao confirmada aqui. Posso encaminhar para a equipe verificar?",
+  knowledgeIds: articles.map(article => article.id)
+});
 
 const isResponseRejectedRequest = (message: string): boolean => {
   const normalized = normalizeText(message)
@@ -3445,6 +3613,29 @@ const buildNewQuoteDetailsRequestDecision = (
   message: string,
   structuredContext = ""
 ): AiDecision => {
+  const currentQuoteData = getCurrentQuoteDataFromContext(structuredContext);
+  const hasQuoteContext = currentQuoteData.participantCount !== null ||
+    currentQuoteData.occurrenceCount !== null ||
+    currentQuoteData.durationHours !== null;
+
+  if (!hasQuoteContext) {
+    return {
+      intencao: "consulta_valor",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente pediu orcamento/valor sem dados suficientes.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Coleta objetiva de dados para calculadora oficial.",
+      resposta: "Para quantas pessoas?",
+      operationalStatePatch: {
+        lastQuestionKey: "people",
+        lastQuestionText: "Para quantas pessoas?"
+      }
+    };
+  }
+
   return buildQuoteRevisionScopeDecision(message, structuredContext);
 };
 
@@ -3782,6 +3973,225 @@ const DecideAiTicketActionService = async ({
   let structuredContext = await BuildAiTicketContextTextService(ticket.id);
   const aiContext = await AiTicketContext.findOne({ where: { ticketId: ticket.id } });
   const collectedData = parseObject(aiContext?.collectedData);
+  const operationalStateText = normalizeText(aiContext?.operationalState || "");
+  const operationalStateObject = parseObject(aiContext?.operationalState);
+  const pendingQuoteDataText = normalizeText(`${aiContext?.missingData || ""} ${structuredContext}`)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const activeQuestionBeforeGrounding = normalizeText(getActiveQuestionText(ticket.lastAiMessage || ""))
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const directRevisionFieldBeforeGrounding = getQuoteRevisionField(message);
+  const hasPreviousQuoteBeforeGrounding =
+    Boolean(operationalStateObject?.lastQuote) ||
+    /Quantidade de pessoas\/participantes:|Quantidade de ocorrencias|Duracao\/tempo informado:/i.test(structuredContext);
+  const normalizedRevisionMessage = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (
+    hasPreviousQuoteBeforeGrounding &&
+    directRevisionFieldBeforeGrounding &&
+    hasExplicitNumericDetail(normalizedRevisionMessage)
+  ) {
+    const currentQuoteData = getCurrentQuoteDataFromContext(structuredContext);
+    const scenario = extractQuoteScenarioFromText(message);
+    const revisedQuoteData: CurrentQuoteData = {
+      participantCount: scenario.participantCount || currentQuoteData.participantCount,
+      occurrenceCount: scenario.occurrenceCount || currentQuoteData.occurrenceCount,
+      durationHours: scenario.durationHours || currentQuoteData.durationHours
+    };
+
+    if (revisedQuoteData.occurrenceCount && revisedQuoteData.durationHours) {
+      await UpdateAiTicketContextService({
+        ticket,
+        source: "customer_message",
+        collectedData: {
+          ...(scenario.participantCount ? {
+            participant_count: {
+              label: "Quantidade de pessoas/participantes",
+              value: String(scenario.participantCount),
+              rawValue: message
+            }
+          } : {}),
+          ...(scenario.occurrenceCount ? {
+            occurrences: {
+              label: "Quantidade de ocorrencias/unidades de agenda",
+              value: String(scenario.occurrenceCount),
+              rawValue: message
+            }
+          } : {}),
+          ...(scenario.durationHours ? {
+            duration: {
+              label: "Duracao/tempo informado",
+              value: `${scenario.durationHours}h`,
+              rawValue: message
+            }
+          } : {})
+        },
+        missingData: []
+      });
+
+      const activeArticles = await getActiveKnowledgeFragments();
+      const commercialQuoteDecision = await buildCommercialQuoteDecision({
+        ticket,
+        aiSetting,
+        message,
+        quoteData: revisedQuoteData,
+        activeHistory: getActiveConversationHistory(history),
+        knowledgeIds: activeArticles.map(article => article.id),
+        reason: "Cliente revisou um dado do orcamento anterior com numero explicito; recalcular usando os demais dados ja coletados."
+      });
+
+      if (commercialQuoteDecision) {
+        return commercialQuoteDecision;
+      }
+    }
+  }
+
+  if (
+    hasPreviousQuoteBeforeGrounding &&
+    directRevisionFieldBeforeGrounding &&
+    !hasExplicitNumericDetail(normalizedRevisionMessage) &&
+    /^(pessoas|participantes|dias|dia|encontros|encontro|aulas|aula|horas|hora|duracao|tempo)$/.test(normalizedRevisionMessage)
+  ) {
+    return buildQuoteRevisionFieldQuestionDecision(message, directRevisionFieldBeforeGrounding);
+  }
+
+  const shouldLetOperationalStateHandleQuoteReply =
+    Boolean(activeQuestionBeforeGrounding) &&
+    (
+      /\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(activeQuestionBeforeGrounding) ||
+      /\b(dias|dia|encontros|encontro|aulas|aula)\b/.test(activeQuestionBeforeGrounding) ||
+      /\b(horas|hora|duracao|tempo)\b/.test(activeQuestionBeforeGrounding) ||
+      /\b(quero reservar|outro orcamento|tirar uma duvida|tenho outra duvida|falar com atendente)\b/.test(activeQuestionBeforeGrounding) ||
+      (
+        changesParticipantCount(message) &&
+        /\b(occurrences|duration|dias|encontros|horas|duracao)\b/.test(pendingQuoteDataText)
+      )
+    ) &&
+    (
+      isBareNumericAnswer(message) ||
+      hasDurationOrOccurrenceDetail(message) ||
+      changesParticipantCount(message)
+    );
+  const fullBaseGrounding = shouldLetOperationalStateHandleQuoteReply
+    ? null
+    : await FullBaseGroundingMariService({
+        ticket,
+        aiSetting,
+        message,
+        history,
+        structuredContext,
+        contactName
+      });
+
+  if (
+    /\bpost_quote_menu\b/.test(operationalStateText) &&
+    normalizeText(message).replace(/[^\w\s]/g, " ").trim() === "3"
+  ) {
+    return {
+      intencao: "confirmacao_opcao",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente escolheu a opcao de tirar outra duvida no menu apos orcamento.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Opcao 3 do menu pos-orcamento deve abrir espaco para duvida, nao iniciar novo orcamento.",
+      resposta: "Claro. Qual é a dúvida?"
+    };
+  }
+
+  if (fullBaseGrounding?.needsQuoteCalculation) {
+    const scenario = extractQuoteScenarioFromText(message);
+    if (scenario.participantCount || scenario.occurrenceCount || scenario.durationHours) {
+      await UpdateAiTicketContextService({
+        ticket,
+        source: "customer_message",
+        collectedData: {
+          ...(scenario.participantCount ? {
+            participant_count: {
+              label: "Quantidade de pessoas/participantes",
+              value: String(scenario.participantCount),
+              rawValue: message
+            }
+          } : {}),
+          ...(scenario.occurrenceCount ? {
+            occurrences: {
+              label: "Quantidade de ocorrencias/unidades de agenda",
+              value: String(scenario.occurrenceCount),
+              rawValue: message
+            }
+          } : {}),
+          ...(scenario.durationHours ? {
+            duration: {
+              label: "Duracao/tempo informado",
+              value: `${scenario.durationHours}h`,
+              rawValue: message
+            }
+          } : {})
+        },
+        missingData: []
+      });
+
+      structuredContext = await BuildAiTicketContextTextService(ticket.id);
+      if (hasMinimumQuoteData(structuredContext)) {
+        const activeArticles = await getActiveKnowledgeFragments();
+        const commercialQuoteDecision = await buildCommercialQuoteDecision({
+          ticket,
+          aiSetting,
+          message,
+          quoteData: getCurrentQuoteDataFromContext(structuredContext),
+          activeHistory: getActiveConversationHistory(history),
+          knowledgeIds: activeArticles.map(article => article.id),
+          reason: "Full Base Grounding identificou orcamento com dados completos; calculadora oficial chamada antes do semantico generico."
+        });
+
+        if (commercialQuoteDecision) {
+          return commercialQuoteDecision;
+        }
+      }
+    }
+
+    if (!hasMinimumQuoteData(structuredContext)) {
+      return buildNewQuoteDetailsRequestDecision(message, structuredContext);
+    }
+  }
+
+  if (fullBaseGrounding && !fullBaseGrounding.needsQuoteCalculation) {
+    if (fullBaseGrounding.shouldTransfer || fullBaseGrounding.needsHuman) {
+      return {
+        intencao: fullBaseGrounding.intent,
+        confianca: "alta",
+        mensagemInterpretada: message,
+        contexto: "Full Base Grounding indicou necessidade de atendimento humano.",
+        baseEncontrada: fullBaseGrounding.foundInBase,
+        respostaSegura: true,
+        acao: "encaminhar_atendente",
+        motivo: fullBaseGrounding.reasoningSummary || "Resposta baseada na base completa e validada pelo backend.",
+        resposta: fullBaseGrounding.customerAnswer
+      };
+    }
+
+    if (fullBaseGrounding.shouldAnswer && fullBaseGrounding.customerAnswer) {
+      return {
+        intencao: fullBaseGrounding.intent,
+        confianca: "alta",
+        mensagemInterpretada: message,
+        contexto: "Full Base Grounding respondeu com base completa enviada ao modelo.",
+        baseEncontrada: fullBaseGrounding.foundInBase,
+        respostaSegura: true,
+        acao: "responder_com_base",
+        motivo: fullBaseGrounding.reasoningSummary || "Resposta baseada na base completa e validada pelo backend.",
+        resposta: fullBaseGrounding.customerAnswer
+      };
+    }
+  }
+
   const semanticDecision = await AiSemanticDecisionService({
     ticket,
     message,
@@ -3790,6 +4200,97 @@ const DecideAiTicketActionService = async ({
     structuredContext,
     context: aiContext
   });
+  const knowledgeQuery = BuildKnowledgeBaseQueryService({
+    userMessage: message,
+    detectedIntent: semanticDecision.messageUnderstanding.primaryIntent,
+    history,
+    structuredContext
+  });
+  const preflightArticles = await SearchKnowledgeBaseService(knowledgeQuery.directedKnowledgeBaseQuery, {
+    ticketId: ticket.id,
+    aiSettingId: aiSetting.id,
+    userMessage: message,
+    detectedIntent: knowledgeQuery.detectedIntent,
+    directedKnowledgeBaseQuery: knowledgeQuery.directedKnowledgeBaseQuery,
+    entities: knowledgeQuery.entities,
+    includeFullBaseFallback: true,
+    topK: 5
+  });
+  if (!preflightArticles.length && isCriticalKnowledgeQuestion(message)) {
+    return {
+      intencao: semanticDecision.messageUnderstanding.primaryIntent || "pergunta_sobre_produto_ou_servico",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Pergunta factual critica sem trecho recuperado da base autorizada.",
+      baseEncontrada: false,
+      respostaSegura: false,
+      acao: "sem_resposta_segura",
+      motivo: "RAG sem retrievedChunks confiaveis; bloqueio contra resposta inventada.",
+      resposta: "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar?"
+    };
+  }
+  if (isIdentityQuestion(message)) {
+    return buildContextualIdentityAnswerDecision(message, aiSetting, getActiveConversationHistory(history));
+  }
+
+  if (
+    changesParticipantCount(message) &&
+    /\b(occurrences|duration|dias|encontros|horas|duracao)\b/.test(pendingQuoteDataText) &&
+    !/\b(cabe|cabem|capacidade|lotacao|suporta|comporta)\b/.test(normalizeText(message))
+  ) {
+    const participantCount = getExplicitNumberFromMessage(message);
+    if (participantCount) {
+      await UpdateAiTicketContextService({
+        ticket,
+        source: "customer_message",
+        collectedData: {
+          participant_count: {
+            label: "Quantidade de pessoas/participantes",
+            value: String(participantCount),
+            rawValue: message
+          }
+        },
+        missingData: ["occurrences", "duration"]
+      });
+    }
+
+    return {
+      intencao: "diagnostico_inicial",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente informou quantidade de pessoas dentro de um orcamento pendente.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Retomar coleta de orcamento antes de responder capacidade generica.",
+      resposta: [
+        "Perfeito, anotei a quantidade de pessoas.",
+        "Quantos dias/encontros serao ao todo?"
+      ].join("\n\n")
+    };
+  }
+
+  if (shouldAnswerCurrentKnowledgeQuestionFirst(knowledgeQuery.detectedIntent)) {
+    const currentKnowledgeDecision = buildCurrentKnowledgeQuestionDecision(
+      message,
+      knowledgeQuery.detectedIntent,
+      preflightArticles
+    );
+
+    return withGeneratedKnowledgeAnswer({
+      decision: currentKnowledgeDecision,
+      aiSetting,
+      ticket,
+      message,
+      contactName,
+      history,
+      knowledge: buildKnowledgeText(preflightArticles),
+      articles: preflightArticles,
+      structuredContext,
+      directedKnowledgeBaseQuery: knowledgeQuery.directedKnowledgeBaseQuery
+    });
+  }
+
   const singleOccurrenceFromContext = collectedDataIndicatesSingleOccurrence(collectedData);
   const multipleOccurrencesFromContext = collectedDataIndicatesMultipleOccurrences(collectedData);
   const bareDuration = bareNumericAnswerToValue(message);
@@ -3907,6 +4408,117 @@ const DecideAiTicketActionService = async ({
         "Quantos dias/encontros serao ao todo?"
       ].join("\n\n")
     };
+  }
+
+  if (
+    changesParticipantCount(message) &&
+    /\b(occurrences|duration|dias|encontros|horas|duracao)\b/.test(pendingQuoteDataText) &&
+    !/\b(cabe|cabem|capacidade|lotacao|suporta|comporta)\b/.test(normalizeText(message))
+  ) {
+    const participantCount = getExplicitNumberFromMessage(message);
+    if (participantCount) {
+      await UpdateAiTicketContextService({
+        ticket,
+        source: "customer_message",
+        collectedData: {
+          participant_count: {
+            label: "Quantidade de pessoas/participantes",
+            value: String(participantCount),
+            rawValue: message
+          }
+        },
+        missingData: ["occurrences", "duration"]
+      });
+    }
+
+    return {
+      intencao: "diagnostico_inicial",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente informou quantidade de pessoas dentro de um orcamento pendente.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Retomar coleta de orcamento depois de duvida factual intermediaria.",
+      resposta: [
+        "Perfeito, anotei a quantidade de pessoas.",
+        "Quantos dias/encontros serao ao todo?"
+      ].join("\n\n")
+    };
+  }
+
+  if (
+    hasOccurrenceCountDetail(message) &&
+    !hasHourDurationDetail(message) &&
+    /\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|sessoes|sessao|consultas|consulta)\b/.test(normalizedActiveLastQuestion) &&
+    /\b(horas|hora|duracao|tempo)\b/.test(normalizedActiveLastQuestion)
+  ) {
+    const occurrenceCount = parseNumberLikeText(message);
+    await UpdateAiTicketContextService({
+      ticket,
+      source: "customer_message",
+      collectedData: {
+        occurrences: {
+          label: "Quantidade de ocorrencias/unidades de agenda",
+          value: occurrenceCount ? String(occurrenceCount) : message,
+          rawValue: message
+        }
+      },
+      missingData: ["duration"]
+    });
+
+    return buildHoursPerOccurrenceQuestionDecision(message);
+  }
+
+  if (
+    hasHourDurationDetail(message) &&
+    isHourQuestion(ticket.lastAiMessage || "")
+  ) {
+    const scenario = extractQuoteScenarioFromText(message);
+    if (scenario.durationHours) {
+      await UpdateAiTicketContextService({
+        ticket,
+        source: "customer_message",
+        collectedData: {
+          duration: {
+            label: "Duracao/tempo informado",
+            value: `${scenario.durationHours}h`,
+            rawValue: message
+          }
+        },
+        missingData: []
+      });
+      structuredContext = await BuildAiTicketContextTextService(ticket.id);
+    }
+
+    if (hasMinimumQuoteData(structuredContext)) {
+      const activeArticles = await getActiveKnowledgeFragments();
+      const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
+      const quoteData = getCurrentQuoteDataFromContext(structuredContext);
+      const activeCapacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
+
+      if (
+        quoteData.participantCount !== null &&
+        activeCapacityLimit !== null &&
+        quoteData.participantCount > activeCapacityLimit
+      ) {
+        return buildCapacityExceededDecision(message, activeArticles, quoteData.participantCount, activeCapacityLimit);
+      }
+
+      const commercialQuoteDecision = await buildCommercialQuoteDecision({
+        ticket,
+        aiSetting,
+        message,
+        quoteData,
+        activeHistory: getActiveConversationHistory(history),
+        knowledgeIds: activeArticles.map(article => article.id),
+        reason: "Cliente respondeu a pergunta de horas com unidade textual; calcular orcamento imediatamente."
+      });
+
+      if (commercialQuoteDecision) {
+        return commercialQuoteDecision;
+      }
+    }
   }
 
   if (
@@ -4133,7 +4745,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (isLoopingComplaint(message)) {
-    return buildContextualLoopingComplaintDecision(message, structuredContext);
+    return buildNeutralLoopRecoveryDecision(message);
   }
 
   const operationalDecision = await EvaluateAiConversationStateService({
@@ -4180,29 +4792,6 @@ const DecideAiTicketActionService = async ({
     return operationalDecision.aiDecision;
   }
 
-  const shouldSkipLegacyOrchestrator =
-    semanticDecision.messageUnderstanding.confidence >= 0.55 &&
-    semanticDecision.nextAction.type !== "fallback_to_legacy" &&
-    (
-      semanticDecision.messageUnderstanding.isNewIntent ||
-      semanticDecision.nextAction.requiresBackendValidation ||
-      semanticDecision.contextUse.shouldSuspendPendingFlow
-    );
-
-  const orchestratedDecision = shouldSkipLegacyOrchestrator
-    ? null
-    : await AiConversationOrchestratorService({
-      ticket,
-      message,
-      aiSetting,
-      history,
-      structuredContext
-    });
-
-  if (orchestratedDecision) {
-    return orchestratedDecision;
-  }
-
   const requestedTotalHours = extractRequestedTotalHours(message);
 
   if (requestedTotalHours) {
@@ -4244,7 +4833,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (isLoopingComplaint(message)) {
-    return buildContextualLoopingComplaintDecision(message, structuredContext);
+    return buildNeutralLoopRecoveryDecision(message);
   }
 
   if (isClearlyOutOfScopeMessage(message)) {
@@ -4486,11 +5075,7 @@ const DecideAiTicketActionService = async ({
     return buildSmallerPackageDecision(message, getCurrentQuoteDataFromContext(structuredContext));
   }
 
-  let articles = await SearchKnowledgeBaseService(
-    pendingOptions.length
-      ? `${message} ${pendingOptions.map(option => option.valor).join(" ")}`
-      : message
-  );
+  let articles = preflightArticles;
 
   if (!articles.length && ticket.lastAiKnowledgeIds) {
     const previousArticles = await getPreviousKnowledgeArticles(ticket);
@@ -4508,13 +5093,20 @@ const DecideAiTicketActionService = async ({
       queueId: ticket.queueId,
       aiQueueId: configuredAiQueueId,
       messagePreview: message.slice(0, 180),
+      detectedIntent: knowledgeQuery.detectedIntent,
+      directedKnowledgeBaseQuery: knowledgeQuery.directedKnowledgeBaseQuery,
+      entities: knowledgeQuery.entities,
       knowledgeFound: articles.length,
-      knowledge: articles.map(article => ({
-        id: article.id,
+      retrievedChunks: articles.map(article => ({
+        chunkId: article.chunkId || null,
+        articleId: article.articleId || article.id,
+        section: article.section || article.title,
         title: article.title,
-        rank: article.rank,
+        score: article.rank,
+        contentPreview: article.fragment.slice(0, 200),
         source: article.source
-      }))
+      })),
+      usedOldFlow: false
     },
     "[AI FLOW] Decision context prepared"
   );
@@ -4583,6 +5175,24 @@ const DecideAiTicketActionService = async ({
         },
         missingData: []
       });
+      structuredContext = await BuildAiTicketContextTextService(ticket.id);
+    }
+
+    if (hasMinimumQuoteData(structuredContext) && shouldAutoQuote) {
+      const quoteData = getCurrentQuoteDataFromContext(structuredContext);
+      const commercialQuoteDecision = await buildCommercialQuoteDecision({
+        ticket,
+        aiSetting,
+        message,
+        quoteData,
+        activeHistory: getActiveConversationHistory(history),
+        knowledgeIds: articles.map(article => article.id),
+        reason: "Cliente informou quantidade acima da capacidade; calcular automaticamente no limite cadastrado e avisar a restricao."
+      });
+
+      if (commercialQuoteDecision) {
+        return commercialQuoteDecision;
+      }
     }
 
     return buildCapacityExceededDecision(message, articles, participantCount, capacityLimit);

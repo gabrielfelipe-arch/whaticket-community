@@ -4,8 +4,9 @@ import Ticket from "../../models/Ticket";
 import type { AiDecision } from "./DecideAiTicketActionService";
 import { UpdateAiTicketContextService } from "./AiTicketContextService";
 import type { AiSemanticDecision } from "./AiSemanticDecisionService";
+import { isPostQuoteMenuOption } from "./PostQuoteMenuService";
 
-export type OperationalOfferType = "quote_revision" | "human_transfer" | "close_ticket" | null;
+export type OperationalOfferType = "quote_revision" | "human_transfer" | "close_ticket" | "post_quote_menu" | null;
 export type OperationalQuestionKey =
   | "people"
   | "meetingCount"
@@ -77,6 +78,23 @@ const normalizeText = (value = ""): string =>
     .replace(/\s+/g, " ")
     .trim();
 
+const isClearKnowledgeBaseQuestion = (message = ""): boolean => {
+  const normalized = normalizeText(message);
+
+  if (!normalized) return false;
+
+  return (
+    /\b(onde|endereco|localizacao|fica|perto|referencia)\b/.test(normalized) ||
+    /\b(tabela|preco|precos|valor|valores|quanto custa|pacotes?|planos?)\b/.test(normalized) ||
+    /\b(cabe|cabem|capacidade|quantas pessoas|quantas oessoas|quantos participantes)\b/.test(normalized) ||
+    /\b(ar|ar condicionado|internet|wifi|tv|cafe|copa|microondas|micro ondas|incluso|inclui|estrutura)\b/.test(normalized) ||
+    /\b(pix|cartao|debito|credito|pagamento|divide|parcel)\b/.test(normalized) ||
+    /\b(desconto|promocao|condicao especial|barato|negocia)\b/.test(normalized) ||
+    /\b(reserva|reservar|sinal|disponibilidade|horario|agenda|sabado|domingo)\b/.test(normalized) ||
+    /\b(professor|particular|mensal|mensalista|prata|ouro|diamante)\b/.test(normalized)
+  );
+};
+
 const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
   if (!value) return fallback;
 
@@ -138,19 +156,42 @@ const isIdentityOrRoleQuestion = (message = ""): boolean => {
   const normalized = normalizeText(message);
   const talksToAssistant = /\b(voce|vc|tu|mari|assistente|robo|bot)\b/.test(normalized);
   const asksIdentity =
-    /\b(quem e voce|quem voce e|qual seu nome|seu nome|voce e robo|vc e robo|voce e atendente|vc e atendente)\b/.test(normalized);
+    /\b(quem e voce|quem voce e|qual seu nome|seu nome|voce e robo|vc e robo|voce e atendente|vc e atendente|quantos anos voce tem|voce tem quantos anos|qual sua idade|sua idade)\b/.test(normalized);
   const asksRole =
     talksToAssistant &&
     /\b(faz o que|faz oq|faz o q|voce faz|vc faz|ajuda com o que|ajuda em que|qual sua funcao|pra que voce serve|para que voce serve)\b/.test(normalized);
+  const asksPersonalAttribute =
+    talksToAssistant &&
+    /\b(bonita|bonito|linda|lindo|casada|casado|namora|idade|anos)\b/.test(normalized);
 
-  return asksIdentity || asksRole;
+  return asksIdentity || asksRole || asksPersonalAttribute;
 };
 
 const isLoopOrBugComplaint = (message = ""): boolean =>
   /\b(loop|looping|repetindo|repetiu|mesma coisa|bugou|travou|nao foi isso|nao entendeu|voce nao entendeu|vc nao entendeu|ja falei|ja respondi|acabei de responder)\b/.test(normalizeText(message));
 
+const isNonQuoteCustomerTurn = (message = ""): boolean => {
+  const normalized = normalizeText(message);
+
+  return (
+    isClearKnowledgeBaseQuestion(message) ||
+    isIdentityOrRoleQuestion(message) ||
+    isLoopOrBugComplaint(message) ||
+    /\b(calcinha|sexual|sexo|nude|pelada|pelado)\b/.test(normalized) ||
+    /\b(placar|jogo|futebol|flamengo|vasco|botafogo|fluminense|dolar|euro|moeda|cambio)\b/.test(normalized)
+  );
+};
+
 const inferOfferTypeFromText = (message = ""): OperationalOfferType => {
   const normalized = normalizeText(message);
+  if (
+    /\bcomo deseja prosseguir\b/.test(normalized) &&
+    /\bconfirmar disponibilidade reserva com a equipe\b/.test(normalized) &&
+    /\bfazer uma nova simulacao\b/.test(normalized) &&
+    /\btenho outra duvida\b/.test(normalized)
+  ) {
+    return "post_quote_menu";
+  }
   if (/\b(refazer|recalcular|revisar|ajustar|mudar)\b.{0,80}\b(orcamento|simulacao|valor|cenario)\b/.test(normalized) ||
       /\b(posso|podemos)\b.{0,60}\b(refazer|recalcular|revisar|ajustar)\b/.test(normalized)) {
     return "quote_revision";
@@ -222,7 +263,7 @@ const buildQuoteRevisionStartDecision = (
     lastQuestionKey: hasQuote ? "quote_revision_scope" : "people",
     lastQuestionText: hasQuote
       ? "Perfeito. Quer mudar pessoas, dias ou horas do orcamento anterior?"
-      : "Perfeito. Vamos montar um novo orcamento. Para quantas pessoas seria?"
+      : "Para quantas pessoas?"
   };
 
   return buildDecision({
@@ -297,6 +338,123 @@ const buildIdentityDecision = (
       acao: "responder_com_base",
       motivo: "Estado operacional: pergunta sobre identidade/funcao deve ser respondida antes do orquestrador.",
       resposta: response
+    }
+  });
+};
+
+const buildPostQuoteMenuDecision = (
+  message: string,
+  state: OperationalState,
+  option: "1" | "2" | "3"
+): OperationalDecision => {
+  if (option === "1") {
+    const nextState: OperationalState = {
+      ...state,
+      lastOfferType: null,
+      awaitingConfirmationFor: null,
+      lastQuestionKey: null,
+      lastQuestionText: null
+    };
+
+    return buildDecision({
+      detectedIntent: "confirmar_reserva_com_equipe",
+      isReplyToPreviousQuestion: false,
+      answeredField: null,
+      isReplyToPreviousOffer: true,
+      acceptedPreviousOffer: true,
+      previousOfferType: "post_quote_menu",
+      requiresTool: true,
+      toolToCall: "transferirParaFila",
+      shouldAskClarification: false,
+      nextQuestionKey: null,
+      responseGoal: "encaminhar_equipe_para_validar_reserva",
+      mustNotRepeatLastAnswer: true,
+      nextState,
+      aiDecision: {
+        intencao: "pedido_reserva",
+        confianca: "alta",
+        mensagemInterpretada: message,
+        contexto: "Cliente escolheu confirmar disponibilidade/reserva com a equipe apos orcamento.",
+        baseEncontrada: false,
+        respostaSegura: false,
+        acao: "encaminhar_atendente",
+        motivo: "Menu pos-orcamento: disponibilidade/reserva so pode ser validada pela equipe.",
+        resposta: "Perfeito. Vou encaminhar para a equipe validar disponibilidade, reserva e condicoes finais."
+      }
+    });
+  }
+
+  if (option === "2") {
+    const nextState: OperationalState = {
+      ...state,
+      lastOfferType: null,
+      awaitingConfirmationFor: null,
+      quoteRevisionMode: "collecting_new_quote",
+      quoteRevisionNumber: Number(state.quoteRevisionNumber || 0) + 1,
+      lastQuestionKey: "people",
+      lastQuestionText: "Para quantas pessoas?"
+    };
+
+    return buildDecision({
+      detectedIntent: "nova_simulacao",
+      isReplyToPreviousQuestion: false,
+      answeredField: null,
+      isReplyToPreviousOffer: true,
+      acceptedPreviousOffer: true,
+      previousOfferType: "post_quote_menu",
+      requiresTool: false,
+      toolToCall: null,
+      shouldAskClarification: true,
+      nextQuestionKey: "people",
+      responseGoal: "iniciar_nova_simulacao",
+      mustNotRepeatLastAnswer: true,
+      nextState,
+      aiDecision: {
+        intencao: "revisar_orcamento",
+        confianca: "alta",
+        mensagemInterpretada: message,
+        contexto: "Cliente escolheu fazer uma nova simulacao no menu pos-orcamento.",
+        baseEncontrada: false,
+        respostaSegura: true,
+        acao: "pedir_mais_informacoes",
+        motivo: "Menu pos-orcamento: iniciar nova coleta de dados.",
+        resposta: nextState.lastQuestionText || undefined
+      }
+    });
+  }
+
+  const nextState: OperationalState = {
+    ...state,
+    lastOfferType: null,
+    awaitingConfirmationFor: null,
+    lastQuestionKey: null,
+    lastQuestionText: "Claro. Qual e a sua duvida?"
+  };
+
+  return buildDecision({
+    detectedIntent: "outra_duvida",
+    isReplyToPreviousQuestion: false,
+    answeredField: null,
+    isReplyToPreviousOffer: true,
+    acceptedPreviousOffer: true,
+    previousOfferType: "post_quote_menu",
+    requiresTool: false,
+    toolToCall: null,
+    shouldAskClarification: true,
+    nextQuestionKey: null,
+    responseGoal: "coletar_duvida_livre",
+    mustNotRepeatLastAnswer: true,
+    nextState,
+    aiDecision: {
+      intencao: "duvida_geral",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente escolheu tirar outra duvida no menu pos-orcamento.",
+      baseEncontrada: false,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Menu pos-orcamento: abrir campo livre sem prender em URA.",
+      resposta: nextState.lastQuestionText || undefined
     }
   });
 };
@@ -448,9 +606,9 @@ const fieldFromRevisionScope = (message = ""): OperationalQuestionKey => {
 };
 
 const questionForField = (field: OperationalQuestionKey): string => {
-  if (field === "people") return "Para quantas pessoas devo recalcular?";
-  if (field === "meetingCount") return "Quantos dias/encontros serao ao todo?";
-  if (field === "hoursPerMeeting") return "Quantas horas tera cada dia/encontro?";
+  if (field === "people") return "Para quantas pessoas?";
+  if (field === "meetingCount") return "Quantos dias/encontros?";
+  if (field === "hoursPerMeeting") return "Quantas horas por dia/encontro?";
   return "Quer mudar pessoas, dias ou horas do orcamento anterior?";
 };
 
@@ -618,16 +776,15 @@ const buildLoopRecoveryDecision = (
   message: string,
   state: OperationalState
 ): OperationalDecision => {
-  const hasQuote = Boolean(state.lastQuote);
-  const response = hasQuote
-    ? "Voce tem razao, me repeti. Vou retomar direto: quer mudar pessoas, dias ou horas do orcamento anterior?"
-    : "Voce tem razao, me perdi aqui. Vou retomar direto: para quantas pessoas seria o orcamento?";
+  const response = "Voce tem razao, me perdi aqui. Me diga em uma frase qual duvida voce quer resolver agora.";
   const nextState: OperationalState = {
     ...state,
     repeatedResponseCount: Number(state.repeatedResponseCount || 0) + 1,
-    lastQuestionKey: hasQuote ? "quote_revision_scope" : "people",
+    lastOfferType: null,
+    awaitingConfirmationFor: null,
+    lastQuestionKey: null,
     lastQuestionText: response,
-    quoteRevisionMode: hasQuote ? "awaiting_scope" : "collecting_new_quote"
+    quoteRevisionMode: null
   };
 
   return buildDecision({
@@ -686,9 +843,14 @@ export const EvaluateAiConversationStateService = async ({
   const state = getStateWithFallbacks(ticket, context);
   const normalized = normalizeText(message);
   const semanticIntent = semanticDecision?.messageUnderstanding.primaryIntent;
+  const clearKnowledgeBaseQuestion = isClearKnowledgeBaseQuestion(message);
+  const postQuoteMenuOption =
+    state.awaitingConfirmationFor === "post_quote_menu" || state.lastOfferType === "post_quote_menu"
+      ? isPostQuoteMenuOption(message)
+      : null;
 
-  if (semanticDecision?.messageUnderstanding.confidence && semanticDecision.messageUnderstanding.confidence < 0.35) {
-    const decision = buildSemanticClarificationDecision(message, state);
+  if (postQuoteMenuOption) {
+    const decision = buildPostQuoteMenuDecision(message, state, postQuoteMenuOption);
     await persistOperationalDecision(ticket, decision);
     return decision;
   }
@@ -707,6 +869,25 @@ export const EvaluateAiConversationStateService = async ({
 
   if (semanticIntent === "recusa_do_fluxo_pendente") {
     const decision = buildPendingFlowRefusalDecision(message, state);
+    await persistOperationalDecision(ticket, decision);
+    return decision;
+  }
+
+  if (clearKnowledgeBaseQuestion) {
+    return null;
+  }
+
+  if (state.lastQuote) {
+    const change = extractQuoteFieldChange(message);
+    if (change) {
+      const decision = buildFieldAnswerDecision(message, state, change.field, change.value);
+      await persistOperationalDecision(ticket, decision);
+      return decision;
+    }
+  }
+
+  if (semanticDecision?.messageUnderstanding.confidence && semanticDecision.messageUnderstanding.confidence < 0.35) {
+    const decision = buildSemanticClarificationDecision(message, state);
     await persistOperationalDecision(ticket, decision);
     return decision;
   }
@@ -889,14 +1070,20 @@ export const ApplyAiResponseAntiLoopService = async (
   const previous = state.lastAssistantMessage || ticket.lastAiMessage || "";
   const statePatch = (decision as any).operationalStatePatch as Partial<OperationalState> | undefined;
   const currentGoal = statePatch?.lastResponseGoal || decision.contexto || decision.acao;
+  const normalizedResponse = normalizeText(response);
+  const normalizedPrevious = normalizeText(previous);
+  const isQuoteOrRecalculationAnswer =
+    /\b(orcamento|simulacao|recalcular|recalculo|total|r\$|pacote|turno|diaria)\b/.test(normalizedResponse) &&
+    /\b(\d+\s*h|\d+\s*hora|r\$|\d+,\d{2}|\d{2,})\b/.test(normalizedResponse);
   const repeatedGoal =
+    !isQuoteOrRecalculationAnswer &&
     Boolean(currentGoal && state.lastResponseGoal && normalizeText(currentGoal) === normalizeText(state.lastResponseGoal)) &&
     Boolean(decision.acao === state.lastAssistantAction || state.lastQuestionKey);
   const isRepeated =
     response.trim() &&
     previous.trim() &&
     (
-      normalizeText(response) === normalizeText(previous) ||
+      normalizedResponse === normalizedPrevious ||
       textSimilarity(response, previous) >= 0.86 ||
       repeatedGoal
     );
@@ -904,13 +1091,51 @@ export const ApplyAiResponseAntiLoopService = async (
   if (!isRepeated) return { decision, response };
 
   const nextCount = Number(state.repeatedResponseCount || 0) + 1;
+  const customerMessage = decision.mensagemInterpretada || "";
+  if (
+    isNonQuoteCustomerTurn(customerMessage) ||
+    decision.acao === "sem_resposta_segura" ||
+    decision.intencao === "inappropriate_message" ||
+    decision.intencao === "out_of_scope" ||
+    decision.intencao === "pergunta_sobre_ia" ||
+    decision.intencao === "identidade_ou_funcao_ia"
+  ) {
+    const nextState: OperationalState = {
+      ...state,
+      repeatedResponseCount: nextCount,
+      lastResponseGoal: currentGoal,
+      responseGoalHistory: [...(state.responseGoalHistory || []).slice(-2), currentGoal || decision.acao],
+      lastOfferType: null,
+      awaitingConfirmationFor: null,
+      lastQuestionKey: null,
+      lastQuestionText: null,
+      quoteRevisionMode: null
+    };
+
+    await UpdateAiTicketContextService({
+      ticket,
+      source: "anti_loop",
+      currentObjective: "pergunta_atual_fora_do_orcamento",
+      nextQuestion: null,
+      lastAiIntent: decision.intencao,
+      lastAiAction: decision.acao,
+      lastAiDecisionReason: "Anti-loop: pergunta atual e factual, institucional ou fora do escopo; nao forcar retorno ao orcamento.",
+      operationalState: nextState
+    });
+
+    return { decision, response };
+  }
+
   const hasQuote = Boolean(state.lastQuote);
-  const fallback = hasQuote
-    ? "Perfeito. Quer mudar pessoas, dias ou horas do orcamento anterior?"
-    : "Vou retomar de forma objetiva. Para quantas pessoas seria?";
+  const requestedField = extractQuoteFieldChange(customerMessage)?.field ||
+    (/\b(horas|hora|duracao|tempo)\b/.test(normalizeText(customerMessage)) ? "hoursPerMeeting" : null);
+  const quoteQuestion = requestedField
+    ? questionForField(requestedField)
+    : "Me passa os novos dados em uma frase, por exemplo: 5 pessoas, 3 encontros de 4h.";
+  const fallback = hasQuote ? quoteQuestion : "Para quantas pessoas?";
   const loopFallback = hasQuote
-    ? "Voce tem razao, me repeti. Quer mudar pessoas, dias ou horas do orcamento anterior?"
-    : "Voce tem razao, me repeti. Para quantas pessoas seria?";
+    ? `Voce tem razao, me repeti. ${quoteQuestion}`
+    : "Para quantas pessoas?";
   const nextResponse = nextCount >= 2 ? loopFallback : fallback;
   const nextState: OperationalState = {
     ...state,
@@ -919,7 +1144,7 @@ export const ApplyAiResponseAntiLoopService = async (
     responseGoalHistory: [...(state.responseGoalHistory || []).slice(-2), currentGoal || decision.acao],
     lastOfferType: hasQuote ? null : state.lastOfferType || null,
     awaitingConfirmationFor: hasQuote ? null : state.awaitingConfirmationFor || null,
-    lastQuestionKey: hasQuote ? "quote_revision_scope" : "people",
+    lastQuestionKey: hasQuote ? requestedField || "quote_revision_scope" : "people",
     lastQuestionText: nextResponse,
     quoteRevisionMode: hasQuote ? "awaiting_scope" : "collecting_new_quote"
   };
@@ -968,6 +1193,14 @@ export const UpdateOperationalStateAfterAiDecisionService = async (
   const inferredOffer = inferOfferTypeFromDecision(decision, response || decision.resposta || "");
   const inferredQuestion = inferQuestionKeyFromText(response || decision.resposta || "");
   const nextGoal = statePatch?.lastResponseGoal || decision.contexto || decision.acao;
+  const shouldClearPendingQuoteState =
+    !statePatch &&
+    !inferredOffer &&
+    decision.acao === "responder_com_base" &&
+    isNonQuoteCustomerTurn(decision.mensagemInterpretada || "") &&
+    decision.intencao !== "consulta_valor" &&
+    decision.intencao !== "revisar_orcamento" &&
+    decision.intencao !== "request_custom_quote";
   const nextState: OperationalState = {
     ...state,
     ...(statePatch || {}),
@@ -977,10 +1210,11 @@ export const UpdateOperationalStateAfterAiDecisionService = async (
     lastResponseGoal: nextGoal,
     responseGoalHistory: [...(state.responseGoalHistory || []).slice(-2), nextGoal],
     lastToolCalled: decision.ferramenta || statePatch?.lastToolCalled || state.lastToolCalled || null,
-    lastOfferType: statePatch?.lastOfferType !== undefined ? statePatch.lastOfferType : inferredOffer,
-    awaitingConfirmationFor: statePatch?.awaitingConfirmationFor !== undefined ? statePatch.awaitingConfirmationFor : inferredOffer,
-    lastQuestionKey: statePatch?.lastQuestionKey !== undefined ? statePatch.lastQuestionKey : inferredQuestion,
-    lastQuestionText: inferredQuestion ? response || decision.resposta || null : statePatch?.lastQuestionText || null,
+    lastOfferType: shouldClearPendingQuoteState ? null : statePatch?.lastOfferType !== undefined ? statePatch.lastOfferType : inferredOffer,
+    awaitingConfirmationFor: shouldClearPendingQuoteState ? null : statePatch?.awaitingConfirmationFor !== undefined ? statePatch.awaitingConfirmationFor : inferredOffer,
+    lastQuestionKey: shouldClearPendingQuoteState ? null : statePatch?.lastQuestionKey !== undefined ? statePatch.lastQuestionKey : inferredQuestion,
+    lastQuestionText: shouldClearPendingQuoteState ? null : inferredQuestion ? response || decision.resposta || null : statePatch?.lastQuestionText || null,
+    quoteRevisionMode: shouldClearPendingQuoteState ? null : statePatch?.quoteRevisionMode !== undefined ? statePatch.quoteRevisionMode : state.quoteRevisionMode,
     repeatedResponseCount: /anti-loop/i.test(decision.motivo || "") ? state.repeatedResponseCount || 0 : 0
   };
 

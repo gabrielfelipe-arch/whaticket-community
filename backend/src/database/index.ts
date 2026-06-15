@@ -17,6 +17,7 @@ import UraFlow from "../models/UraFlow";
 import UraOption from "../models/UraOption";
 import AiSetting from "../models/AiSetting";
 import KnowledgeBaseArticle from "../models/KnowledgeBaseArticle";
+import KnowledgeBaseChunk from "../models/KnowledgeBaseChunk";
 import Campaign from "../models/Campaign";
 import CampaignContact from "../models/CampaignContact";
 import ScheduledMessage from "../models/ScheduledMessage";
@@ -69,6 +70,7 @@ const models = [
   UraOption,
   AiSetting,
   KnowledgeBaseArticle,
+  KnowledgeBaseChunk,
   Campaign,
   CampaignContact,
   ScheduledMessage,

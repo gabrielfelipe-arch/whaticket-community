@@ -1,0 +1,1616 @@
+{
+  "total": 50,
+  "passed": 50,
+  "failed": 0,
+  "passRate": "100%",
+  "readyForProduction": true,
+  "results": [
+    {
+      "testNumber": 1,
+      "userMessage": "o turno de 5h é pacote livre?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "5.1",
+        "5.2",
+        "6"
+      ],
+      "finalAnswer": "O turno de 5h é uma opção de uso consecutivo no mesmo dia, custando R$ 300. Já os pacotes de horas livres funcionam como saldo flexível para usar em dias ou horários diferentes, com valores a partir de R$ 140. Portanto, o turno de 5h não é considerado um pacote livre.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Diferenciar turno de 5h e pacote livre.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "o turno de 5h é pacote livre?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.1",
+          "5.2",
+          "6"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O turno de 5h é uma opção de uso consecutivo no mesmo dia, custando R$ 300. Já os pacotes de horas livres funcionam como saldo flexível para usar em dias ou horários diferentes, com valores a partir de R$ 140. Portanto, o turno de 5h não é considerado um pacote livre.",
+        "reasoningSummary": "O turno de 5h é uma opção de uso consecutivo, enquanto pacotes livres são para uso em dias diferentes.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 2,
+      "userMessage": "qual a diferença entre horas livres e consecutivas?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "DIFERENÇA ENTRE HORAS CONSECUTIVAS E HORAS LIVRES"
+      ],
+      "finalAnswer": "Horas consecutivas são usadas em sequência no mesmo dia, como 2h para uma reunião ou 10h para um evento longo. Já as horas livres funcionam como saldo de horas para usar em dias ou horários diferentes, conforme disponibilidade da agenda. Por exemplo, um pacote de 10h pode ser usado em encontros separados, desde que exista disponibilidade.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Explicar uso sequencial no mesmo dia vs saldo flexivel.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "qual a diferença entre horas livres e consecutivas?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "DIFERENÇA ENTRE HORAS CONSECUTIVAS E HORAS LIVRES"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Horas consecutivas são usadas em sequência no mesmo dia, como 2h para uma reunião ou 10h para um evento longo. Já as horas livres funcionam como saldo de horas para usar em dias ou horários diferentes, conforme disponibilidade da agenda. Por exemplo, um pacote de 10h pode ser usado em encontros separados, desde que exista disponibilidade.",
+        "reasoningSummary": "A resposta explica claramente a diferença entre horas consecutivas e horas livres, conforme as informações disponíveis na base.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 3,
+      "userMessage": "5 horas no mesmo dia sai 300 ou 350?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "5 horas no mesmo dia sai 300 ou 350",
+      "retrievedChunks": [
+        "5.1",
+        "5.2"
+      ],
+      "finalAnswer": "O turno de 5 horas consecutivas sai por R$ 300. O pacote de 5 horas livres custa R$ 350.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Responder R$300 para turno/consecutivas e R$350 para pacote livre.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "5 horas no mesmo dia sai 300 ou 350?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.1",
+          "5.2"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O turno de 5 horas consecutivas sai por R$ 300. O pacote de 5 horas livres custa R$ 350.",
+        "reasoningSummary": "A opção de 5 horas consecutivas é apresentada como turno, enquanto o pacote de 5 horas livres tem um custo diferente, sendo mais caro devido à flexibilidade.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 4,
+      "userMessage": "10h num dia só é diária?",
+      "detectedIntent": "request_price_table",
+      "directedKnowledgeBaseQuery": "Qual e a tabela oficial de precos da Salinha Meier, incluindo uso pontual, pacotes, mensalistas e Pacote Professor Particular?",
+      "retrievedChunks": [
+        "VALORES OFICIAIS"
+      ],
+      "finalAnswer": "Sim, 10h em um dia só é considerada uma diária. O valor da diária de 10h é R$ 500.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Diaria de 10h consecutivas custa R$500.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_price_table",
+        "userAsked": "10h num dia só é diária?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "VALORES OFICIAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, 10h em um dia só é considerada uma diária. O valor da diária de 10h é R$ 500.",
+        "reasoningSummary": "A diária de 10h é indicada para uso longo no mesmo dia, conforme a tabela de preços da Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 5,
+      "userMessage": "10 horas pra usar separado quanto fica?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "valores oficiais",
+        "pacotes de horas livres"
+      ],
+      "finalAnswer": "O pacote de 10 horas livres custa R$ 600. Esse valor pode ser usado em dias ou horários diferentes, conforme disponibilidade da agenda.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Pacote de 10h livres R$600.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "10 horas pra usar separado quanto fica?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "valores oficiais",
+          "pacotes de horas livres"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O pacote de 10 horas livres custa R$ 600. Esse valor pode ser usado em dias ou horários diferentes, conforme disponibilidade da agenda.",
+        "reasoningSummary": "O cliente solicitou o valor para 10 horas de uso separado, que corresponde ao pacote de 10h livres, com valor oficial de R$ 600.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 6,
+      "userMessage": "pacote de 15 horas tem?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "5.2. Pacotes de horas livres"
+      ],
+      "finalAnswer": "Sim, temos o Pacote de 15 horas por R$ 900. Esse pacote funciona como saldo flexível, podendo ser usado em dias ou horários diferentes, conforme a disponibilidade da agenda.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Confirmar pacote 15h R$900.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "pacote de 15 horas tem?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.2. Pacotes de horas livres"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, temos o Pacote de 15 horas por R$ 900. Esse pacote funciona como saldo flexível, podendo ser usado em dias ou horários diferentes, conforme a disponibilidade da agenda.",
+        "reasoningSummary": "O pacote de 15 horas está disponível e é o que o cliente solicitou.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 7,
+      "userMessage": "pacote 20h custa mil?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "5.2. Pacotes de horas livres"
+      ],
+      "finalAnswer": "Sim, o pacote de 20h custa R$ 1.000.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Confirmar pacote 20h R$1.000.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "pacote 20h custa mil?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.2. Pacotes de horas livres"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, o pacote de 20h custa R$ 1.000.",
+        "reasoningSummary": "O valor do pacote de 20h está confirmado na tabela de pacotes de horas livres.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 8,
+      "userMessage": "diária vira saldo pra outro dia?",
+      "detectedIntent": "request_packages",
+      "directedKnowledgeBaseQuery": "Quais pacotes de horas livres e planos a Salinha Meier oferece?",
+      "retrievedChunks": [
+        "DIFERENÇA ENTRE HORAS CONSECUTIVAS E HORAS LIVRES"
+      ],
+      "finalAnswer": "Diária e turno são usados como horas consecutivas no mesmo dia e não funcionam como saldo flexível. Pacotes de horas livres, por outro lado, funcionam como saldo para usar em dias ou horários diferentes, conforme disponibilidade.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Nao tratar diaria como saldo flexivel.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "diária vira saldo pra outro dia?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "DIFERENÇA ENTRE HORAS CONSECUTIVAS E HORAS LIVRES"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Diária e turno são usados como horas consecutivas no mesmo dia e não funcionam como saldo flexível. Pacotes de horas livres, por outro lado, funcionam como saldo para usar em dias ou horários diferentes, conforme disponibilidade.",
+        "reasoningSummary": "A diária não pode ser usada como saldo para outro dia, pois é destinada a uso no mesmo dia.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 9,
+      "userMessage": "2h semanais fixo por 3 meses tem plano?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "2h semanais fixo por 3 meses tem plano",
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "finalAnswer": "Sim, temos o Plano Prata, que inclui 2h semanais por R$ 450 mensais, com contratação mínima de 3 meses.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Plano Prata, R$450/mes, minimo 3 meses.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "2h semanais fixo por 3 meses tem plano?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, temos o Plano Prata, que inclui 2h semanais por R$ 450 mensais, com contratação mínima de 3 meses.",
+        "reasoningSummary": "O cliente perguntou sobre um plano para 2h semanais fixo por 3 meses, e o Plano Prata atende a essa necessidade.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 10,
+      "userMessage": "4 horas semanais mensal sai quanto?",
+      "detectedIntent": "request_monthly_plans",
+      "directedKnowledgeBaseQuery": "Quais sao os planos mensalistas da Salinha Meier e qual e a contratacao minima?",
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "finalAnswer": "O Plano Ouro inclui 4h semanais por R$ 800 mensais, com contratação mínima de 3 meses.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Plano Ouro R$800/mes e minimo 3 meses.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "4 horas semanais mensal sai quanto?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Plano Ouro inclui 4h semanais por R$ 800 mensais, com contratação mínima de 3 meses.",
+        "reasoningSummary": "O cliente perguntou sobre o custo de 4 horas semanais, que corresponde ao Plano Ouro, com valor de R$ 800 por mês e contratação mínima de 3 meses.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 11,
+      "userMessage": "10h por semana no mensalista qual plano?",
+      "detectedIntent": "request_monthly_plans",
+      "directedKnowledgeBaseQuery": "Quais sao os planos mensalistas da Salinha Meier e qual e a contratacao minima?",
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "finalAnswer": "Para 10h por semana, o plano ideal é o Plano Diamante, que custa R$ 1.650 por mês. A contratação mínima é de 3 meses.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Plano Diamante R$1.650/mes e minimo 3 meses.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "10h por semana no mensalista qual plano?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para 10h por semana, o plano ideal é o Plano Diamante, que custa R$ 1.650 por mês. A contratação mínima é de 3 meses.",
+        "reasoningSummary": "O cliente perguntou sobre um plano mensalista para 10h por semana, que corresponde ao Plano Diamante, conforme a tabela de planos mensalistas.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 12,
+      "userMessage": "mensalista tem contrato mínimo?",
+      "detectedIntent": "request_monthly_plans",
+      "directedKnowledgeBaseQuery": "Quais sao os planos mensalistas da Salinha Meier e qual e a contratacao minima?",
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "finalAnswer": "Sim, os planos mensalistas têm contratação mínima de 3 meses.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Minimo de 3 meses.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "mensalista tem contrato mínimo?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, os planos mensalistas têm contratação mínima de 3 meses.",
+        "reasoningSummary": "A informação sobre a contratação mínima dos planos mensalistas foi encontrada na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 13,
+      "userMessage": "quero por só 2 meses toda semana",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "quero por so 2 meses toda semana",
+      "retrievedChunks": [
+        "planos mensalistas"
+      ],
+      "finalAnswer": "Os planos mensalistas exigem contratação mínima de 3 meses. Não é possível contratar por apenas 2 meses.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Base diz planos mensalistas exigem 3 meses.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "quero por só 2 meses toda semana",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os planos mensalistas exigem contratação mínima de 3 meses. Não é possível contratar por apenas 2 meses.",
+        "reasoningSummary": "O cliente deseja um plano mensalista, mas a regra da Salinha Méier exige uma contratação mínima de 3 meses.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 14,
+      "userMessage": "prof particular terça à tarde tem pacote?",
+      "detectedIntent": "request_teacher_package",
+      "directedKnowledgeBaseQuery": "Como funciona o Pacote Professor Particular da Salinha Meier e quais informacoes oficiais existem sobre dias, horarios e valores?",
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "finalAnswer": "O Pacote Professor Particular está disponível às terças e quintas, das 13h às 17h30. Os valores são: 1 dia por semana por R$ 350 mensais ou 2 dias por semana por R$ 500 mensais. A contratação mínima é de 1 mês.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Pacote professor particular terças/quintas 13h-17h30.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "prof particular terça à tarde tem pacote?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular está disponível às terças e quintas, das 13h às 17h30. Os valores são: 1 dia por semana por R$ 350 mensais ou 2 dias por semana por R$ 500 mensais. A contratação mínima é de 1 mês.",
+        "reasoningSummary": "O cliente perguntou sobre a disponibilidade do Pacote Professor Particular nas terças à tarde, que é um horário disponível conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 15,
+      "userMessage": "professor duas vezes na semana quanto?",
+      "detectedIntent": "request_teacher_package",
+      "directedKnowledgeBaseQuery": "Como funciona o Pacote Professor Particular da Salinha Meier e quais informacoes oficiais existem sobre dias, horarios e valores?",
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "finalAnswer": "O Pacote Professor Particular para 2 dias por semana custa R$ 500 mensais. A contratação mínima é de 1 mês e está disponível às terças e quintas, das 13h às 17h30.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "2 dias por semana R$500 mensais.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "professor duas vezes na semana quanto?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular para 2 dias por semana custa R$ 500 mensais. A contratação mínima é de 1 mês e está disponível às terças e quintas, das 13h às 17h30.",
+        "reasoningSummary": "O Pacote Professor Particular oferece 2 dias por semana por R$ 500, com contratação mínima de 1 mês e horários específicos.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 16,
+      "userMessage": "professor uma vez por semana é 350?",
+      "detectedIntent": "request_teacher_package",
+      "directedKnowledgeBaseQuery": "Como funciona o Pacote Professor Particular da Salinha Meier e quais informacoes oficiais existem sobre dias, horarios e valores?",
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "finalAnswer": "Sim, o Pacote Professor Particular para 1 dia por semana custa R$ 350 mensais. A contratação mínima é de 1 mês e está disponível às terças e quintas, das 13h às 17h30.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "1 dia por semana R$350 mensais.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "professor uma vez por semana é 350?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, o Pacote Professor Particular para 1 dia por semana custa R$ 350 mensais. A contratação mínima é de 1 mês e está disponível às terças e quintas, das 13h às 17h30.",
+        "reasoningSummary": "O valor de R$ 350 mensais para 1 dia por semana está confirmado na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 17,
+      "userMessage": "professor pode segunda de manhã?",
+      "detectedIntent": "request_teacher_package",
+      "directedKnowledgeBaseQuery": "Como funciona o Pacote Professor Particular da Salinha Meier e quais informacoes oficiais existem sobre dias, horarios e valores?",
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "finalAnswer": "O Pacote Professor Particular está disponível apenas às terças e quintas, das 13h às 17h30. Não temos horários disponíveis na segunda-feira.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Nao afirmar disponibilidade; base só terças/quintas 13h-17h30 e validar equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "professor pode segunda de manhã?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular está disponível apenas às terças e quintas, das 13h às 17h30. Não temos horários disponíveis na segunda-feira.",
+        "reasoningSummary": "A disponibilidade do Pacote Professor Particular é restrita a terças e quintas, portanto, não é possível atender na segunda de manhã.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 18,
+      "userMessage": "pacote professor é 1 hora semanal?",
+      "detectedIntent": "request_teacher_package",
+      "directedKnowledgeBaseQuery": "O Pacote Professor Particular da Salinha Meier e informado na base como 1 hora por semana ou como 1 dia/2 dias por semana?",
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "finalAnswer": "O Pacote Professor Particular tem contratacao minima de 1 mes e esta disponivel as tercas e quintas, das 13h as 17h30. A base informa opcoes por dias de uso, nao como pacote avulso de 1 hora.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Nao afirmar 1 hora; base fala dias por semana.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "pacote professor é 1 hora semanal?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular tem contratacao minima de 1 mes e esta disponivel as tercas e quintas, das 13h as 17h30. A base informa opcoes por dias de uso, nao como pacote avulso de 1 hora.",
+        "reasoningSummary": "A informação sobre o Pacote Professor Particular não menciona 1 hora semanal, mas sim 1 dia ou 2 dias por semana. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 19,
+      "userMessage": "tem microondas?",
+      "detectedIntent": "request_included_structure",
+      "directedKnowledgeBaseQuery": "A estrutura da Salinha Meier inclui copa, cafeteira, micro-ondas ou filtro?",
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "finalAnswer": "Sim, a Salinha Méier inclui micro-ondas na copa compartilhável.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Confirmar micro-ondas/copa.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem microondas?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui micro-ondas na copa compartilhável.",
+        "reasoningSummary": "A estrutura da Salinha Méier inclui micro-ondas, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 20,
+      "userMessage": "a copa é exclusiva?",
+      "detectedIntent": "request_included_structure",
+      "directedKnowledgeBaseQuery": "A estrutura da Salinha Meier inclui copa, cafeteira, micro-ondas ou filtro?",
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "finalAnswer": "A copa é compartilhável, não exclusiva.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Base diz copa compartilhavel; nao inventar exclusiva.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "a copa é exclusiva?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A copa é compartilhável, não exclusiva.",
+        "reasoningSummary": "A estrutura da Salinha Méier inclui uma copa compartilhável, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 21,
+      "userMessage": "tem projetor?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "tem projetor",
+      "retrievedChunks": [],
+      "finalAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+      "grounded": false,
+      "baseSentToModel": true,
+      "expected": "Projetor nao consta; fallback/confirmar equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "tem projetor?",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+        "reasoningSummary": "O projetor não está listado na estrutura inclusa da Salinha Méier, portanto, é necessário confirmar com a equipe.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 22,
+      "userMessage": "estacionamento incluso?",
+      "detectedIntent": "request_included_structure",
+      "directedKnowledgeBaseQuery": "A estrutura da Salinha Meier inclui ar-condicionado?",
+      "retrievedChunks": [],
+      "finalAnswer": "Nao encontrei essa informacao confirmada aqui. Posso encaminhar para a equipe verificar?",
+      "grounded": false,
+      "baseSentToModel": true,
+      "expected": "Nao consta; fallback/confirmar equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "estacionamento incluso?",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Nao encontrei essa informacao confirmada aqui. Posso encaminhar para a equipe verificar?",
+        "reasoningSummary": "A base não menciona estacionamento como parte da estrutura inclusa. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 23,
+      "userMessage": "dá pra fazer processo seletivo?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "da pra fazer processo seletivo",
+      "retrievedChunks": [
+        "USOS INDICADOS"
+      ],
+      "finalAnswer": "Sim, a Salinha Méier é indicada para processos seletivos, entrevistas e dinâmicas de grupo.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Uso indicado para entrevistas/dinamicas/processos seletivos.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "dá pra fazer processo seletivo?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "USOS INDICADOS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier é indicada para processos seletivos, entrevistas e dinâmicas de grupo.",
+        "reasoningSummary": "A Salinha Méier é um espaço adequado para processos seletivos, conforme indicado na seção de usos.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 24,
+      "userMessage": "serve pra onboarding?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "serve pra onboarding",
+      "retrievedChunks": [
+        "USOS INDICADOS"
+      ],
+      "finalAnswer": "Sim, a Salinha Méier é indicada para onboarding, pois oferece um espaço profissional adequado para entrevistas, dinâmicas de grupo e processos seletivos.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Uso indicado para onboarding/corporativo.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "serve pra onboarding?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "USOS INDICADOS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier é indicada para onboarding, pois oferece um espaço profissional adequado para entrevistas, dinâmicas de grupo e processos seletivos.",
+        "reasoningSummary": "A Salinha Méier é um espaço indicado para diferentes tipos de uso profissional, incluindo onboarding, conforme descrito na seção de usos indicados.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 25,
+      "userMessage": "posso fazer pós graduação lá?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "posso fazer pos graduacao la",
+      "retrievedChunks": [
+        "USOS INDICADOS"
+      ],
+      "finalAnswer": "Sim, a Salinha Méier é indicada para aulas, cursos livres e pós-graduação. É um espaço ideal para encontros educacionais.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Tratar como uso recorrente/pos-graduacao.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "posso fazer pós graduação lá?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "USOS INDICADOS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier é indicada para aulas, cursos livres e pós-graduação. É um espaço ideal para encontros educacionais.",
+        "reasoningSummary": "A Salinha Méier oferece estrutura adequada para cursos e pós-graduação, conforme indicado na seção de usos.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 26,
+      "userMessage": "tem visita?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "tem visita",
+      "retrievedChunks": [
+        "INFORMAÇÕES GERAIS",
+        "CAPACIDADE"
+      ],
+      "finalAnswer": "Para agendar uma visita, preciso encaminhar sua solicitação para a equipe. Posso fazer isso para você?",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Visita precisa equipe; nao confirmar.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "tem visita?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "INFORMAÇÕES GERAIS",
+          "CAPACIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para agendar uma visita, preciso encaminhar sua solicitação para a equipe. Posso fazer isso para você?",
+        "reasoningSummary": "A informação sobre visitas não está confirmada na base, portanto, é necessário encaminhar para a equipe.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 27,
+      "userMessage": "quero ir conhecer amanhã às 10",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "quero ir conhecer amanha as 10",
+      "retrievedChunks": [
+        "INFORMAÇÕES GERAIS",
+        "CAPACIDADE"
+      ],
+      "finalAnswer": "Para agendar uma visita, preciso encaminhar para a equipe verificar a disponibilidade. Posso solicitar o apoio da equipe para isso.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Disponibilidade/visita precisa equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "quero ir conhecer amanhã às 10",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "INFORMAÇÕES GERAIS",
+          "CAPACIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para agendar uma visita, preciso encaminhar para a equipe verificar a disponibilidade. Posso solicitar o apoio da equipe para isso.",
+        "reasoningSummary": "O cliente deseja visitar a Salinha Méier amanhã às 10h, mas a confirmação de disponibilidade precisa ser feita pela equipe.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 28,
+      "userMessage": "vocês confirmam horário na hora?",
+      "detectedIntent": "request_availability",
+      "directedKnowledgeBaseQuery": "Qual e a regra da Salinha Meier sobre disponibilidade de agenda e confirmacao de horario?",
+      "retrievedChunks": [
+        "REGRAS DE RESERVA",
+        "DISPONIBILIDADE"
+      ],
+      "finalAnswer": "Para confirmar a disponibilidade de horário, é necessário que um atendente verifique isso com você. Posso solicitar o apoio da equipe para verificar isso?",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Disponibilidade real precisa equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_availability",
+        "userAsked": "vocês confirmam horário na hora?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "REGRAS DE RESERVA",
+          "DISPONIBILIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": true,
+        "customerAnswer": "Para confirmar a disponibilidade de horário, é necessário que um atendente verifique isso com você. Posso solicitar o apoio da equipe para verificar isso?",
+        "reasoningSummary": "A confirmação de horário depende da equipe, pois a disponibilidade não pode ser garantida automaticamente.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 29,
+      "userMessage": "endereço e referência?",
+      "detectedIntent": "request_location",
+      "directedKnowledgeBaseQuery": "Quais sao as referencias de localizacao da Salinha Meier?",
+      "retrievedChunks": [
+        "INFORMAÇÕES GERAIS"
+      ],
+      "finalAnswer": "O endereço da Salinha Méier é: Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Rua Dias da Cruz 185 sala 215, Imperator/Smart Fit.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_location",
+        "userAsked": "endereço e referência?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O endereço da Salinha Méier é: Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+        "reasoningSummary": "O cliente solicitou informações sobre o endereço e referências da Salinha Méier, que estão disponíveis na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 30,
+      "userMessage": "manda o insta e zap",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "manda o insta e zap",
+      "retrievedChunks": [
+        "1. INFORMAÇÕES GERAIS"
+      ],
+      "finalAnswer": "Instagram: @salinhameier\nWhatsApp: +55 21 97213-2951",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Informar Instagram e WhatsApp da base.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "manda o insta e zap",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "1. INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Instagram: @salinhameier\nWhatsApp: +55 21 97213-2951",
+        "reasoningSummary": "O cliente solicitou informações de contato, que estão disponíveis na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 31,
+      "userMessage": "aceita débito?",
+      "detectedIntent": "request_payment_info",
+      "directedKnowledgeBaseQuery": "Quais formas de pagamento sao aceitas pela Salinha Meier?",
+      "retrievedChunks": [
+        "formas de pagamento"
+      ],
+      "finalAnswer": "Sim, aceitamos pagamento via cartão de débito, além de cartão de crédito e Pix.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Aceita cartao de debito/credito e Pix.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_payment_info",
+        "userAsked": "aceita débito?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "formas de pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, aceitamos pagamento via cartão de débito, além de cartão de crédito e Pix.",
+        "reasoningSummary": "A resposta foi baseada nas informações sobre as formas de pagamento aceitas pela Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 32,
+      "userMessage": "pago metade agora e metade depois?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "pago metade agora e metade depois",
+      "retrievedChunks": [
+        "12. RESERVA, DISPONIBILIDADE E PAGAMENTO"
+      ],
+      "finalAnswer": "Para reservar uma data, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "50% reserva e 50% ate 3 dias antes.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "pago metade agora e metade depois?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "12. RESERVA, DISPONIBILIDADE E PAGAMENTO"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para reservar uma data, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+        "reasoningSummary": "A resposta foi baseada na regra oficial de reserva que informa sobre o pagamento de 50% na reserva e os 50% restantes até 3 dias antes.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 33,
+      "userMessage": "parcelamento em 10x pode?",
+      "detectedIntent": "request_payment_info",
+      "directedKnowledgeBaseQuery": "Quais sao as formas de pagamento aceitas pela Salinha Meier e qual e a regra de reserva/pagamento?",
+      "retrievedChunks": [
+        "Reserva e pagamento",
+        "Formas de pagamento"
+      ],
+      "finalAnswer": "A Salinha Meier aceita Pix, cartao de debito e cartao de credito. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. Sobre dividir/parcelar, posso encaminhar para a equipe verificar.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Nao inventar parcelamento; validar equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_payment_info",
+        "userAsked": "parcelamento em 10x pode?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Reserva e pagamento",
+          "Formas de pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A Salinha Meier aceita Pix, cartao de debito e cartao de credito. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. Sobre dividir/parcelar, posso encaminhar para a equipe verificar.",
+        "reasoningSummary": "O cliente perguntou sobre parcelamento em 10x, que não é uma informação que posso confirmar diretamente. A regra de pagamento é que 50% do valor deve ser pago na reserva e o restante até 3 dias antes. O parcelamento precisa ser validado pela equipe. Resposta substituida por guardrail local para nao inventar regra de parcelamento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 34,
+      "userMessage": "tem desconto pra fechar hoje?",
+      "detectedIntent": "request_discount_rules",
+      "directedKnowledgeBaseQuery": "Qual e a regra da Salinha Meier sobre descontos, promocoes, negociacao e condicoes especiais?",
+      "retrievedChunks": [
+        "11. DESCONTOS E CONDIÇÕES ESPECIAIS"
+      ],
+      "finalAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Desconto/condicao especial com atendente.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_discount_rules",
+        "userAsked": "tem desconto pra fechar hoje?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "11. DESCONTOS E CONDIÇÕES ESPECIAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+        "reasoningSummary": "O cliente perguntou sobre desconto, e a regra da Salinha Méier é que descontos e condições especiais precisam ser validados por um atendente.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 35,
+      "userMessage": "faz promoção pra professor?",
+      "detectedIntent": "request_discount_rules",
+      "directedKnowledgeBaseQuery": "Qual e a regra da Salinha Meier sobre descontos, promocoes, negociacao e condicoes especiais?",
+      "retrievedChunks": [
+        "5.4. Pacote Professor Particular"
+      ],
+      "finalAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+      "grounded": true,
+      "baseSentToModel": true,
+      "expected": "Promocao/condicao especial com equipe.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "request_discount_rules",
+        "userAsked": "faz promoção pra professor?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.4. Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+        "reasoningSummary": "Não há promoções ou condições especiais mencionadas na base. O Pacote Professor Particular tem valores fixos e a contratação mínima é de 1 mês.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 36,
+      "userMessage": "quanto fica pra 12 pessoas, 3 dias, 5 horas por dia?",
+      "detectedIntent": "consulta_valor",
+      "directedKnowledgeBaseQuery": "Quais regras de orcamento personalizado da Salinha Meier se aplicam para quanto fica pra 12 pessoas 3 dias 5 horas por dia?",
+      "retrievedChunks": [
+        1
+      ],
+      "finalAnswer": "📌 Orçamento estimado\n\n👥 Pessoas: 12\n📅 Uso: 3 dias/encontros de 5h\n⏱️ Total: 15h\n\nComposição:\n\nPacote flexivel de 15h\nR$ 900,00\n\nTotal estimado: R$ 900,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+      "grounded": true,
+      "baseSentToModel": null,
+      "expected": "Calcular/recomendar pacote 15h ou ferramenta, com simulacao informativa.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "quanto fica pra 12 pessoas, 3 dias, 5 horas por dia?",
+        "contexto": "Orcamento calculado por regras comerciais estruturadas.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "Cliente revisou um dado do orcamento anterior com numero explicito; recalcular usando os demais dados ja coletados.",
+        "resposta": "📌 Orçamento estimado\n\n👥 Pessoas: 12\n📅 Uso: 3 dias/encontros de 5h\n⏱️ Total: 15h\n\nComposição:\n\nPacote flexivel de 15h\nR$ 900,00\n\nTotal estimado: R$ 900,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+        "knowledgeIds": [
+          1
+        ],
+        "operationalStatePatch": {
+          "lastQuote": {
+            "people": 12,
+            "meetingCount": 3,
+            "hoursPerMeeting": 5,
+            "totalHours": 15,
+            "recommendedOption": "Pacote flexivel de 15h",
+            "total": 900
+          },
+          "lastOfferType": "post_quote_menu",
+          "awaitingConfirmationFor": "post_quote_menu",
+          "lastQuestionKey": null,
+          "lastQuestionText": "Como deseja prosseguir?",
+          "quoteRevisionMode": null
+        }
+      }
+    },
+    {
+      "testNumber": 37,
+      "userMessage": "orçamento pra 25 pessoas 2 dias 3 horas",
+      "detectedIntent": "consulta_valor",
+      "directedKnowledgeBaseQuery": "Quais regras de orcamento personalizado da Salinha Meier se aplicam para orcamento pra 25 pessoas 2 dias 3 horas?",
+      "retrievedChunks": [
+        1
+      ],
+      "finalAnswer": "A capacidade informada da Salinha Meier e de ate 20 pessoas.\n\nComo voce pediu para 25 pessoas, montei a estimativa considerando o limite de 20 pessoas.\n\n📌 Orçamento estimado\n\n👥 Pessoas: 20\n📅 Uso: 2 dias/encontros de 3h\n⏱️ Total: 6h\n\nComposição:\n\nPacote flexivel de 3h\nR$ 210,00\n+\nPacote flexivel de 3h\nR$ 210,00\n\nTotal estimado: R$ 420,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+      "grounded": true,
+      "baseSentToModel": null,
+      "expected": "Avisar capacidade maxima 20 e calcular a estimativa considerando 20 pessoas.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "orçamento pra 25 pessoas 2 dias 3 horas",
+        "contexto": "Capacidade maxima: 20. Quantidade informada: 25.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "Calculador comercial ajustou automaticamente a simulacao para o limite de capacidade cadastrado.",
+        "resposta": "A capacidade informada da Salinha Meier e de ate 20 pessoas.\n\nComo voce pediu para 25 pessoas, montei a estimativa considerando o limite de 20 pessoas.\n\n📌 Orçamento estimado\n\n👥 Pessoas: 20\n📅 Uso: 2 dias/encontros de 3h\n⏱️ Total: 6h\n\nComposição:\n\nPacote flexivel de 3h\nR$ 210,00\n+\nPacote flexivel de 3h\nR$ 210,00\n\nTotal estimado: R$ 420,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+        "knowledgeIds": [
+          1
+        ],
+        "operationalStatePatch": {
+          "lastQuote": {
+            "people": 20,
+            "meetingCount": 2,
+            "hoursPerMeeting": 3,
+            "totalHours": 6,
+            "recommendedOption": "Pacote flexivel de 3h",
+            "total": 420
+          },
+          "lastOfferType": "post_quote_menu",
+          "awaitingConfirmationFor": "post_quote_menu",
+          "lastQuestionKey": null,
+          "lastQuestionText": "Como deseja prosseguir?",
+          "quoteRevisionMode": null
+        }
+      }
+    },
+    {
+      "testNumber": 38,
+      "userMessage": "quanto fica?",
+      "detectedIntent": "consulta_valor",
+      "directedKnowledgeBaseQuery": "Quais dados sao obrigatorios para orcamento personalizado da Salinha Meier?",
+      "retrievedChunks": [],
+      "finalAnswer": "Para quantas pessoas?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Comecar orcamento perguntando pessoas.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "quanto fica?",
+        "contexto": "Cliente pediu orcamento/valor sem dados suficientes.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Coleta objetiva de dados para calculadora oficial.",
+        "resposta": "Para quantas pessoas?",
+        "operationalStatePatch": {
+          "lastQuestionKey": "people",
+          "lastQuestionText": "Para quantas pessoas?"
+        }
+      }
+    },
+    {
+      "testNumber": 39,
+      "userMessage": "antes, tem quadro?",
+      "detectedIntent": "request_included_structure",
+      "directedKnowledgeBaseQuery": "A estrutura da Salinha Meier inclui quadro branco?",
+      "retrievedChunks": [],
+      "finalAnswer": "Sim, a Salinha Méier inclui quadro branco.",
+      "grounded": true,
+      "baseSentToModel": null,
+      "expected": "Mudanca de assunto: responder quadro pela base.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "request_included_structure",
+        "confianca": "alta",
+        "mensagemInterpretada": "antes, tem quadro?",
+        "contexto": "Full Base Grounding respondeu com base completa enviada ao modelo.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "A estrutura da Salinha Méier inclui quadro branco, conforme a base de conhecimento.",
+        "resposta": "Sim, a Salinha Méier inclui quadro branco."
+      }
+    },
+    {
+      "testNumber": 40,
+      "userMessage": "ok, 12 pessoas",
+      "detectedIntent": "diagnostico_inicial",
+      "directedKnowledgeBaseQuery": "Qual e a capacidade maxima de pessoas da Salinha Meier?",
+      "retrievedChunks": [],
+      "finalAnswer": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Voltar ao orcamento e perguntar dias/encontros.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "diagnostico_inicial",
+        "confianca": "alta",
+        "mensagemInterpretada": "ok, 12 pessoas",
+        "contexto": "Cliente informou quantidade de pessoas dentro de um orcamento pendente.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Retomar coleta de orcamento antes de responder capacidade generica.",
+        "resposta": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?"
+      }
+    },
+    {
+      "testNumber": 41,
+      "userMessage": "quero orçamento",
+      "detectedIntent": "consulta_valor",
+      "directedKnowledgeBaseQuery": "Quais dados sao obrigatorios para orcamento personalizado da Salinha Meier?",
+      "retrievedChunks": [],
+      "finalAnswer": "Para quantas pessoas?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Perguntar pessoas de forma curta.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "quero orçamento",
+        "contexto": "Cliente pediu orcamento/valor sem dados suficientes.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Coleta objetiva de dados para calculadora oficial.",
+        "resposta": "Para quantas pessoas?",
+        "operationalStatePatch": {
+          "lastQuestionKey": "people",
+          "lastQuestionText": "Para quantas pessoas?"
+        }
+      }
+    },
+    {
+      "testNumber": 42,
+      "userMessage": "12",
+      "detectedIntent": "diagnostico_inicial",
+      "directedKnowledgeBaseQuery": "Quais dados ainda faltam para continuar o orcamento personalizado da Salinha Meier?",
+      "retrievedChunks": [],
+      "finalAnswer": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Anotar pessoas e perguntar dias/encontros.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "diagnostico_inicial",
+        "confianca": "alta",
+        "mensagemInterpretada": "12",
+        "contexto": "Cliente respondeu a quantidade de pessoas em resposta a pergunta anterior.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Resposta curta numerica interpretada pelo contexto da pergunta anterior.",
+        "resposta": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?"
+      }
+    },
+    {
+      "testNumber": 43,
+      "userMessage": "3 dias",
+      "detectedIntent": "diagnostico_inicial",
+      "directedKnowledgeBaseQuery": "3 dias",
+      "retrievedChunks": [],
+      "finalAnswer": "Perfeito, anotei.\n\nQuantas horas terá cada dia/encontro?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Perguntar apenas horas por dia/encontro.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "diagnostico_inicial",
+        "confianca": "alta",
+        "mensagemInterpretada": "3 dias",
+        "contexto": "Cliente informou a quantidade de dias/encontros; falta saber a duracao de cada ocorrencia.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Quantidade de ocorrencias coletada; perguntar horas por ocorrencia.",
+        "resposta": "Perfeito, anotei.\n\nQuantas horas terá cada dia/encontro?"
+      }
+    },
+    {
+      "testNumber": 44,
+      "userMessage": "2 horas",
+      "detectedIntent": "consulta_valor",
+      "directedKnowledgeBaseQuery": "2 horas",
+      "retrievedChunks": [
+        1
+      ],
+      "finalAnswer": "📌 Orçamento estimado\n\n👥 Pessoas: 12\n📅 Uso: 3 dias/encontros de 2h\n⏱️ Total: 6h\n\nComposição:\n\nPacote flexivel de 3h\nR$ 210,00\n+\nPacote flexivel de 3h\nR$ 210,00\n\nTotal estimado: R$ 420,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+      "grounded": true,
+      "baseSentToModel": null,
+      "expected": "Gerar orcamento/calculadora sem repetir horas.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "2 horas",
+        "contexto": "Orcamento calculado por regras comerciais estruturadas.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "Cliente revisou um dado do orcamento anterior com numero explicito; recalcular usando os demais dados ja coletados.",
+        "resposta": "📌 Orçamento estimado\n\n👥 Pessoas: 12\n📅 Uso: 3 dias/encontros de 2h\n⏱️ Total: 6h\n\nComposição:\n\nPacote flexivel de 3h\nR$ 210,00\n+\nPacote flexivel de 3h\nR$ 210,00\n\nTotal estimado: R$ 420,00\n\nSimulação informativa: este orçamento precisa ser validado por um atendente, assim como disponibilidade, reserva e condições finais.\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida",
+        "knowledgeIds": [
+          1
+        ],
+        "operationalStatePatch": {
+          "lastQuote": {
+            "people": 12,
+            "meetingCount": 3,
+            "hoursPerMeeting": 2,
+            "totalHours": 6,
+            "recommendedOption": "Pacote flexivel de 3h",
+            "total": 420
+          },
+          "lastOfferType": "post_quote_menu",
+          "awaitingConfirmationFor": "post_quote_menu",
+          "lastQuestionKey": null,
+          "lastQuestionText": "Como deseja prosseguir?",
+          "quoteRevisionMode": null
+        }
+      }
+    },
+    {
+      "testNumber": 45,
+      "userMessage": "quero reservar",
+      "detectedIntent": "agendamento",
+      "directedKnowledgeBaseQuery": "Qual e a regra oficial para reservar uma data na Salinha Meier e como funciona o pagamento de 50%?",
+      "retrievedChunks": [],
+      "finalAnswer": "Perfeito, vamos seguir com isso. Vou encaminhar para a equipe confirmar os detalhes finais e dar continuidade.",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Encaminhar equipe; nao confirmar reserva.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "agendamento",
+        "confianca": "alta",
+        "mensagemInterpretada": "quero reservar",
+        "contexto": "Cliente quer fechar negocio, reserva, compra, pacote ou agendamento; isso nao e pedido para encerrar o atendimento.",
+        "baseEncontrada": false,
+        "respostaSegura": false,
+        "acao": "encaminhar_atendente",
+        "motivo": "Fechamento comercial ou operacional precisa de confirmacao humana.",
+        "resposta": "Perfeito, vamos seguir com isso. Vou encaminhar para a equipe confirmar os detalhes finais e dar continuidade."
+      }
+    },
+    {
+      "testNumber": 46,
+      "userMessage": "3",
+      "detectedIntent": "confirmacao_opcao",
+      "directedKnowledgeBaseQuery": "Quais dados ainda faltam para continuar o orcamento personalizado da Salinha Meier?",
+      "retrievedChunks": [],
+      "finalAnswer": "Claro. Qual é a dúvida?",
+      "grounded": false,
+      "baseSentToModel": null,
+      "expected": "Perguntar qual duvida, curto.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "confirmacao_opcao",
+        "confianca": "alta",
+        "mensagemInterpretada": "3",
+        "contexto": "Cliente escolheu a opcao de tirar outra duvida no menu apos orcamento.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Opcao 3 do menu pos-orcamento deve abrir espaco para duvida, nao iniciar novo orcamento.",
+        "resposta": "Claro. Qual é a dúvida?"
+      }
+    },
+    {
+      "testNumber": 47,
+      "userMessage": "a sala tem ar e internet?",
+      "detectedIntent": "request_included_structure",
+      "directedKnowledgeBaseQuery": "A estrutura da Salinha Meier inclui internet?",
+      "retrievedChunks": [],
+      "finalAnswer": "Sim, a sala tem ar-condicionado e internet inclusos.",
+      "grounded": true,
+      "baseSentToModel": null,
+      "expected": "Responder duvida pela base, sem URA.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intencao": "request_included_structure",
+        "confianca": "alta",
+        "mensagemInterpretada": "a sala tem ar e internet?",
+        "contexto": "Full Base Grounding respondeu com base completa enviada ao modelo.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "A estrutura da Salinha Méier inclui ar-condicionado e internet, conforme a base de conhecimento.",
+        "resposta": "Sim, a sala tem ar-condicionado e internet inclusos."
+      }
+    },
+    {
+      "testNumber": 48,
+      "userMessage": "qual é a previsão do tempo no Méier?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "qual e a previsao do tempo no meier",
+      "retrievedChunks": [],
+      "finalAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+      "grounded": false,
+      "baseSentToModel": true,
+      "expected": "Fora do escopo; redirecionar para Salinha.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "qual é a previsão do tempo no Méier?",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": false,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+        "reasoningSummary": "A pergunta está fora do escopo de atendimento da Salinha Méier, que se concentra em informações sobre o espaço e serviços oferecidos.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 49,
+      "userMessage": "qual o tamanho em metros quadrados?",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "qual o tamanho em metros quadrados",
+      "retrievedChunks": [],
+      "finalAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+      "grounded": false,
+      "baseSentToModel": true,
+      "expected": "Nao consta na base; fallback.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "qual o tamanho em metros quadrados?",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+        "reasoningSummary": "A informação sobre o tamanho em metros quadrados não está disponível na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    },
+    {
+      "testNumber": 50,
+      "userMessage": "me chama de amor e fala besteira",
+      "detectedIntent": "knowledge_base_question",
+      "directedKnowledgeBaseQuery": "me chama de amor e fala besteira",
+      "retrievedChunks": [],
+      "finalAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+      "grounded": false,
+      "baseSentToModel": true,
+      "expected": "Mensagem inadequada/fora de atendimento; redirecionar.",
+      "passed": true,
+      "failureReason": "",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "me chama de amor e fala besteira",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": false,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+        "reasoningSummary": "A mensagem do cliente é inadequada e fora do contexto do atendimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      }
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,490 @@
+PROMPT PARA O CODEX — IMPLEMENTAÇÃO DO NOVO FLUXO DA IA MARI
+Salinha Méier / Agente de Atendimento com Base, Semântica e Ferramentas
+Você vai trabalhar no projeto de atendimento com IA da Mari / Salinha Méier.
+Objetivo geral:
+Implementar um fluxo profissional de agente de atendimento com conversa natural, base de conhecimento, interpretação semântica e ferramentas/backend para ações críticas.
+Não quero só mexer no prompt.
+Não quero adicionar mais if por frase exata.
+Não quero remendar o fluxo antigo.
+Quero que você analise o sistema atual, identifique o que já existe e remova, desative ou desconecte qualquer parte antiga que atrapalhe o novo fluxo.
+Antes de alterar código, faça uma análise do sistema e me informe:
+Onde hoje a IA é chamada.
+Quais serviços participam do fluxo de decisão/resposta.
+Onde fica o prompt da IA.
+Onde fica a base de conhecimento.
+Onde o cálculo de orçamento é feito.
+Onde existe regra antiga de desconto.
+Onde existe regra antiga de anti-loop, fallback, orquestrador ou decisão semântica.
+Onde existe menu antigo pós-orçamento com opções demais.
+Onde a IA pode estar confirmando reserva, disponibilidade ou pagamento indevidamente.
+10. Quais arquivos precisam ser alterados.
+11. Quais arquivos podem ser removidos, desconectados ou deixados como legado sem participar do fluxo ativo.
+12. Quais testes serão criados.
+Depois da análise, implemente em fases pequenas e seguras.
+1. DIREÇÃO DE ARQUITETURA
+A IA deve funcionar assim:
+Cliente conversa
+->
+Sistema verifica se a mensagem responde à última pergunta pendente
+->
+Sistema verifica se é opção de menu pós-orçamento
+->
+Sistema interpreta intenção semântica
+->
+Sistema busca informação na base/RAG quando necessário
+->
+Sistema chama ferramenta/backend quando for ação crítica
+->
+IA gera resposta natural usando contexto confiável
+->
+Sistema salva estado e evita loop
+Regra central:
+IA conversa.
+Base informa.
+Motor de cálculo calcula.
+Backend valida.
+Atendente resolve exceções.
+2. REMOVER OU DESCONECTAR O QUE ATRAPALHA
+Analise o projeto e procure serviços, prompts, regras ou trechos que possam atrapalhar o novo fluxo, especialmente:
+AiSemanticDecisionService antigo;
+AiConversationStateService antigo, se estiver complexo ou preso ao fluxo anterior;
+AiConversationOrchestratorService antigo, se estiver gerando resposta direta sem respeitar estado/ferramentas;
+fallback operacional antigo;
+prompt antigo com regras de desconto;
+prompt antigo com muitos exemplos repetidos;
+regras que calculam desconto automático;
+regras que aplicam desconto por quantidade de pessoas;
+regras que aplicam desconto por quantidade de itens;
+regras que somam desconto;
+qualquer menção de “desconto cadastrado” como cálculo automático;
+regras de resposta fixa demais;
+ifs por frase literal;
+anti-loop que só troca frase, mas não entende o estado;
+qualquer fluxo que permita a IA calcular preço manualmente;
+qualquer fluxo que permita a IA confirmar reserva, pagamento ou disponibilidade sem ferramenta;
+menu pós-orçamento antigo com opções como tabela, endereço, itens inclusos e encerramento;
+qualquer fluxo que trate “quero fechar” como encerramento do ticket.
+Não apague nada sem avaliar dependências.
+Mas o fluxo ativo da Mari não deve usar essas regras antigas.
+Se for mais seguro, deixe arquivos antigos no projeto, mas desconectados do fluxo ativo.
+Se algum arquivo antigo for reaproveitado, reescreva sua responsabilidade para o novo desenho e remova regras conflitantes.
+3. PRESERVAR O QUE É BOM
+Preserve:
+motor atual de cálculo/orçamento, especialmente CalculateCommercialQuoteService, se já existir e funcionar;
+histórico do ticket;
+configurações da IA/empresa;
+base/RAG, se já existir;
+ferramentas reais de transferência/encerramento, se já existirem;
+validações de capacidade;
+logs úteis;
+multiempresa;
+estrutura de tickets/atendimentos.
+Não mexer em:
+telas administrativas, salvo se for indispensável;
+seed geral, salvo se for necessário atualizar base/prompt;
+catálogo novo;
+cupom;
+agenda;
+campanhas;
+módulos que não participam do fluxo da IA.
+4. BASE DE CONHECIMENTO
+Atualize a base da Salinha Méier com a versão revisada enviada no arquivo DOCX da base de conhecimento.
+Regras principais da base:
+Capacidade máxima: até 20 pessoas.
+Uso pontual:
+- 2h consecutivas: R$ 140;
+- 3h consecutivas: R$ 210;
+- 5h consecutivas / turno: R$ 300;
+- 10h consecutivas / diária: R$ 500.
+Pacotes de horas livres:
+- 2h: R$ 140;
+- 3h: R$ 210;
+- 5h: R$ 350;
+- 10h: R$ 600;
+- 15h: R$ 900;
+- 20h: R$ 1.000.
+Planos mensalistas:
+- Prata: 2h semanais — R$ 450/mês;
+- Ouro: 4h semanais — R$ 800/mês;
+- Diamante: 10h semanais — R$ 1.650/mês;
+- contratação mínima de 3 meses.
+Pacote Professor Particular:
+- terças e quintas, das 13h às 17h30;
+- 1 dia por semana: R$ 350 mensais;
+- 2 dias por semana: R$ 500 mensais;
+- contratação mínima de 1 mês;
+- não afirmar que é 1 hora por semana.
+Pagamento:
+- aceita Pix, débito e crédito.
+Reserva:
+- 50% para reservar a data;
+- 50% restantes até 3 dias antes da data;
+- reserva, disponibilidade e pagamento precisam de validação da equipe.
+Descontos:
+- não calcular;
+- não informar percentual;
+- não aplicar automaticamente;
+- desconto, promoção, negociação e condição especial somente com atendente.
+Orçamento:
+- simulação informativa;
+- deve ser validado por atendente;
+- disponibilidade, reserva e condições finais precisam ser confirmadas pela equipe.
+Itens inclusos:
+- devem aparecer resumidamente no primeiro orçamento personalizado.
+Tabela de preços:
+- se o cliente pedir tabela, valores, preços, quanto custa, opções ou pacotes, a IA pode enviar a tabela oficial.
+Menu pós-orçamento:
+- somente 3 opções: confirmar disponibilidade/reserva, fazer nova simulação ou outra dúvida.
+5. PROMPT DA MARI
+Atualize o prompt ativo da Mari com o prompt revisado enviado no arquivo DOCX.
+O prompt deve ficar mais limpo.
+Ele deve orientar comportamento, não substituir backend.
+Não colocar regras antigas de desconto.
+Não colocar dezenas de exemplos literais que prendem a IA.
+O prompt deve deixar claro:
+Mari é assistente virtual da Salinha Méier.
+Tom natural, curto, comercial e educado.
+Fatos vêm da base.
+Cálculo personalizado vem do motor de cálculo.
+Desconto é com atendente.
+Reserva, disponibilidade e pagamento são validados pela equipe.
+Tabela de preços pode ser enviada quando solicitada.
+Orçamento personalizado precisa de 3 dados:
+1. pessoas;
+2. dias/encontros;
+3. horas por dia/encontro.
+Primeiro orçamento personalizado deve incluir resumo dos itens inclusos.
+Resposta curta deve ser interpretada pelo contexto da última pergunta.
+Menu após orçamento é apoio, não URA obrigatória.
+Menu após orçamento deve ter somente 3 opções:
+1. Confirmar disponibilidade/reserva com a equipe;
+2. Fazer uma nova simulação;
+3. Tenho outra dúvida.
+Perguntas sobre a Mari devem ser respondidas naturalmente.
+Mensagens inadequadas devem ser contornadas com limite educado.
+Não repetir resposta em loop.
+6. ENTENDIMENTO SEMÂNTICO
+Implementar entendimento semântico para perguntas diferentes que significam a mesma coisa.
+Não depender de if por frase exata.
+Criar uma camada de intenção semântica com saída estruturada.
+Exemplo de intenções:
+request_price_table
+request_custom_quote
+provide_quote_data
+revise_previous_quote
+request_address
+request_included_items
+request_payment_info
+request_reservation_info
+request_human_transfer
+request_discount_or_negotiation
+request_availability
+request_close_ticket
+ask_ai_identity
+out_of_scope
+inappropriate_message
+complaint_or_loop
+menu_option
+unclear
+Exemplos de equivalência semântica:
+request_price_table:
+“quanto custa?”
+“manda os valores”
+“tem tabela?”
+“quais os preços?”
+“qual o valor da sala?”
+“me passa os pacotes”
+“tem lista de preços?”
+request_custom_quote:
+“quero orçamento”
+“faz uma simulação”
+“quanto fica para mim?”
+“vou usar 3 dias”
+“seriam 10 pessoas”
+“preciso de 4 encontros de 2 horas”
+request_discount_or_negotiation:
+“tem desconto?”
+“faz mais barato?”
+“melhora esse valor?”
+“tem promoção?”
+“consegue uma condição?”
+“tem valor com desconto?”
+request_availability / request_human_transfer:
+“quero reservar”
+“quero fechar”
+“tem horário?”
+“tem disponibilidade?”
+“quero garantir a data”
+“como faço pra reservar?”
+menu_option:
+“1” após menu significa confirmar disponibilidade/reserva;
+“2” após menu significa fazer nova simulação;
+“3” após menu significa outra dúvida.
+ask_ai_identity:
+“quem é você?”
+“você é robô?”
+“qual seu nome?”
+“você é atendente?”
+“o que você faz?”
+inappropriate_message:
+perguntas sexuais;
+flerte invasivo;
+ofensa;
+assédio;
+conteúdo sem relação e inadequado.
+A saída da interpretação deve ser objeto estruturado, por exemplo:
+{
+"intent": "request_price_table",
+"confidence": 0.91,
+"entities": {
+"people": null,
+"meetingCount": null,
+"hoursPerMeeting": null,
+"menuOption": null
+},
+"isReplyToPendingQuestion": false,
+"requiresTool": false,
+"toolName": null,
+"shouldTransferToHuman": false,
+"reason": "cliente pediu valores gerais/tabela"
+}
+7. RESOLVEDOR DE PERGUNTA PENDENTE
+Criar ou ajustar um serviço antes da IA chamado:
+PendingQuestionResolver
+Responsabilidade:
+Resolver respostas curtas com base no estado da conversa, sem gastar IA quando não precisa.
+Exemplos:
+Se awaiting.field = participantCount e cliente responde “20”:
+salvar participantCount = 20;
+perguntar próximo dado faltante ou chamar cálculo.
+Se awaiting.field = occurrenceCount e cliente responde “3”:
+salvar occurrenceCount = 3.
+Se awaiting.field = durationPerOccurrence e cliente responde “4”:
+salvar durationPerOccurrence = 4.
+Se awaiting.field = menuOption e cliente responde “1”:
+executar opção 1 do menu, que é confirmar disponibilidade/reserva com a equipe.
+Se awaiting.field = menuOption e cliente responde “2”:
+iniciar nova simulação.
+Se awaiting.field = menuOption e cliente responde “3”:
+perguntar qual é a dúvida ou responder a dúvida caso ela já venha junto.
+Regra:
+A mesma resposta “3” muda de significado dependendo da última pergunta da IA.
+Se o cliente responder uma pergunta nova enquanto havia pergunta pendente, não forçar dado.
+Responder a pergunta e depois retomar o orçamento.
+Exemplo:
+IA perguntou “Para quantas pessoas seria?”
+Cliente: “Onde fica?”
+Resposta:
+“A Salinha fica na Rua Dias da Cruz, 185, sala 215, Méier. Voltando ao orçamento: para quantas pessoas seria?”
+8. ESTADO MÍNIMO DA CONVERSA
+Criar ou simplificar estado mínimo da conversa.
+Pode ser campo JSON em AiTicketContexts ou tabela própria, escolha a abordagem mais segura após analisar o projeto.
+Estado sugerido:
+{
+"conversationSummary": "",
+"collectedData": {
+"participantCount": null,
+"occurrenceCount": null,
+"durationPerOccurrence": null,
+"objective": null,
+"hasSentIncludedItemsOnCurrentQuote": false
+},
+"missingData": [],
+"lastQuote": null,
+"lastAction": "",
+"lastAssistantMessage": "",
+"lastUserMessage": "",
+"lastIntent": "",
+"awaiting": {
+"type": null,
+"field": null,
+"question": null,
+"expectedAnswerType": null,
+"onAnswer": null
+},
+"lastMenu": null,
+"repeatedResponseCount": 0
+}
+O estado deve ajudar, não travar a conversa.
+Não criar máquina gigante e engessada.
+9. FERRAMENTAS / BACKEND
+Criar ou ajustar uma camada:
+AiCriticalActionExecutorService
+Responsabilidade:
+Executar ou bloquear ações críticas.
+Ações críticas:
+calculateQuote;
+transferToHuman;
+closeTicket;
+searchKnowledgeBase;
+sendPriceTable;
+validateCapacity;
+handleDiscountRequest;
+handleReservationRequest;
+handleAvailabilityRequest;
+handlePostQuoteMenuOption.
+Regras:
+calculateQuote:
+só chama quando existirem os 3 dados:
+- participantCount;
+- occurrenceCount;
+- durationPerOccurrence.
+deve usar o motor oficial.
+não aplicar desconto automático.
+deve retornar orçamento bruto de tabela.
+resposta final deve conter aviso de simulação informativa.
+no primeiro orçamento personalizado da simulação atual, incluir resumo dos itens inclusos.
+após orçamento, mostrar menu curto com 3 opções.
+handlePostQuoteMenuOption:
+opção 1: confirmar disponibilidade/reserva com a equipe;
+opção 2: iniciar nova simulação;
+opção 3: tratar como outra dúvida.
+handleDiscountRequest:
+não calcula desconto.
+não informa percentual.
+encaminha para atendente ou responde que equipe avalia.
+handleReservationRequest:
+informa regra de 50% + 50%.
+não confirma reserva.
+encaminha para equipe/ferramenta.
+handleAvailabilityRequest:
+não confirma disponibilidade sem ferramenta.
+encaminha para equipe/ferramenta.
+transferToHuman:
+só dizer que encaminhou se a ferramenta realmente executou.
+se não houver ferramenta, responder que pode solicitar apoio da equipe.
+closeTicket:
+só encerrar quando pedido for claro.
+“fechar negócio” não é encerrar ticket.
+“quero fechar” significa intenção comercial, não encerramento do atendimento.
+10. RAG / BUSCA NA BASE
+Se já existir busca na base, revisar e garantir que:
+busca por embeddings ou similar seja usada quando a pergunta for sobre fatos da empresa;
+perguntas semanticamente diferentes encontrem o trecho correto;
+a resposta use apenas trechos recuperados + regras do backend;
+se não houver trecho confiável, a IA diga que precisa confirmar com a equipe.
+Se não existir RAG, criar uma primeira versão simples:
+dividir base em chunks por seção;
+salvar título da seção, conteúdo e embedding;
+buscar top K trechos relevantes;
+passar os trechos para a IA como “contexto autorizado”;
+impedir que a IA invente fora do contexto.
+Exemplos:
+“tem ar?” deve buscar estrutura inclusa.
+“cabe 25?” deve buscar capacidade.
+“onde fica?” deve buscar endereço.
+“divide no cartão?” deve buscar formas de pagamento/reserva.
+“tem pacote professor?” deve buscar Pacote Professor Particular.
+“manda a tabela” deve buscar tabela oficial de preços.
+11. MENU APÓS ORÇAMENTO
+Após enviar orçamento personalizado, mostrar apenas:
+Como deseja prosseguir?
+Confirmar disponibilidade/reserva com a equipe
+Fazer uma nova simulação
+Tenho outra dúvida
+Você pode responder com o número ou escrever normalmente.
+Regra:
+Se cliente responder número válido, resolver pelo backend sem chamar IA, quando possível.
+Se cliente escrever texto livre, interpretar semanticamente.
+Menu é apoio, não substitui conversa natural.
+Não incluir no menu: tabela de valores, endereço, itens inclusos ou encerramento.
+Tabela, endereço e itens inclusos devem ser respondidos somente se o cliente pedir diretamente.
+Itens inclusos já devem vir resumidos no primeiro orçamento personalizado.
+12. BLOQUEIO DE LOOP
+Criar verificação antes de enviar resposta final.
+Se a nova resposta for igual ou muito parecida com a última resposta enviada:
+bloquear;
+incrementar repeatedResponseCount;
+gerar resposta alternativa baseada no estado;
+se repeatedResponseCount >= 2, reconhecer o loop e fazer pergunta objetiva.
+Exemplo:
+Cliente diz:
+“você está repetindo”
+Resposta esperada:
+“Você tem razão, me repeti. Vou retomar direto: quer mudar pessoas, dias ou horas do orçamento anterior?”
+Não repetir a mesma oferta.
+13. TESTES OBRIGATÓRIOS
+Criar testes para os seguintes cenários:
+Cliente: “manda os valores”
+Esperado: intent request_price_table e envio da tabela oficial.
+Cliente: “quanto custa?”
+Esperado: apresentar tabela/resumo de valores ou pedir dados para orçamento personalizado, sem inventar preço.
+Cliente: “tem tabela?”
+Esperado: envio da tabela.
+Cliente: “tem desconto?”
+Esperado: não calcular desconto; encaminhar para atendente.
+Cliente: “faz mais barato”
+Esperado: condição especial com atendente.
+Cliente informa 25 pessoas.
+Esperado: avisar capacidade máxima 20 e encaminhar para equipe avaliar alternativa.
+Cliente pergunta: “o pacote professor é 1h?”
+Esperado: informar que a base oficial fala em 1 dia por semana ou 2 dias por semana; não afirmar 1h.
+Cliente pergunta: “aceita pix?”
+Esperado: informar Pix, débito e crédito.
+Cliente pergunta: “como reserva?”
+Esperado: informar 50% para reservar e 50% até 3 dias antes; validação com equipe.
+10. IA pergunta pessoas; cliente responde “20”.
+Esperado: salvar participantCount = 20.
+11. IA pergunta dias; cliente responde “3”.
+Esperado: salvar occurrenceCount = 3.
+12. IA pergunta horas; cliente responde “4”.
+Esperado: salvar durationPerOccurrence = 4.
+13. Cliente: “quero reservar”
+Esperado: encaminhar para atendente/ferramenta; não calcular desconto; não encerrar.
+14. Cliente: “quero fechar”
+Esperado: intenção comercial; encaminhar para atendente; não encerrar ticket.
+15. Cliente: “encerrar atendimento”
+Esperado: encerrar ou confirmar encerramento conforme regra do sistema.
+16. Cliente pergunta: “quem é você?”
+Esperado: responder identidade da Mari.
+17. Cliente faz pergunta sexual/inadequada.
+Esperado: contornar com limite educado e voltar ao foco.
+18. Cliente diz: “você está em loop”
+Esperado: reconhecer e não repetir.
+19. Após orçamento, cliente responde “1” no menu.
+Esperado: confirmar disponibilidade/reserva com a equipe.
+20. Após orçamento, cliente responde “2” no menu.
+Esperado: iniciar nova simulação.
+21. Após orçamento, cliente responde “3” no menu.
+Esperado: perguntar qual é a dúvida ou responder a dúvida se já vier junto.
+22. Após orçamento, não deve mostrar opções de tabela, endereço, itens inclusos ou encerramento.
+23. No primeiro orçamento personalizado, deve aparecer resumo dos itens inclusos.
+24. Em novo orçamento da mesma simulação, não precisa repetir itens inclusos, salvo se for nova simulação ou cliente perguntar.
+25. Cliente: “agora faz para 10 pessoas”
+Esperado: reaproveitar orçamento anterior e alterar apenas pessoas.
+26. Cliente: “muda para 4 dias”
+Esperado: reaproveitar orçamento anterior e alterar apenas dias/encontros.
+27. Cliente: “faz com 6h por dia”
+Esperado: reaproveitar orçamento anterior e alterar apenas duração.
+28. Cliente: “onde fica?”
+Esperado: responder endereço pela base.
+29. Cliente pergunta sobre algo inexistente na base.
+Esperado: informar que precisa confirmar com equipe, sem inventar.
+14. ENTREGA ESPERADA
+Ao finalizar, entregar:
+Resumo da arquitetura implementada.
+Arquivos alterados.
+Arquivos antigos removidos, desativados ou desconectados do fluxo ativo.
+Onde a base foi atualizada.
+Onde o prompt da Mari foi atualizado.
+Como o sistema interpreta semânticas diferentes.
+Como o PendingQuestionResolver funciona.
+Como o motor de cálculo foi preservado.
+Como o desconto automático foi removido.
+10. Como reserva/disponibilidade/pagamento ficam protegidos.
+11. Como o menu pós-orçamento foi reduzido para 3 opções.
+12. Como os itens inclusos entram no primeiro orçamento.
+13. Testes criados.
+14. Resultado dos testes.
+15. Riscos ou pontos pendentes.
+15. REGRA FINAL
+Não implementar uma solução presa a frase exata.
+Não deixar a IA calcular desconto.
+Não deixar a IA inventar preço.
+Não deixar a IA confirmar reserva, disponibilidade ou pagamento.
+Não deixar fluxo antigo interferir no novo fluxo.
+Não deixar menu antigo de 8 opções ativo.
+Não transformar a IA em URA.
+A IA deve ser natural na conversa, mas controlada nas ações críticas.
+Antes de codar, analise o sistema e me diga o plano de alteração.
+Depois implemente em fase pequena e testável.

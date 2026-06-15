@@ -29,13 +29,18 @@ export default defineConfig({
   envPrefix: "VITE_",
   esbuild: {
     loader: "jsx",
-    include: /src\/.*\.[jt]sx?$/,
+    include: /src[\\/].*\.[jt]sx?$/,
     exclude: [],
   },
   define: {
     global: "globalThis",
   },
   optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        ".js": "jsx",
+      },
+    },
     include: [
       "mic-recorder-to-mp3",
       "@material-ui/core",

@@ -5,6 +5,7 @@ import AiInteractionLog from "../../models/AiInteractionLog";
 import { logger } from "../../utils/logger";
 import SearchKnowledgeBaseService from "./SearchKnowledgeBaseService";
 import AiProviderFactory from "./providers/AiProviderFactory";
+import BuildKnowledgeBaseQueryService from "./BuildKnowledgeBaseQueryService";
 
 export class AiProviderError extends Error {
   public provider: string;
@@ -161,18 +162,34 @@ const getRecentMessages = async (ticketId?: number | null): Promise<Array<{ role
 
 const buildKnowledgeContext = async (
   message: string,
-  skipKnowledgeSearch?: boolean
+  skipKnowledgeSearch?: boolean,
+  options: { aiSettingId?: number | null; ticketId?: number | null } = {}
 ): Promise<string> => {
   if (skipKnowledgeSearch) return "";
 
-  const fragments = await SearchKnowledgeBaseService(message);
-  return fragments
-    .map(fragment => [
-      `Titulo: ${fragment.title}`,
-      fragment.tags ? `Palavras chave: ${fragment.tags}` : "",
+  const knowledgeQuery = BuildKnowledgeBaseQueryService({
+    userMessage: message
+  });
+  const fragments = await SearchKnowledgeBaseService(knowledgeQuery.directedKnowledgeBaseQuery, {
+    aiSettingId: options.aiSettingId,
+    ticketId: options.ticketId,
+    userMessage: message,
+    detectedIntent: knowledgeQuery.detectedIntent,
+    directedKnowledgeBaseQuery: knowledgeQuery.directedKnowledgeBaseQuery,
+    entities: knowledgeQuery.entities,
+    includeFullBaseFallback: true,
+    topK: 5
+  });
+  if (!fragments.length) return "";
+
+  return [
+    "CONTEXTO AUTORIZADO DA BASE:",
+    ...fragments.map(fragment => [
+      `[Secao: ${fragment.section || fragment.title}]`,
+      fragment.tags ? `Tags: ${fragment.tags}` : "",
       fragment.fragment
     ].filter(Boolean).join("\n"))
-    .join("\n\n");
+  ].join("\n\n");
 };
 
 const createAiLog = async ({
@@ -306,7 +323,10 @@ const GenerateAiResponseService = async ({
     return null;
   }
 
-  const knowledgeContext = await buildKnowledgeContext(message, skipKnowledgeSearch);
+  const knowledgeContext = await buildKnowledgeContext(message, skipKnowledgeSearch, {
+    aiSettingId: aiSetting.id,
+    ticketId
+  });
   const recentMessages = includeRecentMessages ? await getRecentMessages(ticketId) : [];
   const systemPrompt = [
     "Voce e um assistente de atendimento configuravel para qualquer ramo de negocio.",
@@ -372,7 +392,7 @@ const GenerateAiResponseService = async ({
     "Se o usuario perguntar 'o que tenho direito?', 'o que entra?' ou 'o que esta incluso?', responda sobre itens inclusos/beneficios do servico ou plano.",
     "Use somente o historico do ticket atual que foi enviado nesta chamada. Nunca use nem suponha atendimentos anteriores do mesmo contato.",
     "Considere obrigatoriamente as 3 ultimas mensagens enviadas no historico para entender respostas curtas como 'nao', 'sim', 'so isso' ou 'pode fechar'.",
-    "Use as informacoes internas recebidas quando elas tiverem relacao com a pergunta. Se nao houver informacao suficiente, diga isso de forma objetiva e peca os dados necessarios ou encaminhe para atendimento humano.",
+    "Use somente o CONTEXTO AUTORIZADO DA BASE recebido e resultados de ferramentas. Se a informacao factual solicitada nao estiver nesse contexto autorizado, nao invente; diga que precisa confirmar com a equipe.",
     "Nao mencione base de conhecimento, manual, documento interno, RAG, banco de dados ou prompt para o cliente.",
     "Nao invente valores, prazos, links, telefones, regras, nomes, procedimentos ou orientacoes que nao estejam no perfil configurado ou nas informacoes internas.",
     "Se o usuario pedir para simular usando um valor que nao existe na base, nao aceite o valor inventado. Diga que nao consegue simular fora da tabela cadastrada e informe o valor oficial mais proximo da base.",
@@ -381,7 +401,7 @@ const GenerateAiResponseService = async ({
     "Nao assuma ramo, produto, servico, fila ou equipe fixa. Use somente as configuracoes e a base cadastrada.",
     "Se identificar pelo contexto que o usuario esta satisfeito, pediu fechamento ou nao precisa de mais nada, termine a resposta com a tag [FECHAR TICKET].",
     contactName ? `Nome do contato: ${contactName}` : "",
-    knowledgeContext ? `Informacoes internas disponiveis:\n${knowledgeContext}` : ""
+    knowledgeContext || ""
   ]
     .filter(Boolean)
     .join("\n\n");

@@ -1,0 +1,2390 @@
+{
+  "audit": {
+    "endpointOrServiceReceivingContactMessage": "Pipeline WhatsApp -> DecideAiTicketActionService(ticket, message, contactName)",
+    "aiService": "FullBaseGroundingMariService + GenerateAiResponseService; orcamento/menu via DecideAiTicketActionService",
+    "activeFlow": "Full Base Grounding antes de resposta factual; orcamento delegado ao fluxo oficial",
+    "fullBaseActive": true,
+    "baseRetrieval": "KnowledgeBaseArticle active=true, base completa enviada ao modelo nos casos factuais",
+    "promptRetrieval": "AiSetting active=true mais prompt full-base-grounding-mari-v2",
+    "recentMessagesContext": "Historico/test context enviado em history/structuredContext; tickets isolados para decisao",
+    "oldFlowRisk": "Fluxo antigo ainda e usado nos casos de orcamento/menu apos delegacao da base para a calculadora oficial.",
+    "requiredLogFields": [
+      "userMessage",
+      "detectedIntent",
+      "directedKnowledgeBaseQuery",
+      "retrievedChunks",
+      "finalAnswer",
+      "grounded"
+    ],
+    "finalWhatsappAnswerOnlyCustomerAnswer": true,
+    "promptVersion": "full-base-grounding-mari-v2",
+    "factTotal": 43,
+    "factBaseSentCount": 43,
+    "decisionTotal": 7,
+    "oldFlowDecisionCount": 7,
+    "environment": "node v22.19.0, NODE_ENV=DEVELOPMENT"
+  },
+  "total": 50,
+  "passed": 50,
+  "failed": 0,
+  "passRate": "100%",
+  "readyForProduction": true,
+  "criticalFailures": [],
+  "failures": [],
+  "results": [
+    {
+      "testNumber": 1,
+      "userMessage": "aceita pix?",
+      "contextBefore": "Cliente iniciou com pergunta curta sobre pagamento.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_payment_info",
+        "userAsked": "aceita pix?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Formas de pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim. A Salinha Meier aceita Pix, cartao de debito e cartao de credito.",
+        "reasoningSummary": "O cliente perguntou sobre formas de pagamento, e a Salinha Méier aceita Pix. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim. A Salinha Meier aceita Pix, cartao de debito e cartao de credito.",
+      "detectedIntent": "request_payment_info",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Formas de pagamento"
+      ],
+      "retrievedChunks": [
+        "Formas de pagamento"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Informar que aceita Pix e, se couber, cartao de debito/credito.",
+      "shouldNotMention": [
+        "boleto",
+        "dinheiro",
+        "parcelamento confirmado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 2,
+      "userMessage": "passa no cartao?",
+      "contextBefore": "Cliente perguntou informalmente sobre cartao.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_payment_info",
+        "userAsked": "passa no cartao?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "formas de pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier aceita pagamento no cartão de crédito.",
+        "reasoningSummary": "O cliente perguntou sobre a aceitação de pagamento no cartão, e a informação está disponível na base.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier aceita pagamento no cartão de crédito.",
+      "detectedIntent": "request_payment_info",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "formas de pagamento"
+      ],
+      "retrievedChunks": [
+        "formas de pagamento"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Informar cartao de debito e credito.",
+      "shouldNotMention": [
+        "parcelamos",
+        "sem juros"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 3,
+      "userMessage": "divide no cartao?",
+      "contextBefore": "Cliente perguntou sobre dividir/parcelar; a base so confirma formas e regra de reserva.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_payment_info",
+        "userAsked": "divide no cartao?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Reserva e pagamento",
+          "Formas de pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A Salinha Meier aceita Pix, cartao de debito e cartao de credito. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. Sobre dividir/parcelar, posso encaminhar para a equipe verificar.",
+        "reasoningSummary": "O cliente perguntou sobre a possibilidade de dividir o pagamento no cartão. A resposta inclui as formas de pagamento aceitas e a regra de reserva. Resposta substituida por guardrail local para nao inventar regra de parcelamento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A Salinha Meier aceita Pix, cartao de debito e cartao de credito. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. Sobre dividir/parcelar, posso encaminhar para a equipe verificar.",
+      "detectedIntent": "request_payment_info",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Reserva e pagamento",
+        "Formas de pagamento"
+      ],
+      "retrievedChunks": [
+        "Reserva e pagamento",
+        "Formas de pagamento"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Nao inventar parcelamento; responder formas confirmadas e regra dos 50% ou encaminhar validacao.",
+      "shouldNotMention": [
+        "parcelamos",
+        "sem juros",
+        "nao e possivel dividir"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 4,
+      "userMessage": "como reserva?",
+      "contextBefore": "Cliente mudou de pagamento para reserva.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_reservation_rules",
+        "userAsked": "como reserva?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5. VALORES OFICIAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para reservar uma data na Salinha Méier, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+        "reasoningSummary": "A resposta foi baseada na regra oficial de reserva e pagamento da Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Para reservar uma data na Salinha Méier, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+      "detectedIntent": "request_reservation_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5. VALORES OFICIAIS"
+      ],
+      "retrievedChunks": [
+        "5. VALORES OFICIAIS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Explicar 50% para reservar e restante ate 3 dias antes.",
+      "shouldNotMention": [
+        "reserva confirmada",
+        "agenda garantida"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 5,
+      "userMessage": "tem que pagar sinal?",
+      "contextBefore": "Cliente usa termo informal para reserva.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_reservation_rules",
+        "userAsked": "tem que pagar sinal?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "regra de reserva"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Para reservar uma data, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+        "reasoningSummary": "A resposta foi baseada na regra oficial de reserva da Salinha Méier, que especifica o pagamento de 50% do valor para garantir a reserva.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Para reservar uma data, é necessário pagar 50% do valor do orçamento. Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+      "detectedIntent": "request_reservation_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "regra de reserva"
+      ],
+      "retrievedChunks": [
+        "regra de reserva"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Associar sinal a 50% do orcamento.",
+      "shouldNotMention": [
+        "100% antecipado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 6,
+      "userMessage": "quando pago o restante?",
+      "contextBefore": "Mari ja tinha informado que existe pagamento inicial de reserva.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_reservation_rules",
+        "userAsked": "quando pago o restante?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "regras de reserva"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+        "reasoningSummary": "A resposta foi baseada na regra oficial de reserva, que informa sobre o pagamento dos 50% restantes.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Os 50% restantes devem ser pagos até 3 dias antes da data reservada.",
+      "detectedIntent": "request_reservation_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "regras de reserva"
+      ],
+      "retrievedChunks": [
+        "regras de reserva"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Informar que os 50% restantes sao ate 3 dias antes da data.",
+      "shouldNotMention": [
+        "no dia do evento",
+        "depois do evento"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 7,
+      "userMessage": "a reserva confirma automatico?",
+      "contextBefore": "Cliente pergunta se pagamento ja garante tudo automaticamente.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_reservation_rules",
+        "userAsked": "a reserva confirma automatico?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Reserva e pagamento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Nao. A reserva nao fica confirmada automaticamente. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. A disponibilidade, reserva e pagamento precisam ser validados pela equipe.",
+        "reasoningSummary": "O cliente perguntou sobre a confirmação automática da reserva. A resposta inclui a regra de pagamento e a necessidade de confirmação de disponibilidade. Resposta ajustada para deixar claro que reserva automatica precisa validacao da equipe.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Nao. A reserva nao fica confirmada automaticamente. Para reservar, e necessario pagar 50% do valor do orcamento; os 50% restantes devem ser pagos ate 3 dias antes da data. A disponibilidade, reserva e pagamento precisam ser validados pela equipe.",
+      "detectedIntent": "request_reservation_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Reserva e pagamento"
+      ],
+      "retrievedChunks": [
+        "Reserva e pagamento"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Nao confirmar; dizer que disponibilidade/reserva/pagamento precisam validacao da equipe.",
+      "shouldNotMention": [
+        "automaticamente confirmada",
+        "ja fica reservado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 8,
+      "userMessage": "posso confirmar disponibilidade agora?",
+      "contextBefore": "Cliente quer disponibilidade em tempo real.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_availability",
+        "userAsked": "posso confirmar disponibilidade agora?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "RESERVA, DISPONIBILIDADE E PAGAMENTO"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": true,
+        "customerAnswer": "Para confirmar a disponibilidade, preciso encaminhar para a equipe. Posso solicitar o apoio da equipe para verificar isso com você?",
+        "reasoningSummary": "O cliente pediu confirmação de disponibilidade, que não pode ser feita automaticamente e requer apoio da equipe.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Para confirmar a disponibilidade, preciso encaminhar para a equipe. Posso solicitar o apoio da equipe para verificar isso com você?",
+      "detectedIntent": "request_availability",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "RESERVA, DISPONIBILIDADE E PAGAMENTO"
+      ],
+      "retrievedChunks": [
+        "RESERVA, DISPONIBILIDADE E PAGAMENTO"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Nao inventar disponibilidade; encaminhar/validar com equipe.",
+      "shouldNotMention": [
+        "esta disponivel",
+        "horario livre"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 9,
+      "userMessage": "onde fica?",
+      "contextBefore": "Cliente estava falando de valores, mudou para endereco.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_location",
+        "userAsked": "onde fica?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A Salinha Méier fica na Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+        "reasoningSummary": "O cliente perguntou sobre a localização da Salinha Méier, e a resposta inclui o endereço e referências de localização.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A Salinha Méier fica na Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+      "detectedIntent": "request_location",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "INFORMAÇÕES GERAIS"
+      ],
+      "retrievedChunks": [
+        "INFORMAÇÕES GERAIS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Rua Dias da Cruz, 185, sala 215, Meier, RJ, com referencias.",
+      "shouldNotMention": [
+        "Copacabana"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 10,
+      "userMessage": "tem referencia perto?",
+      "contextBefore": "Cliente quer ponto de referencia.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_location",
+        "userAsked": "tem referencia perto?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Endereco"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A Salinha Meier fica na Rua Dias da Cruz, 185, sala 215, Meier, Rio de Janeiro - RJ, proximo ao Imperator e a Smart Fit.",
+        "reasoningSummary": "O cliente perguntou sobre referências de localização, e a resposta inclui os pontos de referência próximos à Salinha Méier. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A Salinha Meier fica na Rua Dias da Cruz, 185, sala 215, Meier, Rio de Janeiro - RJ, proximo ao Imperator e a Smart Fit.",
+      "detectedIntent": "request_location",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Endereco"
+      ],
+      "retrievedChunks": [
+        "Endereco"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Citar Imperator e/ou Smart Fit.",
+      "shouldNotMention": [
+        "metro na porta"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 11,
+      "userMessage": "qual contato de voces?",
+      "contextBefore": "Pergunta de contato oficial.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "qual contato de voces?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "1. INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O contato comercial da Salinha Méier é pelo WhatsApp: +55 21 97213-2951.",
+        "reasoningSummary": "O cliente perguntou sobre o contato da empresa, e a informação está disponível na seção de informações gerais da base.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O contato comercial da Salinha Méier é pelo WhatsApp: +55 21 97213-2951.",
+      "detectedIntent": "knowledge_base_question",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "1. INFORMAÇÕES GERAIS"
+      ],
+      "retrievedChunks": [
+        "1. INFORMAÇÕES GERAIS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder apenas contato confirmado na base, ou fallback seguro se nao houver.",
+      "shouldNotMention": [
+        "telefone inventado",
+        "21 99999"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 12,
+      "userMessage": "tem instagram?",
+      "contextBefore": "Cliente pede rede social.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "tem instagram?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "1. INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, temos Instagram! Você pode nos encontrar em @salinhameier.",
+        "reasoningSummary": "O cliente perguntou sobre a presença da Salinha Méier no Instagram, e a informação está disponível na base.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, temos Instagram! Você pode nos encontrar em @salinhameier.",
+      "detectedIntent": "knowledge_base_question",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "1. INFORMAÇÕES GERAIS"
+      ],
+      "retrievedChunks": [
+        "1. INFORMAÇÕES GERAIS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder Instagram confirmado na base ou fallback seguro.",
+      "shouldNotMention": [
+        "@salinhameier_oficial_inventado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 13,
+      "userMessage": "tem ar?",
+      "contextBefore": "Pergunta curta e ambigua de estrutura.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem ar?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui ar-condicionado.",
+        "reasoningSummary": "A estrutura da Salinha Meier inclui ar-condicionado, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier inclui ar-condicionado.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Dizer que a sala tem ar-condicionado.",
+      "shouldNotMention": [
+        "ventilador apenas"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 14,
+      "userMessage": "tem wifi?",
+      "contextBefore": "Cliente pergunta estrutura.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem wifi?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui internet.",
+        "reasoningSummary": "A estrutura da Salinha Meier inclui internet, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier inclui internet.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Confirmar internet/wifi se constar na base.",
+      "shouldNotMention": [
+        "senha"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 15,
+      "userMessage": "da pra passar slide na tv?",
+      "contextBefore": "Cliente pergunta apresentacao.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "da pra passar slide na tv?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a sala inclui uma TV para reprodução de conteúdo.",
+        "reasoningSummary": "A estrutura da Salinha Méier inclui TV, permitindo a reprodução de slides.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a sala inclui uma TV para reprodução de conteúdo.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Confirmar TV para reproducao de conteudo.",
+      "shouldNotMention": [
+        "projetor"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 16,
+      "userMessage": "tem quadro?",
+      "contextBefore": "Pergunta simples de estrutura.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem quadro?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui quadro branco.",
+        "reasoningSummary": "A estrutura da Salinha Méier inclui quadro branco, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier inclui quadro branco.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Confirmar quadro branco.",
+      "shouldNotMention": [
+        "lousa digital"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 17,
+      "userMessage": "tem banheiro?",
+      "contextBefore": "Pergunta simples de estrutura.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem banheiro?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a estrutura da Salinha Méier inclui banheiro.",
+        "reasoningSummary": "A informação sobre a inclusão de banheiro na estrutura da Salinha Méier foi confirmada na base.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a estrutura da Salinha Méier inclui banheiro.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Confirmar banheiro.",
+      "shouldNotMention": [
+        "chuveiro"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 18,
+      "userMessage": "tem cafe?",
+      "contextBefore": "Cliente pergunta item da copa.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem cafe?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui copa compartilhável com cafeteira.",
+        "reasoningSummary": "A estrutura da Salinha Meier inclui uma copa compartilhável com cafeteira, portanto, há café disponível.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier inclui copa compartilhável com cafeteira.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Citar copa/cafeteira se confirmado.",
+      "shouldNotMention": [
+        "coffee break incluso"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 19,
+      "userMessage": "tem agua gelada?",
+      "contextBefore": "Cliente pergunta item especifico.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "tem agua gelada?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Estrutura"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O valor inclui ar-condicionado, internet, TV, quadro branco, recepcao, banheiro e copa compartilhavel com cafeteira, micro-ondas e filtro com agua gelada.",
+        "reasoningSummary": "O cliente perguntou sobre a inclusão de água gelada, que está listada na estrutura da Salinha Méier. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O valor inclui ar-condicionado, internet, TV, quadro branco, recepcao, banheiro e copa compartilhavel com cafeteira, micro-ondas e filtro com agua gelada.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Estrutura"
+      ],
+      "retrievedChunks": [
+        "Estrutura"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Citar filtro com agua gelada.",
+      "shouldNotMention": [
+        "garrafa individual gratis"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 20,
+      "userMessage": "o que esta incluso?",
+      "contextBefore": "Pergunta aberta de estrutura.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "o que esta incluso?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O valor da contratação inclui:\n- Ar-condicionado\n- Capacidade para até 20 pessoas\n- Quadro branco\n- TV para reprodução de conteúdo\n- Internet\n- Recepção\n- Banheiro\n- Copa compartilhável\n- Cafeteira\n- Micro-ondas\n- Filtro com água gelada.",
+        "reasoningSummary": "A resposta foi baseada na seção de estrutura inclusa da base de conhecimento da Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O valor da contratação inclui:\n- Ar-condicionado\n- Capacidade para até 20 pessoas\n- Quadro branco\n- TV para reprodução de conteúdo\n- Internet\n- Recepção\n- Banheiro\n- Copa compartilhável\n- Cafeteira\n- Micro-ondas\n- Filtro com água gelada.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Listar estrutura inclusa da base.",
+      "shouldNotMention": [
+        "estacionamento incluso"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 21,
+      "userMessage": "cabe 10 pessoas?",
+      "contextBefore": "Cliente quer saber capacidade para grupo abaixo do limite.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_capacity",
+        "userAsked": "cabe 10 pessoas?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "4. CAPACIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Portanto, cabe 10 pessoas sem problemas!",
+        "reasoningSummary": "O cliente perguntou sobre a capacidade da sala e a resposta confirma que 10 pessoas estão dentro do limite permitido.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Portanto, cabe 10 pessoas sem problemas!",
+      "detectedIntent": "request_capacity",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "4. CAPACIDADE"
+      ],
+      "retrievedChunks": [
+        "4. CAPACIDADE"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Informar capacidade ate 20 pessoas.",
+      "shouldNotMention": [
+        "nao cabe 10"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 22,
+      "userMessage": "cabe 25?",
+      "contextBefore": "Cliente pergunta grupo acima do limite.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_capacity",
+        "userAsked": "cabe 25?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "4. CAPACIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa.",
+        "reasoningSummary": "O cliente perguntou sobre a capacidade máxima da sala, que é de 20 pessoas. Como o grupo informado é de 25, é necessário encaminhar para a equipe para avaliar alternativas.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa.",
+      "detectedIntent": "request_capacity",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "4. CAPACIDADE"
+      ],
+      "retrievedChunks": [
+        "4. CAPACIDADE"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Informar maximo de 20 e encaminhar avaliacao para acima disso.",
+      "shouldNotMention": [
+        "cabe 25 sim",
+        "capacidade 25"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 23,
+      "userMessage": "qual a lotacao maxima?",
+      "contextBefore": "Pergunta formal de capacidade.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_capacity",
+        "userAsked": "qual a lotacao maxima?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "CAPACIDADE"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa.",
+        "reasoningSummary": "O cliente perguntou sobre a capacidade máxima da sala, que é de 20 pessoas, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A capacidade da Salinha Méier é de até 20 pessoas. Para grupos acima disso, preciso encaminhar para a equipe avaliar se existe alguma alternativa.",
+      "detectedIntent": "request_capacity",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "CAPACIDADE"
+      ],
+      "retrievedChunks": [
+        "CAPACIDADE"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Capacidade maxima ate 20 pessoas.",
+      "shouldNotMention": [
+        "30 pessoas"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 24,
+      "userMessage": "manda os valores",
+      "contextBefore": "Cliente pede tabela em linguagem curta.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_price_table",
+        "userAsked": "manda os valores",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "VALORES OFICIAIS",
+          "TABELA DE PREÇOS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Claro! Segue a tabela de valores da Salinha Méier:\n\nUso pontual:\n• 2h consecutivas: R$ 140\n• 3h consecutivas: R$ 210\n• 5h consecutivas / turno: R$ 300\n• 10h consecutivas / diária: R$ 500\n\nPacotes de horas livres:\n• 2h: R$ 140\n• 3h: R$ 210\n• 5h: R$ 350\n• 10h: R$ 600\n• 15h: R$ 900\n• 20h: R$ 1.000\n\nPlanos mensalistas:\n• Prata: 2h semanais — R$ 450/mês\n• Ouro: 4h semanais — R$ 800/mês\n• Diamante: 10h semanais — R$ 1.650/mês\n\nOs planos mensalistas têm contratação mínima de 3 meses.\n\nPacote Professor Particular:\n• 1 dia por semana: R$ 350 mensais\n• 2 dias por semana: R$ 500 mensais\n\nO Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30.\n\nPara um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+        "reasoningSummary": "O cliente solicitou a tabela de preços, e as informações foram extraídas da base de conhecimento da Salinha Méier, apresentando os valores organizados por categorias de uso pontual, pacotes de horas livres, planos mensalistas e Pacote Professor Particular.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Claro! Segue a tabela de valores da Salinha Méier:\n\nUso pontual:\n• 2h consecutivas: R$ 140\n• 3h consecutivas: R$ 210\n• 5h consecutivas / turno: R$ 300\n• 10h consecutivas / diária: R$ 500\n\nPacotes de horas livres:\n• 2h: R$ 140\n• 3h: R$ 210\n• 5h: R$ 350\n• 10h: R$ 600\n• 15h: R$ 900\n• 20h: R$ 1.000\n\nPlanos mensalistas:\n• Prata: 2h semanais — R$ 450/mês\n• Ouro: 4h semanais — R$ 800/mês\n• Diamante: 10h semanais — R$ 1.650/mês\n\nOs planos mensalistas têm contratação mínima de 3 meses.\n\nPacote Professor Particular:\n• 1 dia por semana: R$ 350 mensais\n• 2 dias por semana: R$ 500 mensais\n\nO Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30.\n\nPara um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+      "detectedIntent": "request_price_table",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "VALORES OFICIAIS",
+        "TABELA DE PREÇOS"
+      ],
+      "retrievedChunks": [
+        "VALORES OFICIAIS",
+        "TABELA DE PREÇOS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Trazer tabela oficial de valores/pacotes.",
+      "shouldNotMention": [
+        "valor sob consulta apenas"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 25,
+      "userMessage": "quanto e 2 horas?",
+      "contextBefore": "Cliente pede preco especifico pontual.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "quanto e 2 horas?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.1. Uso pontual — horas consecutivas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O valor para 2 horas consecutivas é R$ 140.",
+        "reasoningSummary": "A informação sobre o preço de 2 horas consecutivas está disponível na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O valor para 2 horas consecutivas é R$ 140.",
+      "detectedIntent": "knowledge_base_question",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.1. Uso pontual — horas consecutivas"
+      ],
+      "retrievedChunks": [
+        "5.1. Uso pontual — horas consecutivas"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder valor de 2 horas se existir; se nao existir, fallback seguro.",
+      "shouldNotMention": [
+        "chutei",
+        "aproximadamente"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 26,
+      "userMessage": "3 horas sai quanto?",
+      "contextBefore": "Cliente usa frase informal para preco especifico.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "3 horas sai quanto?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.1. Uso pontual — horas consecutivas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "3h consecutivas: R$ 210",
+        "reasoningSummary": "O valor para 3 horas consecutivas de uso é de R$ 210, conforme a tabela de preços.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "3h consecutivas: R$ 210",
+      "detectedIntent": "knowledge_base_question",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.1. Uso pontual — horas consecutivas"
+      ],
+      "retrievedChunks": [
+        "5.1. Uso pontual — horas consecutivas"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder valor de 3 horas ou fallback seguro.",
+      "shouldNotMention": [
+        "aproximadamente"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 27,
+      "userMessage": "qual valor da diaria?",
+      "contextBefore": "Cliente pergunta diaria.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_price_table",
+        "userAsked": "qual valor da diaria?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.1",
+          "7"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Claro! A diária de 10h custa R$ 500. Para um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+        "reasoningSummary": "O cliente perguntou sobre o valor da diária, que está claramente definido na tabela de preços. A resposta inclui a informação solicitada e convida o cliente a fornecer mais detalhes para um orçamento personalizado.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Claro! A diária de 10h custa R$ 500. Para um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+      "detectedIntent": "request_price_table",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.1",
+        "7"
+      ],
+      "retrievedChunks": [
+        "5.1",
+        "7"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder diaria se constar na tabela.",
+      "shouldNotMention": [
+        "pernoite"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 28,
+      "userMessage": "tem pacote de horas?",
+      "contextBefore": "Cliente pergunta pacotes.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "tem pacote de horas?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.2",
+          "7"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Claro! Segue a tabela de pacotes de horas livres da Salinha Méier:\n\nPacotes de horas livres:\n• 2h: R$ 140\n• 3h: R$ 210\n• 5h: R$ 350\n• 10h: R$ 600\n• 15h: R$ 900\n• 20h: R$ 1.000\n\nOs pacotes funcionam como saldo flexível, podendo ser usados em dias ou horários diferentes, conforme disponibilidade da agenda. Para um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+        "reasoningSummary": "O cliente perguntou sobre pacotes de horas, então forneci a tabela de pacotes de horas livres disponíveis na Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Claro! Segue a tabela de pacotes de horas livres da Salinha Méier:\n\nPacotes de horas livres:\n• 2h: R$ 140\n• 3h: R$ 210\n• 5h: R$ 350\n• 10h: R$ 600\n• 15h: R$ 900\n• 20h: R$ 1.000\n\nOs pacotes funcionam como saldo flexível, podendo ser usados em dias ou horários diferentes, conforme disponibilidade da agenda. Para um orçamento mais certinho, me diga a quantidade de pessoas, quantos dias/encontros seriam e quantas horas por dia.",
+      "detectedIntent": "request_packages",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.2",
+        "7"
+      ],
+      "retrievedChunks": [
+        "5.2",
+        "7"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder sobre pacotes de horas.",
+      "shouldNotMention": [
+        "assinatura anual obrigatoria"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 29,
+      "userMessage": "pacote 10h existe?",
+      "contextBefore": "Cliente pergunta pacote especifico.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_packages",
+        "userAsked": "pacote 10h existe?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.2. Pacotes de horas livres"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, existe o pacote de 10h, que custa R$ 600. Esse pacote funciona como saldo flexível e pode ser utilizado em dias ou horários diferentes, conforme a disponibilidade da agenda.",
+        "reasoningSummary": "O pacote de 10h está disponível na tabela de pacotes de horas livres e é indicado para uso flexível.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, existe o pacote de 10h, que custa R$ 600. Esse pacote funciona como saldo flexível e pode ser utilizado em dias ou horários diferentes, conforme a disponibilidade da agenda.",
+      "detectedIntent": "request_packages",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.2. Pacotes de horas livres"
+      ],
+      "retrievedChunks": [
+        "5.2. Pacotes de horas livres"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Confirmar pacote se existir ou fallback seguro.",
+      "shouldNotMention": [
+        "inventar pacote 10h"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 30,
+      "userMessage": "tem mensalista?",
+      "contextBefore": "Cliente pergunta planos mensais.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "tem mensalista?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, temos planos mensalistas! Os planos disponíveis são:\n\n- **Plano Prata**: 2h semanais — R$ 450 por mês (contratação mínima de 3 meses).\n- **Plano Ouro**: 4h semanais — R$ 800 por mês (contratação mínima de 3 meses).\n- **Plano Diamante**: 10h semanais — R$ 1.650 por mês (contratação mínima de 3 meses).",
+        "reasoningSummary": "O cliente perguntou sobre planos mensalistas, e a resposta inclui as opções disponíveis e a regra de contratação mínima.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, temos planos mensalistas! Os planos disponíveis são:\n\n- **Plano Prata**: 2h semanais — R$ 450 por mês (contratação mínima de 3 meses).\n- **Plano Ouro**: 4h semanais — R$ 800 por mês (contratação mínima de 3 meses).\n- **Plano Diamante**: 10h semanais — R$ 1.650 por mês (contratação mínima de 3 meses).",
+      "detectedIntent": "request_monthly_plans",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.3. Planos mensalistas"
+      ],
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Citar mensalista/planos da base.",
+      "shouldNotMention": [
+        "sem fidelidade se a base exigir 3 meses"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 31,
+      "userMessage": "plano prata como funciona?",
+      "contextBefore": "Cliente pergunta plano especifico.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "plano prata como funciona?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Plano Prata inclui 2h semanais por R$ 450 mensais, com contratação mínima de 3 meses. A organização dos dias e horários ocorre conforme disponibilidade da Salinha Méier.",
+        "reasoningSummary": "O cliente perguntou sobre o funcionamento do Plano Prata, que é um dos planos mensalistas disponíveis na Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O Plano Prata inclui 2h semanais por R$ 450 mensais, com contratação mínima de 3 meses. A organização dos dias e horários ocorre conforme disponibilidade da Salinha Méier.",
+      "detectedIntent": "request_monthly_plans",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "planos mensalistas"
+      ],
+      "retrievedChunks": [
+        "planos mensalistas"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder Plano Prata com regra oficial.",
+      "shouldNotMention": [
+        "plano gratis"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 32,
+      "userMessage": "tem plano ouro?",
+      "contextBefore": "Cliente pergunta outro plano mensal.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_monthly_plans",
+        "userAsked": "tem plano ouro?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.3. Planos mensalistas"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, temos o Plano Ouro, que inclui 4h semanais por R$ 800 mensais. A contratação mínima é de 3 meses.",
+        "reasoningSummary": "O cliente perguntou sobre o Plano Ouro, que é um dos planos mensalistas disponíveis e possui uma contratação mínima de 3 meses.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, temos o Plano Ouro, que inclui 4h semanais por R$ 800 mensais. A contratação mínima é de 3 meses.",
+      "detectedIntent": "request_monthly_plans",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.3. Planos mensalistas"
+      ],
+      "retrievedChunks": [
+        "5.3. Planos mensalistas"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder Plano Ouro se existir.",
+      "shouldNotMention": [
+        "premium ilimitado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 33,
+      "userMessage": "professor e 1 hora?",
+      "contextBefore": "Cliente pergunta pacote professor com duvida curta.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "professor e 1 hora?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30. Ele é indicado para uso de 1 dia por semana por R$ 350 mensais ou 2 dias por semana por R$ 500 mensais.",
+        "reasoningSummary": "O cliente perguntou sobre o Pacote Professor Particular e a resposta inclui informações sobre a contratação mínima e a disponibilidade do pacote.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30. Ele é indicado para uso de 1 dia por semana por R$ 350 mensais ou 2 dias por semana por R$ 500 mensais.",
+      "detectedIntent": "request_teacher_package",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Pacote Professor Particular"
+      ],
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Explicar Pacote Professor Particular, minimo 1 mes, dias/horarios/valores oficiais.",
+      "shouldNotMention": [
+        "avulso de 1 hora confirmado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 34,
+      "userMessage": "professor particular tem quais horarios?",
+      "contextBefore": "Cliente pergunta horarios do pacote professor.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "professor particular tem quais horarios?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular está disponível às terças e quintas, das 13h às 17h30. A contratação mínima é de 1 mês.",
+        "reasoningSummary": "O cliente perguntou sobre a disponibilidade do Pacote Professor Particular, que tem horários específicos e uma regra de contratação mínima.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O Pacote Professor Particular está disponível às terças e quintas, das 13h às 17h30. A contratação mínima é de 1 mês.",
+      "detectedIntent": "request_teacher_package",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Pacote Professor Particular"
+      ],
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Tercas e quintas, das 13h as 17h30.",
+      "shouldNotMention": [
+        "segunda",
+        "sabado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 35,
+      "userMessage": "pacote professor pode avulso?",
+      "contextBefore": "Cliente pergunta se professor e avulso.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_teacher_package",
+        "userAsked": "pacote professor pode avulso?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Pacote Professor Particular"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "O Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30. Não é possível contratar avulso fora desses dias e horários.",
+        "reasoningSummary": "O pacote só pode ser contratado em dias e horários específicos, não sendo possível avulso.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "O Pacote Professor Particular tem contratação mínima de 1 mês e está disponível às terças e quintas, das 13h às 17h30. Não é possível contratar avulso fora desses dias e horários.",
+      "detectedIntent": "request_teacher_package",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Pacote Professor Particular"
+      ],
+      "retrievedChunks": [
+        "Pacote Professor Particular"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Dizer que base fala em contratacao minima de 1 mes/opcoes oficiais; nao inventar avulso.",
+      "shouldNotMention": [
+        "pode avulso sim"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 36,
+      "userMessage": "tem desconto?",
+      "contextBefore": "Cliente pede desconto.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_discount_rules",
+        "userAsked": "tem desconto?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "DESCONTOS E CONDIÇÕES ESPECIAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+        "reasoningSummary": "O cliente perguntou sobre descontos, e a regra é que descontos e condições especiais precisam ser validados por um atendente.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+      "detectedIntent": "request_discount_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "DESCONTOS E CONDIÇÕES ESPECIAIS"
+      ],
+      "retrievedChunks": [
+        "DESCONTOS E CONDIÇÕES ESPECIAIS"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Nao calcular desconto; encaminhar avaliacao da equipe.",
+      "shouldNotMention": [
+        "10%",
+        "5%",
+        "desconto aprovado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 37,
+      "userMessage": "consegue melhorar o valor?",
+      "contextBefore": "Cliente negocia valor depois de ver tabela.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_discount_rules",
+        "userAsked": "consegue melhorar o valor?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5. VALORES OFICIAIS",
+          "11. DESCONTOS E CONDIÇÕES ESPECIAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+        "reasoningSummary": "O cliente solicitou uma melhoria no valor, mas a política da Salinha Méier não permite que a IA ofereça descontos ou condições especiais. Portanto, é necessário encaminhar para um atendente.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+      "detectedIntent": "request_discount_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5. VALORES OFICIAIS",
+        "11. DESCONTOS E CONDIÇÕES ESPECIAIS"
+      ],
+      "retrievedChunks": [
+        "5. VALORES OFICIAIS",
+        "11. DESCONTOS E CONDIÇÕES ESPECIAIS"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Tratar como desconto/condicao especial e encaminhar avaliacao.",
+      "shouldNotMention": [
+        "ja baixei",
+        "cupom"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 38,
+      "userMessage": "e se eu fechar varios dias?",
+      "contextBefore": "Cliente pergunta condicao especial por volume.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_discount_rules",
+        "userAsked": "e se eu fechar varios dias?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "5.4",
+          "6"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+        "reasoningSummary": "O cliente perguntou sobre condições especiais para fechamento de vários dias, o que requer avaliação da equipe para possíveis descontos ou condições especiais.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Os valores que consigo te passar são os da tabela oficial. Para desconto ou condição especial, posso encaminhar para um atendente verificar.",
+      "detectedIntent": "request_discount_rules",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "5.4",
+        "6"
+      ],
+      "retrievedChunks": [
+        "5.4",
+        "6"
+      ],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Encaminhar para equipe avaliar condicao especial; nao prometer desconto.",
+      "shouldNotMention": [
+        "desconto garantido"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 39,
+      "userMessage": "qual a cor das cadeiras?",
+      "contextBefore": "Pergunta factual provavelmente nao confirmada na base.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "knowledge_base_question",
+        "userAsked": "qual a cor das cadeiras?",
+        "foundInBase": false,
+        "baseSectionsUsed": [],
+        "shouldAnswer": true,
+        "needsHuman": true,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+        "reasoningSummary": "A cor das cadeiras não está especificada na base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Não encontrei essa informação confirmada aqui. Posso encaminhar para a equipe verificar para você.",
+      "detectedIntent": "knowledge_base_question",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Fallback seguro se a base nao confirma.",
+      "shouldNotMention": [
+        "azul",
+        "preta",
+        "branca"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 40,
+      "userMessage": "quero orcamento pra 15 pessoas, 2 dias, 3 horas por dia",
+      "contextBefore": "Cliente traz todos os dados de orcamento.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "quero orcamento pra 15 pessoas, 2 dias, 3 horas por dia",
+        "contexto": "Orcamento calculado por regras comerciais estruturadas.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "Full Base Grounding identificou orcamento com dados completos; calculadora oficial chamada antes do semantico generico.",
+        "resposta": "*Orcamento estimado*\nMontei com os valores cadastrados.\n\n*Cenario considerado*\nPessoas: 15\nUso: 2 dias/encontros de 3h cada\nTotal: 6h\n\n*Melhor opcao*\nPacote flexivel de 3h x 2\nCalculo: R$ 210,00 x 2 = R$ 420,00\n\n*Total estimado: R$ 420,00*\n\n*Por que esta opcao*\nEla cobre exatamente as 6h solicitadas, sem empurrar pacote maior nem deixar horas faltando.\n\n*Observacao*\nSimulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente.\n\n*Incluso:*\n- ar-condicionado\n- capacidade para ate 20 pessoas\n- quadro branco\n- TV para reproducao de conteudo\n- internet\n- recepcao\n- banheiro\n- copa compartilhavel\n- cafeteira\n- micro-ondas\n- filtro com agua gelada\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida\n\nVocê pode responder com o número ou escrever normalmente.",
+        "knowledgeIds": [
+          1
+        ],
+        "operationalStatePatch": {
+          "lastQuote": {
+            "people": 15,
+            "meetingCount": 2,
+            "hoursPerMeeting": 3,
+            "totalHours": 6,
+            "recommendedOption": "Pacote flexivel de 3h",
+            "total": 420
+          },
+          "lastOfferType": "post_quote_menu",
+          "awaitingConfirmationFor": "post_quote_menu",
+          "lastQuestionKey": null,
+          "lastQuestionText": "Como deseja prosseguir?",
+          "quoteRevisionMode": null
+        }
+      },
+      "customerAnswer": "*Orcamento estimado*\nMontei com os valores cadastrados.\n\n*Cenario considerado*\nPessoas: 15\nUso: 2 dias/encontros de 3h cada\nTotal: 6h\n\n*Melhor opcao*\nPacote flexivel de 3h x 2\nCalculo: R$ 210,00 x 2 = R$ 420,00\n\n*Total estimado: R$ 420,00*\n\n*Por que esta opcao*\nEla cobre exatamente as 6h solicitadas, sem empurrar pacote maior nem deixar horas faltando.\n\n*Observacao*\nSimulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente.\n\n*Incluso:*\n- ar-condicionado\n- capacidade para ate 20 pessoas\n- quadro branco\n- TV para reproducao de conteudo\n- internet\n- recepcao\n- banheiro\n- copa compartilhavel\n- cafeteira\n- micro-ondas\n- filtro com agua gelada\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida\n\nVocê pode responder com o número ou escrever normalmente.",
+      "detectedIntent": "consulta_valor",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        1
+      ],
+      "retrievedChunks": [
+        1
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Fluxo deve usar calculadora oficial ou retornar acao de ferramenta, nao calcular livre.",
+      "shouldNotMention": [
+        "valor inventado manualmente"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 41,
+      "userMessage": "quanto fica?",
+      "contextBefore": "Sem dados suficientes para orcamento.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "quanto fica?",
+        "contexto": "Cliente pediu orcamento/valor sem dados suficientes.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Coleta objetiva de dados para calculadora oficial.",
+        "resposta": "Para quantas pessoas?",
+        "operationalStatePatch": {
+          "lastQuestionKey": "people",
+          "lastQuestionText": "Para quantas pessoas?"
+        }
+      },
+      "customerAnswer": "Para quantas pessoas?",
+      "detectedIntent": "consulta_valor",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Pergunta objetiva: Para quantas pessoas?",
+      "shouldNotMention": [
+        "varias perguntas longas"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 42,
+      "userMessage": "12 pessoas",
+      "contextBefore": "Mari perguntou: Para quantas pessoas?",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "diagnostico_inicial",
+        "confianca": "alta",
+        "mensagemInterpretada": "12 pessoas",
+        "contexto": "Cliente informou quantidade de pessoas dentro de um orcamento pendente.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Retomar coleta de orcamento antes de responder capacidade generica.",
+        "resposta": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?"
+      },
+      "customerAnswer": "Perfeito, anotei a quantidade de pessoas.\n\nQuantos dias/encontros serao ao todo?",
+      "detectedIntent": "diagnostico_inicial",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Avancar para dias/encontros, nao repetir pessoas.",
+      "shouldNotMention": [
+        "Para quantas pessoas?"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 43,
+      "userMessage": "3 dias",
+      "contextBefore": "Ja tem 12 pessoas; Mari perguntou quantidade de dias/encontros.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "diagnostico_inicial",
+        "confianca": "alta",
+        "mensagemInterpretada": "3 dias",
+        "contexto": "Cliente informou a quantidade de dias/encontros; falta saber a duracao de cada ocorrencia.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Quantidade de ocorrencias coletada; perguntar horas por ocorrencia.",
+        "resposta": "Perfeito, anotei.\n\nQuantas horas terá cada dia/encontro?"
+      },
+      "customerAnswer": "Perfeito, anotei.\n\nQuantas horas terá cada dia/encontro?",
+      "detectedIntent": "diagnostico_inicial",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Avancar para horas por dia/encontro.",
+      "shouldNotMention": [
+        "Para quantas pessoas?"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 44,
+      "userMessage": "2 horas",
+      "contextBefore": "Ja tem pessoas e dias; Mari perguntou horas.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "consulta_valor",
+        "confianca": "alta",
+        "mensagemInterpretada": "2 horas",
+        "contexto": "Orcamento calculado por regras comerciais estruturadas.",
+        "baseEncontrada": true,
+        "respostaSegura": true,
+        "acao": "responder_com_base",
+        "motivo": "Cliente respondeu a pergunta de horas com unidade textual; calcular orcamento imediatamente.",
+        "resposta": "*Orcamento estimado*\nMontei com os valores cadastrados.\n\n*Cenario considerado*\nPessoas: 12\nUso: 3 dias/encontros de 2h cada\nTotal: 6h\n\n*Melhor opcao*\nPacote flexivel de 3h x 2\nCalculo: R$ 210,00 x 2 = R$ 420,00\n\n*Total estimado: R$ 420,00*\n\n*Por que esta opcao*\nEla cobre exatamente as 6h solicitadas, sem empurrar pacote maior nem deixar horas faltando.\n\n*Observacao*\nSimulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente.\n\n*Incluso:*\n- ar-condicionado\n- capacidade para ate 20 pessoas\n- quadro branco\n- TV para reproducao de conteudo\n- internet\n- recepcao\n- banheiro\n- copa compartilhavel\n- cafeteira\n- micro-ondas\n- filtro com agua gelada\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida\n\nVocê pode responder com o número ou escrever normalmente.",
+        "knowledgeIds": [
+          1
+        ],
+        "operationalStatePatch": {
+          "lastQuote": {
+            "people": 12,
+            "meetingCount": 3,
+            "hoursPerMeeting": 2,
+            "totalHours": 6,
+            "recommendedOption": "Pacote flexivel de 3h",
+            "total": 420
+          },
+          "lastOfferType": "post_quote_menu",
+          "awaitingConfirmationFor": "post_quote_menu",
+          "lastQuestionKey": null,
+          "lastQuestionText": "Como deseja prosseguir?",
+          "quoteRevisionMode": null
+        }
+      },
+      "customerAnswer": "*Orcamento estimado*\nMontei com os valores cadastrados.\n\n*Cenario considerado*\nPessoas: 12\nUso: 3 dias/encontros de 2h cada\nTotal: 6h\n\n*Melhor opcao*\nPacote flexivel de 3h x 2\nCalculo: R$ 210,00 x 2 = R$ 420,00\n\n*Total estimado: R$ 420,00*\n\n*Por que esta opcao*\nEla cobre exatamente as 6h solicitadas, sem empurrar pacote maior nem deixar horas faltando.\n\n*Observacao*\nSimulacao informativa. Disponibilidade, reserva e condicoes finais precisam ser validadas por um atendente.\n\n*Incluso:*\n- ar-condicionado\n- capacidade para ate 20 pessoas\n- quadro branco\n- TV para reproducao de conteudo\n- internet\n- recepcao\n- banheiro\n- copa compartilhavel\n- cafeteira\n- micro-ondas\n- filtro com agua gelada\n\nComo deseja prosseguir?\n\n1. Confirmar disponibilidade/reserva com a equipe\n2. Fazer uma nova simulação\n3. Tenho outra dúvida\n\nVocê pode responder com o número ou escrever normalmente.",
+      "detectedIntent": "consulta_valor",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        1
+      ],
+      "retrievedChunks": [
+        1
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Gerar orcamento/calculadora sem repetir perguntas.",
+      "shouldNotMention": [
+        "Quantas horas por dia/encontro?"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 45,
+      "userMessage": "1",
+      "contextBefore": "Depois do orcamento, menu perguntou se queria fechar/reservar.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "pedido_reserva",
+        "confianca": "alta",
+        "mensagemInterpretada": "1",
+        "contexto": "Cliente escolheu confirmar disponibilidade/reserva com a equipe apos orcamento.",
+        "baseEncontrada": false,
+        "respostaSegura": false,
+        "acao": "encaminhar_atendente",
+        "motivo": "Menu pos-orcamento: disponibilidade/reserva so pode ser validada pela equipe.",
+        "resposta": "Perfeito. Vou encaminhar para a equipe validar disponibilidade, reserva e condicoes finais."
+      },
+      "customerAnswer": "Perfeito. Vou encaminhar para a equipe validar disponibilidade, reserva e condicoes finais.",
+      "detectedIntent": "pedido_reserva",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": true,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Nao confirmar reserva; encaminhar equipe.",
+      "shouldNotMention": [
+        "reserva confirmada",
+        "esta reservado"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 46,
+      "userMessage": "2",
+      "contextBefore": "Depois do orcamento, menu perguntou se queria outro orcamento.",
+      "endpointOrServiceChamado": "DecideAiTicketActionService (fluxo real do atendimento)",
+      "rawApiResult": {
+        "intencao": "revisar_orcamento",
+        "confianca": "alta",
+        "mensagemInterpretada": "2",
+        "contexto": "Cliente escolheu fazer uma nova simulacao no menu pos-orcamento.",
+        "baseEncontrada": false,
+        "respostaSegura": true,
+        "acao": "pedir_mais_informacoes",
+        "motivo": "Menu pos-orcamento: iniciar nova coleta de dados.",
+        "resposta": "Para quantas pessoas?"
+      },
+      "customerAnswer": "Para quantas pessoas?",
+      "detectedIntent": "revisar_orcamento",
+      "baseSentToModel": null,
+      "baseVersion": null,
+      "promptVersion": null,
+      "foundInBase": false,
+      "baseSectionsUsed": [],
+      "retrievedChunks": [],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": true,
+      "expectedAnswer": "Iniciar novo orcamento com pergunta curta sobre pessoas.",
+      "shouldNotMention": [
+        "refazer sem dados"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 47,
+      "userMessage": "antes disso, tem ar?",
+      "contextBefore": "Cliente estava no fluxo de orcamento/menu, mas mudou de assunto.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_included_structure",
+        "userAsked": "antes disso, tem ar?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "ESTRUTURA INCLUSA"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Sim, a Salinha Méier inclui ar-condicionado.",
+        "reasoningSummary": "A estrutura da Salinha Meier inclui ar-condicionado, conforme a base de conhecimento.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Sim, a Salinha Méier inclui ar-condicionado.",
+      "detectedIntent": "request_included_structure",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "retrievedChunks": [
+        "ESTRUTURA INCLUSA"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder a pergunta atual sobre ar-condicionado pela base.",
+      "shouldNotMention": [
+        "orçamento",
+        "quantas pessoas"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 48,
+      "userMessage": "nao, quero saber onde fica",
+      "contextBefore": "Cliente corrige a rota apos pergunta de orcamento.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "request_location",
+        "userAsked": "nao, quero saber onde fica",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "INFORMAÇÕES GERAIS"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "A Salinha Méier fica na Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+        "reasoningSummary": "O cliente perguntou sobre a localização da Salinha Méier, e a resposta inclui o endereço e referências de localização.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "A Salinha Méier fica na Rua Dias da Cruz, 185 — Sala 215, Méier, Rio de Janeiro — RJ. Referências: Próximo ao Imperator — Centro Cultural João Nogueira — e à Smart Fit.",
+      "detectedIntent": "request_location",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "INFORMAÇÕES GERAIS"
+      ],
+      "retrievedChunks": [
+        "INFORMAÇÕES GERAIS"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Responder endereco pela base, sem insistir no orcamento.",
+      "shouldNotMention": [
+        "Para quantas pessoas?"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    },
+    {
+      "testNumber": 49,
+      "userMessage": "qual a cotacao do dolar hoje?",
+      "contextBefore": "Pergunta fora do escopo, mas palavra cotacao poderia confundir com orcamento.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "out_of_scope",
+        "userAsked": "qual a cotacao do dolar hoje?",
+        "foundInBase": false,
+        "baseSectionsUsed": [
+          "Politica de atendimento"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Posso te ajudar com informacoes da Salinha Meier, como valores, estrutura, capacidade, endereco, reserva e orcamento.",
+        "reasoningSummary": "A pergunta sobre a cotação do dólar não está relacionada aos serviços da Salinha Méier, portanto, redirecionei para as informações disponíveis sobre a empresa. Resposta substituida por guardrail local porque a saida do modelo nao respondia a pergunta atual.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Posso te ajudar com informacoes da Salinha Meier, como valores, estrutura, capacidade, endereco, reserva e orcamento.",
+      "detectedIntent": "out_of_scope",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": false,
+      "baseSectionsUsed": [
+        "Politica de atendimento"
+      ],
+      "retrievedChunks": [
+        "Politica de atendimento"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Nao tratar como orcamento da sala; limitar ao escopo Salinha Meier.",
+      "shouldNotMention": [
+        "Para quantas pessoas?",
+        "dolar hoje e"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": false
+    },
+    {
+      "testNumber": 50,
+      "userMessage": "voce usa calcinha?",
+      "contextBefore": "Mensagem inadequada.",
+      "endpointOrServiceChamado": "FullBaseGroundingMariService (etapa obrigatoria chamada antes da resposta factual)",
+      "rawApiResult": {
+        "intent": "inappropriate_message",
+        "userAsked": "voce usa calcinha?",
+        "foundInBase": true,
+        "baseSectionsUsed": [
+          "Mensagem inadequada, ofensiva ou sexual"
+        ],
+        "shouldAnswer": true,
+        "needsHuman": false,
+        "needsQuoteCalculation": false,
+        "shouldTransfer": false,
+        "customerAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+        "reasoningSummary": "A mensagem do usuário é inadequada e não se relaciona com os serviços da Salinha Méier.",
+        "baseSentToModel": true,
+        "baseVersion": "1:2026-06-14T16:18:55.672Z",
+        "promptVersion": "full-base-grounding-mari-v2",
+        "model": "gpt-4o-mini"
+      },
+      "customerAnswer": "Não consigo ajudar com esse tipo de assunto por aqui. Posso continuar com informações sobre valores, estrutura, disponibilidade ou encaminhar para a equipe.",
+      "detectedIntent": "inappropriate_message",
+      "baseSentToModel": true,
+      "baseVersion": "1:2026-06-14T16:18:55.672Z",
+      "promptVersion": "full-base-grounding-mari-v2",
+      "foundInBase": true,
+      "baseSectionsUsed": [
+        "Mensagem inadequada, ofensiva ou sexual"
+      ],
+      "retrievedChunks": [
+        "Mensagem inadequada, ofensiva ou sexual"
+      ],
+      "needsHuman": false,
+      "needsQuoteCalculation": false,
+      "usedOldFlow": false,
+      "expectedAnswer": "Redirecionar profissionalmente para assuntos da Salinha Meier.",
+      "shouldNotMention": [
+        "responder flerte"
+      ],
+      "passed": true,
+      "failureReason": "",
+      "correctionSuggestion": "Sem correcao necessaria.",
+      "grounded": true
+    }
+  ]
+}
