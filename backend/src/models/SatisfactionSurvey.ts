@@ -23,6 +23,17 @@ class SatisfactionSurvey extends Model<SatisfactionSurvey> {
   @Column(DataType.TEXT)
   thankYouMessage: string;
 
+  @Default(false)
+  @Column
+  collectFeedbackText: boolean;
+
+  @Column(DataType.TEXT)
+  feedbackQuestion: string;
+
+  @Default(60)
+  @Column
+  feedbackTimeoutMinutes: number;
+
   @Default("1_5")
   @Column
   scaleType: string;

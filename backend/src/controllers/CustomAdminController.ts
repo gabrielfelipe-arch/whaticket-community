@@ -1,5 +1,4 @@
 ﻿import { Request, Response } from "express";
-import { Op } from "sequelize";
 import AppError from "../errors/AppError";
 
 import TicketCategory from "../models/TicketCategory";
@@ -391,23 +390,27 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     }
 
     const parentOptionId = nullableNumber(data.parentOptionId);
-    const duplicatedOption = await UraOption.findOne({
+    const currentOptionId = nullableNumber(data.id);
+    const optionKey = String(data.optionKey || "").trim();
+    const duplicatedOptions = await UraOption.findAll({
       where: {
         flowId: Number(data.flowId),
         parentOptionId,
-        optionKey: data.optionKey,
-        ...(data.id ? { id: { [Op.ne]: data.id } } : {})
+        optionKey
       }
     });
+    const duplicatedOption = duplicatedOptions.find(option =>
+      !currentOptionId || Number(option.id) !== Number(currentOptionId)
+    );
 
-    if (duplicatedOption && Number(duplicatedOption.id) !== Number(data.id)) {
+    if (duplicatedOption) {
       throw new AppError("Ja existe uma opcao com esse numero neste menu/submenu.", 400);
     }
 
     return {
       flowId: Number(data.flowId),
       parentOptionId,
-      optionKey: data.optionKey,
+      optionKey,
       title: data.title,
       responseMessage: data.responseMessage || null,
       responseMediaUrl: data.responseMediaUrl || null,
@@ -516,11 +519,16 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     if (active && sendMode !== "disabled") {
       requireField(data.question, "Informe a mensagem da pesquisa de satisfacao.");
     }
+    const collectFeedbackText = data.collectFeedbackText === true || data.collectFeedbackText === "true";
+    const feedbackTimeoutMinutes = Math.max(Number(data.feedbackTimeoutMinutes || 60), 1);
 
     return {
       name: data.name,
       question: data.question || "",
       thankYouMessage: data.thankYouMessage || null,
+      collectFeedbackText,
+      feedbackQuestion: data.feedbackQuestion || null,
+      feedbackTimeoutMinutes,
       scaleType: allowedScales.includes(data.scaleType) ? data.scaleType : "1_5",
       sendMode,
       active

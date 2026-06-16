@@ -320,20 +320,26 @@ const Contacts = () => {
         <DialogTitle>Importar contatos por planilha</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="textSecondary" paragraph>
-            Use um arquivo CSV, XLS ou XLSX com uma linha de cabeçalho. O sistema lê a primeira aba da planilha.
+            Antes de importar, crie uma planilha com a primeira linha contendo os nomes das colunas. O sistema le somente a primeira aba do arquivo.
           </Typography>
-          <Typography variant="subtitle2">Colunas aceitas</Typography>
+          <Typography variant="subtitle2">Como montar a planilha</Typography>
           <Typography variant="body2" paragraph>
-            <strong>nome</strong>, <strong>numero</strong> ou <strong>telefone</strong>, <strong>email</strong> e <strong>etiquetas</strong>.
+            A coluna <strong>nome</strong> e obrigatoria. Para o telefone, use uma coluna chamada <strong>telefone</strong> ou <strong>numero</strong>. As colunas <strong>email</strong> e <strong>etiquetas</strong> sao opcionais.
           </Typography>
-          <Typography variant="subtitle2">Exemplo</Typography>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Informe o telefone com DDI e DDD, somente numeros. Exemplo: 5521999999999. Cada linha da planilha vira um contato.
+          </Typography>
+          <Typography variant="subtitle2">Modelo recomendado</Typography>
           <Typography variant="body2" component="pre" style={{ whiteSpace: "pre-wrap", marginTop: 8 }}>
             nome;telefone;email;etiquetas{"\n"}
             Maria Silva;5521999999999;maria@email.com;Cliente VIP,Curso{"\n"}
             Joao Souza;5521888888888;;Lead|Orcamento
           </Typography>
+          <Typography variant="body2" color="textSecondary" paragraph>
+            Em arquivos CSV, separe as colunas por ponto e virgula, como no exemplo acima. Em XLS ou XLSX, coloque cada informacao em sua propria coluna.
+          </Typography>
           <Typography variant="body2" color="textSecondary">
-            As etiquetas podem ser separadas por virgula, ponto e virgula ou barra vertical. Etiquetas que ainda nao existirem serao criadas automaticamente.
+            Na coluna etiquetas, voce pode informar mais de uma etiqueta separando por virgula, ponto e virgula ou barra vertical. Etiquetas novas serao criadas automaticamente.
           </Typography>
         </DialogContent>
         <DialogActions>

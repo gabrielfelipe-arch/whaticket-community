@@ -6,6 +6,8 @@ import {
   Grid,
   MenuItem,
   Paper,
+  Tab,
+  Tabs,
   TextField,
   Typography
 } from "@material-ui/core";
@@ -25,6 +27,11 @@ const useStyles = makeStyles(theme => ({
   },
   pageHeader: {
     marginBottom: theme.spacing(2)
+  },
+  tabs: {
+    marginBottom: theme.spacing(2),
+    minHeight: 44,
+    borderBottom: `1px solid ${theme.palette.divider}`
   },
   contentPaper: {
     padding: theme.spacing(2),
@@ -59,6 +66,7 @@ const Integrations = () => {
   const classes = useStyles();
   const [settings, setSettings] = useState({});
   const [saving, setSaving] = useState(false);
+  const [tab, setTab] = useState(0);
 
   const loadSettings = async () => {
     try {
@@ -106,95 +114,109 @@ const Integrations = () => {
         </Typography>
       </div>
 
+      <Tabs
+        value={tab}
+        onChange={(event, value) => setTab(value)}
+        indicatorColor="primary"
+        textColor="primary"
+        className={classes.tabs}
+      >
+        <Tab label="GLPI" />
+      </Tabs>
+
       <Paper className={classes.contentPaper} variant="outlined">
-        <Typography variant="h6" className={classes.sectionTitle}>
-          GLPI
-        </Typography>
-        <Typography variant="body2" color="textSecondary" className={classes.helper}>
-          Quando ativado, o sistema pode abrir chamados no GLPI usando os dados abaixo.
-        </Typography>
+        {tab === 0 && (
+          <>
+            <Typography variant="h6" className={classes.sectionTitle}>
+              GLPI
+            </Typography>
+            <Typography variant="body2" color="textSecondary" className={classes.helper}>
+              Quando ativado, o sistema pode abrir chamados no GLPI usando os dados abaixo.
+            </Typography>
 
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              select
-              fullWidth
-              margin="dense"
-              variant="outlined"
-              label="Integração GLPI"
-              name="glpiEnabled"
-              value={settings.glpiEnabled || "disabled"}
-              onChange={handleChange}
-            >
-              <MenuItem value="disabled">Desativada</MenuItem>
-              <MenuItem value="enabled">Ativada</MenuItem>
-            </TextField>
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              margin="dense"
-              variant="outlined"
-              label="URL da API GLPI"
-              name="glpiApiUrl"
-              value={settings.glpiApiUrl || ""}
-              onChange={handleChange}
-              placeholder="https://glpi.exemplo.com/apirest.php"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="password"
-              margin="dense"
-              variant="outlined"
-              label="App Token"
-              name="glpiAppToken"
-              value={settings.glpiAppToken || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              type="password"
-              margin="dense"
-              variant="outlined"
-              label="User Token"
-              name="glpiUserToken"
-              value={settings.glpiUserToken || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              margin="dense"
-              variant="outlined"
-              label="ID da entidade"
-              name="glpiEntityId"
-              value={settings.glpiEntityId || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              margin="dense"
-              variant="outlined"
-              label="ID da categoria GLPI"
-              name="glpiCategoryId"
-              value={settings.glpiCategoryId || ""}
-              onChange={handleChange}
-            />
-          </Grid>
-        </Grid>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  select
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Integração GLPI"
+                  name="glpiEnabled"
+                  value={settings.glpiEnabled || "disabled"}
+                  onChange={handleChange}
+                >
+                  <MenuItem value="disabled">Desativada</MenuItem>
+                  <MenuItem value="enabled">Ativada</MenuItem>
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="URL da API GLPI"
+                  name="glpiApiUrl"
+                  value={settings.glpiApiUrl || ""}
+                  onChange={handleChange}
+                  placeholder="https://glpi.exemplo.com/apirest.php"
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="password"
+                  margin="dense"
+                  variant="outlined"
+                  label="App Token"
+                  name="glpiAppToken"
+                  value={settings.glpiAppToken || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type="password"
+                  margin="dense"
+                  variant="outlined"
+                  label="User Token"
+                  name="glpiUserToken"
+                  value={settings.glpiUserToken || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="ID da entidade"
+                  name="glpiEntityId"
+                  value={settings.glpiEntityId || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="ID da categoria GLPI"
+                  name="glpiCategoryId"
+                  value={settings.glpiCategoryId || ""}
+                  onChange={handleChange}
+                />
+              </Grid>
+            </Grid>
 
-        <div className={classes.actions}>
-          <Button color="primary" variant="contained" onClick={saveSettings} disabled={saving}>
-            {saving ? "Salvando..." : "Salvar integração"}
-          </Button>
-        </div>
+            <div className={classes.actions}>
+              <Button color="primary" variant="contained" onClick={saveSettings} disabled={saving}>
+                {saving ? "Salvando..." : "Salvar integração"}
+              </Button>
+            </div>
+          </>
+        )}
       </Paper>
     </Container>
   );

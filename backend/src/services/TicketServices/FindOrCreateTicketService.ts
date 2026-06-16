@@ -145,6 +145,25 @@ const FindOrCreateTicketService = async (
     }
   }
 
+  if (!ticket && !groupContact && !fromMe) {
+    const satisfactionTicket = await Ticket.findOne({
+      where: {
+        contactId: contact.id,
+        whatsappId: whatsappId,
+        status: "closed",
+        satisfactionSurveyId: { [Op.gt]: 0 }
+      },
+      order: [["updatedAt", "DESC"]]
+    });
+
+    if (
+      satisfactionTicket &&
+      await shouldUseTicketForSatisfactionResponse(satisfactionTicket, incomingBody)
+    ) {
+      return ShowTicketService(satisfactionTicket.id);
+    }
+  }
+
   if (!ticket && !fromMe) {
     ticket = await Ticket.create({
       contactId: groupContact ? groupContact.id : contact.id,

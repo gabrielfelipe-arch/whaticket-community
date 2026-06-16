@@ -244,6 +244,15 @@ class Ticket extends Model<Ticket> {
   @Column
   satisfactionSurveyAnsweredAt: Date;
 
+  @Column
+  satisfactionFeedbackPendingAt: Date;
+
+  @Column
+  satisfactionFeedbackExpiresAt: Date;
+
+  @Column
+  satisfactionFeedbackClosedAt: Date;
+
   @HasMany(() => Message)
   messages: Message[];
 }

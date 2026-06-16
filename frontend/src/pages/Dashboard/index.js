@@ -578,6 +578,8 @@ const Dashboard = () => {
                     <TableCell>Categoria</TableCell>
                     <TableCell>Motivo</TableCell>
                     <TableCell align="right">Nota</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell>Comentário</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -588,11 +590,13 @@ const Dashboard = () => {
                       <TableCell>{row.category?.name || "Nao informada"}</TableCell>
                       <TableCell>{row.closingReason?.name || "Nao informado"}</TableCell>
                       <TableCell align="right">{row.rating}</TableCell>
+                      <TableCell>{row.feedbackType || "-"}</TableCell>
+                      <TableCell>{row.feedbackText || "Sem comentario"}</TableCell>
                     </TableRow>
                   ))}
                   {!(satisfaction.responses || []).length && (
                     <TableRow>
-                      <TableCell colSpan={5}>Nenhuma resposta encontrada.</TableCell>
+                      <TableCell colSpan={7}>Nenhuma resposta encontrada.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>

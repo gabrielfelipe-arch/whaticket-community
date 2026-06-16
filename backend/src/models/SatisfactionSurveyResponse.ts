@@ -1,6 +1,6 @@
 import {
   Table, Column, CreatedAt, UpdatedAt, Model, PrimaryKey,
-  AutoIncrement, ForeignKey, BelongsTo
+  AutoIncrement, ForeignKey, BelongsTo, DataType
 } from "sequelize-typescript";
 
 import Contact from "./Contact";
@@ -72,6 +72,12 @@ class SatisfactionSurveyResponse extends Model<SatisfactionSurveyResponse> {
 
   @Column
   rawAnswer: string;
+
+  @Column
+  feedbackType: string;
+
+  @Column(DataType.TEXT)
+  feedbackText: string;
 
   @CreatedAt
   createdAt: Date;

@@ -287,6 +287,27 @@ const resources = [
 			{ name: "question", label: "Mensagem da pesquisa", multiline: true, template: true, required: true },
 			{ name: "thankYouMessage", label: "Mensagem de agradecimento", multiline: true, template: true },
 			{
+				name: "collectFeedbackText",
+				label: "Coletar elogios, sugestoes ou reclamacoes",
+				type: "boolean",
+				helperText: "Depois da nota, envia uma pergunta opcional para capturar um comentario em texto."
+			},
+			{
+				name: "feedbackQuestion",
+				label: "Pergunta descritiva",
+				multiline: true,
+				template: true,
+				showWhen: form => !!form.collectFeedbackText,
+				helperText: "Ex: Se quiser, deixe um elogio, sugestao ou reclamacao sobre o atendimento."
+			},
+			{
+				name: "feedbackTimeoutMinutes",
+				label: "Tempo para aguardar comentario (minutos)",
+				type: "number",
+				showWhen: form => !!form.collectFeedbackText,
+				helperText: "Apos esse prazo, novas mensagens nao serao tratadas como resposta da pesquisa."
+			},
+			{
 				name: "scaleType",
 				label: "Tipo de escala",
 				type: "select",
@@ -3261,87 +3282,6 @@ const GeneralSettings = ({
 				</Grid>
 			</Grid>
 		</Paper>
-
-		<Typography variant="subtitle1" gutterBottom>
-			GLPI
-		</Typography>
-		<Paper className={classes.generalPaper}>
-			<Typography variant="body1">Integração GLPI</Typography>
-			<Select
-				margin="dense"
-				variant="outlined"
-				native
-				name="glpiEnabled"
-				value={getSettingValue("glpiEnabled") || "disabled"}
-				className={classes.settingOption}
-				onChange={onChangeSetting}
-			>
-				<option value="disabled">Desativada</option>
-				<option value="enabled">Ativada</option>
-			</Select>
-		</Paper>
-		<Paper className={classes.generalPaper}>
-			<Grid container spacing={2}>
-				<Grid item xs={12}>
-					<SettingTextField
-						fullWidth
-						label="URL da API GLPI"
-						name="glpiApiUrl"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-						placeholder="https://glpi.exemplo.com/apirest.php"
-					/>
-				</Grid>
-				<Grid item xs={12} sm={6}>
-					<SettingTextField
-						fullWidth
-						type="password"
-						label="App Token"
-						name="glpiAppToken"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-					/>
-				</Grid>
-				<Grid item xs={12} sm={6}>
-					<SettingTextField
-						fullWidth
-						type="password"
-						label="User Token"
-						name="glpiUserToken"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-					/>
-				</Grid>
-				<Grid item xs={12} sm={6}>
-					<SettingTextField
-						fullWidth
-						label="ID da entidade"
-						name="glpiEntityId"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-					/>
-				</Grid>
-				<Grid item xs={12} sm={6}>
-					<SettingTextField
-						fullWidth
-						label="ID da categoria GLPI"
-						name="glpiCategoryId"
-						getSettingValue={getSettingValue}
-						onChangeSetting={onChangeSetting}
-						margin="dense"
-						variant="outlined"
-					/>
-				</Grid>
-			</Grid>
-		</Paper>
 	</Container>
 );
 
@@ -3987,7 +3927,7 @@ const Settings = () => {
 				<div>
 					<Typography variant="h5">Configurações</Typography>
 					<Typography variant="body2" className={classes.sectionSubtitle}>
-						Cadastros administrativos, integrações, URA, IA, etiquetas e personalização visual.
+						Cadastros administrativos, URA, IA, etiquetas e personalização visual.
 					</Typography>
 				</div>
 			</div>
