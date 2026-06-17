@@ -581,7 +581,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { resource } = req.params;
-  const publicLookupResources = ["ticketCategories", "closingReasons"];
+  const publicLookupResources = ["ticketCategories", "closingReasons", "satisfactionSurveys"];
 
   if (req.user.profile !== "admin" && !publicLookupResources.includes(resource)) {
     throw new AppError("ERR_NO_PERMISSION", 403);

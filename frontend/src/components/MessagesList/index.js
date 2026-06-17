@@ -692,6 +692,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
     <div className={classes.messagesListWrapper}>
       <MessageOptionsMenu
         message={selectedMessage}
+        isGroup={isGroup}
         anchorEl={anchorEl}
         menuOpen={messageOptionsMenuOpen}
         handleClose={handleCloseMessageOptionsMenu}

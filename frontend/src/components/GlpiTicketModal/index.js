@@ -26,6 +26,7 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
   const [selectedMessageIds, setSelectedMessageIds] = useState([]);
   const [descriptionMode, setDescriptionMode] = useState("complete");
   const [title, setTitle] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
   const [description, setDescription] = useState("");
   const [entityId, setEntityId] = useState("");
   const [categoryId, setCategoryId] = useState("");
@@ -38,6 +39,16 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     () => messages.filter(message => selectedMessageIds.includes(message.id)),
     [messages, selectedMessageIds]
   );
+
+  const sourceContact = useMemo(() => {
+    const incomingSelected = selectedMessages.find(message => !message.fromMe && message.contact);
+    if (incomingSelected?.contact) return incomingSelected.contact;
+
+    const incomingMessage = [...messages].reverse().find(message => !message.fromMe && message.contact);
+    if (incomingMessage?.contact) return incomingMessage.contact;
+
+    return ticket?.contact;
+  }, [messages, selectedMessages, ticket]);
 
   useEffect(() => {
     if (!open || !ticket?.id) return;
@@ -55,9 +66,14 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
         setEntities(entityData || []);
         setCategories(categoryData || []);
         setLocations(locationData || []);
-        setMessages(messageData?.messages || []);
-        setTitle(`Atendimento WhatsApp #${ticket.id} - ${ticket.contact?.name || "Contato"}`);
-        setSelectedMessageIds([]);
+        const loadedMessages = messageData?.messages || [];
+        const latestIncomingMessage = [...loadedMessages].reverse().find(message => !message.fromMe);
+        const initialSourceContact = latestIncomingMessage?.contact || ticket.contact;
+
+        setMessages(loadedMessages);
+        setTitle(`Atendimento WhatsApp #${ticket.id} - ${initialSourceContact?.name || "Contato"}`);
+        setTitleTouched(false);
+        setSelectedMessageIds(latestIncomingMessage ? [latestIncomingMessage.id] : []);
         setForceCreate(false);
         setEntityId(entityData?.[0]?.glpiId || "");
         setCategoryId(categoryData?.[0]?.glpiId || "");
@@ -74,6 +90,10 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
 
   useEffect(() => {
     if (!open) return;
+    if (!titleTouched && sourceContact?.name) {
+      setTitle(`Atendimento WhatsApp #${ticket?.id || ""} - ${sourceContact.name}`);
+    }
+
     const selectedLines = selectedMessages.map(messageLine).join("\n");
     if (descriptionMode === "selected_messages") {
       setDescription(selectedLines);
@@ -81,17 +101,14 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     }
 
     setDescription([
-      `${ticket?.isGroup ? "Grupo" : "Nome do contato"}: ${ticket?.contact?.name || ""}`,
-      ticket?.isGroup ? "" : `Telefone: ${ticket?.contact?.number || ""}`,
-      "Origem: WhatsApp",
+      `Nome do contato: ${sourceContact?.name || ""}`,
+      `Telefone: ${sourceContact?.number || ""}`,
       `Atendimento RocketService: #${ticket?.id || ""}`,
       "",
-      "Mensagens selecionadas:",
-      selectedLines || "(nenhuma mensagem selecionada)",
-      "",
-      "Descricao complementar:"
-    ].join("\n"));
-  }, [descriptionMode, open, selectedMessages, ticket]);
+      "Relato do usuario:",
+      selectedLines || "(nenhuma mensagem selecionada)"
+    ].filter(line => line !== "").join("\n"));
+  }, [descriptionMode, open, selectedMessages, sourceContact, ticket, titleTouched]);
 
   const toggleMessage = messageId => {
     setSelectedMessageIds(prev =>
@@ -133,7 +150,18 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
         ) : (
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <TextField fullWidth required variant="outlined" margin="dense" label="Titulo do chamado" value={title} onChange={event => setTitle(event.target.value)} />
+              <TextField
+                fullWidth
+                required
+                variant="outlined"
+                margin="dense"
+                label="Titulo do chamado"
+                value={title}
+                onChange={event => {
+                  setTitleTouched(true);
+                  setTitle(event.target.value);
+                }}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth required variant="outlined" margin="dense" label="Unidade / Entidade GLPI" value={entityId} onChange={event => setEntityId(event.target.value)}>

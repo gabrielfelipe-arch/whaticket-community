@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import { useHistory } from "react-router-dom";
 
 import MenuItem from "@material-ui/core/MenuItem";
 
@@ -7,10 +8,13 @@ import api from "../../services/api";
 import ConfirmationModal from "../ConfirmationModal";
 import { Menu } from "@material-ui/core";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
+import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 
-const MessageOptionsMenu = ({ message, menuOpen, handleClose, anchorEl }) => {
+const MessageOptionsMenu = ({ message, isGroup, menuOpen, handleClose, anchorEl }) => {
+  const history = useHistory();
   const { setReplyingMessage } = useContext(ReplyMessageContext);
+  const { user } = useContext(AuthContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
 
   const handleDeleteMessage = async () => {
@@ -24,6 +28,27 @@ const MessageOptionsMenu = ({ message, menuOpen, handleClose, anchorEl }) => {
   const hanldeReplyMessage = () => {
     setReplyingMessage(message);
     handleClose();
+  };
+
+  const handleOpenPrivateTicket = async () => {
+    const contactId = message?.contact?.id;
+    if (!contactId) return;
+
+    try {
+      const preferredQueue = user?.queues?.find(queue => queue.glpiEnabled)
+        || user?.queues?.find(queue => !queue.useAI)
+        || user?.queues?.[0];
+      const { data: ticket } = await api.post("/tickets", {
+        contactId,
+        userId: user?.id,
+        status: "open",
+        queueId: preferredQueue?.id || null
+      });
+      handleClose();
+      history.push(`/tickets/${ticket.id}`);
+    } catch (err) {
+      toastError(err);
+    }
   };
 
   const handleOpenConfirmationModal = (e) => {
@@ -63,6 +88,11 @@ const MessageOptionsMenu = ({ message, menuOpen, handleClose, anchorEl }) => {
         <MenuItem onClick={hanldeReplyMessage}>
           {i18n.t("messageOptionsMenu.reply")}
         </MenuItem>
+        {isGroup && !message.fromMe && message.contact?.id && !message.contact?.isGroup && (
+          <MenuItem onClick={handleOpenPrivateTicket}>
+            Conversar no privado
+          </MenuItem>
+        )}
       </Menu>
     </>
   );
