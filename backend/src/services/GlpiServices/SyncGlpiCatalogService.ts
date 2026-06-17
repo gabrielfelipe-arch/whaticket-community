@@ -16,6 +16,12 @@ const normalizeRows = (data: any): any[] => {
 
 const getName = (row: any): string => row.completename || row.complete_name || row.name || String(row.id);
 
+const getEntityId = (row: any): number | null => {
+  const value = row.entities_id ?? row.entity_id ?? row.entityId;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+};
+
 const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
   let session;
   try {
@@ -42,6 +48,7 @@ const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
         glpiId: Number(row.id),
         name: row.name || getName(row),
         completeName: getName(row),
+        ...(type === "locations" ? { entityId: getEntityId(row) } : {}),
         active: row.is_deleted ? false : row.is_active !== 0,
         rawData: JSON.stringify(row),
         lastSyncAt: syncedAt

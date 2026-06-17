@@ -8,15 +8,20 @@ import {
   DialogTitle,
   FormControlLabel,
   Grid,
+  InputAdornment,
   MenuItem,
   TextField,
   Typography
 } from "@material-ui/core";
+import Autocomplete from "@material-ui/lab/Autocomplete";
+import SearchIcon from "@material-ui/icons/Search";
 import { toast } from "react-toastify";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
 const messageLine = message => message.body || "";
+const hasSelectedValue = value => value !== "" && value !== null && value !== undefined;
+const optionLabel = option => option?.completeName || option?.name || "";
 
 const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
   const [entities, setEntities] = useState([]);
@@ -39,6 +44,14 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     () => messages.filter(message => selectedMessageIds.includes(message.id)),
     [messages, selectedMessageIds]
   );
+  const selectedEntity = useMemo(
+    () => entities.find(entity => Number(entity.glpiId) === Number(entityId)) || null,
+    [entities, entityId]
+  );
+  const selectedLocation = useMemo(
+    () => locations.find(location => Number(location.glpiId) === Number(locationId)) || null,
+    [locations, locationId]
+  );
 
   const sourceContact = useMemo(() => {
     const incomingSelected = selectedMessages.find(message => !message.fromMe && message.contact);
@@ -56,16 +69,15 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     const load = async () => {
       setLoading(true);
       try {
-        const [{ data: entityData }, { data: categoryData }, { data: locationData }, { data: messageData }] = await Promise.all([
+        const [{ data: entityData }, { data: categoryData }, { data: messageData }] = await Promise.all([
           api.get("/glpi/entities"),
           api.get("/glpi/categories"),
-          api.get("/glpi/locations"),
           api.get(`/messages/${ticket.id}`)
         ]);
 
         setEntities(entityData || []);
         setCategories(categoryData || []);
-        setLocations(locationData || []);
+        setLocations([]);
         const loadedMessages = messageData?.messages || [];
         const latestIncomingMessage = [...loadedMessages].reverse().find(message => !message.fromMe);
         const initialSourceContact = latestIncomingMessage?.contact || ticket.contact;
@@ -75,7 +87,7 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
         setTitleTouched(false);
         setSelectedMessageIds(latestIncomingMessage ? [latestIncomingMessage.id] : []);
         setForceCreate(false);
-        setEntityId(entityData?.[0]?.glpiId || "");
+        setEntityId("");
         setCategoryId(categoryData?.[0]?.glpiId || "");
         setLocationId("");
       } catch (err) {
@@ -87,6 +99,26 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
 
     load();
   }, [open, ticket]);
+
+  useEffect(() => {
+    if (!open || !hasSelectedValue(entityId)) {
+      setLocations([]);
+      setLocationId("");
+      return;
+    }
+
+    const loadLocations = async () => {
+      try {
+        setLocationId("");
+        const { data } = await api.get("/glpi/locations", { params: { entityId } });
+        setLocations(data || []);
+      } catch (err) {
+        toastError(err);
+      }
+    };
+
+    loadLocations();
+  }, [entityId, open]);
 
   useEffect(() => {
     if (!open) return;
@@ -141,6 +173,8 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     }
   };
 
+  const hasSelectedEntity = hasSelectedValue(entityId);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>Chamado GLPI</DialogTitle>
@@ -164,11 +198,39 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField select fullWidth required variant="outlined" margin="dense" label="Unidade / Entidade GLPI" value={entityId} onChange={event => setEntityId(event.target.value)}>
-                {entities.map(entity => (
-                  <MenuItem key={entity.id} value={entity.glpiId}>{entity.completeName || entity.name}</MenuItem>
-                ))}
-              </TextField>
+              <Autocomplete
+                options={entities}
+                value={selectedEntity}
+                getOptionLabel={optionLabel}
+                getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                noOptionsText="Nenhuma entidade encontrada"
+                onChange={(event, option) => {
+                  setEntityId(option?.glpiId || "");
+                  setLocationId("");
+                }}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    required
+                    variant="outlined"
+                    margin="dense"
+                    label="Unidade / Entidade GLPI"
+                    placeholder="Pesquisar entidade"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <SearchIcon color="action" />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth required variant="outlined" margin="dense" label="Categoria GLPI" value={categoryId} onChange={event => setCategoryId(event.target.value)}>
@@ -178,12 +240,36 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
               </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField select fullWidth variant="outlined" margin="dense" label="Localizacao GLPI" value={locationId} onChange={event => setLocationId(event.target.value)}>
-                <MenuItem value="">Sem localizacao</MenuItem>
-                {locations.map(location => (
-                  <MenuItem key={location.id} value={location.glpiId}>{location.completeName || location.name}</MenuItem>
-                ))}
-              </TextField>
+              <Autocomplete
+                options={locations}
+                value={selectedLocation}
+                disabled={!hasSelectedEntity}
+                getOptionLabel={optionLabel}
+                getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                noOptionsText={hasSelectedEntity ? "Nenhuma localizacao encontrada" : "Selecione uma entidade primeiro"}
+                onChange={(event, option) => setLocationId(option?.glpiId || "")}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    variant="outlined"
+                    margin="dense"
+                    label="Localizacao GLPI"
+                    placeholder={hasSelectedEntity ? "Pesquisar localizacao" : "Selecione uma entidade primeiro"}
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <SearchIcon color="action" />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField select fullWidth variant="outlined" margin="dense" label="Modo da descricao" value={descriptionMode} onChange={event => setDescriptionMode(event.target.value)}>
@@ -229,7 +315,7 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose} disabled={submitting}>Cancelar</Button>
-        <Button color="primary" variant="contained" onClick={handleSubmit} disabled={submitting || !title || !description || !entityId || !categoryId}>
+        <Button color="primary" variant="contained" onClick={handleSubmit} disabled={submitting || !title || !description || !hasSelectedEntity || !categoryId}>
           {submitting ? "Criando..." : "Criar chamado"}
         </Button>
       </DialogActions>

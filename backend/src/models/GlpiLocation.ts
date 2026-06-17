@@ -31,6 +31,9 @@ class GlpiLocation extends Model<GlpiLocation> {
   @Column
   completeName: string;
 
+  @Column
+  entityId: number;
+
   @Default(true)
   @Column
   active: boolean;

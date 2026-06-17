@@ -114,13 +114,16 @@ export const listCategories = async (req: Request, res: Response): Promise<Respo
 
 export const listLocations = async (req: Request, res: Response): Promise<Response> => {
   const search = String(req.query.search || "").trim();
+  const hasEntityFilter = req.query.entityId !== undefined && String(req.query.entityId) !== "";
+  const entityId = hasEntityFilter ? Number(req.query.entityId) : null;
   const rows = await GlpiLocation.findAll({
     where: {
       active: true,
+      ...(hasEntityFilter ? { entityId } : {}),
       ...(search ? { [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { completeName: { [Op.iLike]: `%${search}%` } }] } : {})
     },
     order: [["completeName", "ASC"], ["name", "ASC"]],
-    limit: 100
+    limit: hasEntityFilter ? 1000 : 100
   });
   return res.json(rows);
 };

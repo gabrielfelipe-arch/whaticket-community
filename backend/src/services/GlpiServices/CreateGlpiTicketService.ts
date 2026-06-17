@@ -75,6 +75,9 @@ const CreateGlpiTicketService = async ({
   if (!entity) throw new AppError("Escolha uma entidade GLPI sincronizada.", 400);
   if (!category) throw new AppError("Escolha uma categoria GLPI sincronizada.", 400);
   if (locationId && !location) throw new AppError("Escolha uma localizacao GLPI sincronizada.", 400);
+  if (location && location.entityId !== null && location.entityId !== undefined && location.entityId !== entityId) {
+    throw new AppError("A localizacao escolhida nao pertence a entidade GLPI selecionada.", 400);
+  }
   if (!title?.trim()) throw new AppError("Informe o titulo do chamado GLPI.", 400);
   if (!description?.trim()) throw new AppError("Informe a descricao do chamado GLPI.", 400);
 
