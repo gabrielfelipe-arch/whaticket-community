@@ -3,6 +3,8 @@ import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
 import { getIO } from "../../libs/socket";
 import AppError from "../../errors/AppError";
 import Ticket from "../../models/Ticket";
+import Queue from "../../models/Queue";
+import UserQueue from "../../models/UserQueue";
 import ShowTicketService from "./ShowTicketService";
 import {
   distributeTicketIfNeeded,
@@ -154,13 +156,45 @@ const UpdateTicketService = async ({
     await CheckContactOpenTickets(ticket.contact.id, ticket.whatsappId);
   }
 
+  let effectiveQueueId = queueId;
+  if (status === "open" && userId) {
+    const userQueues = await UserQueue.findAll({ where: { userId } });
+    const userQueueIds = userQueues.map(userQueue => userQueue.queueId).filter(Boolean);
+    const requestedQueue = effectiveQueueId
+      ? await Queue.findByPk(effectiveQueueId)
+      : null;
+    const currentQueue = !effectiveQueueId && ticket.queueId
+      ? await Queue.findByPk(ticket.queueId)
+      : null;
+    const shouldChooseAttendanceQueue =
+      !effectiveQueueId ||
+      requestedQueue?.useAI ||
+      currentQueue?.useAI ||
+      ticket.aiActive ||
+      ticket.uraActive;
+
+    if (userQueueIds.length && shouldChooseAttendanceQueue) {
+      const handoffQueue = ticket.aiHumanHandoffQueueId && userQueueIds.includes(ticket.aiHumanHandoffQueueId)
+        ? await Queue.findByPk(ticket.aiHumanHandoffQueueId)
+        : null;
+      const glpiQueue = await Queue.findOne({
+        where: {
+          id: userQueueIds,
+          glpiEnabled: true
+        },
+        order: [["id", "ASC"]]
+      });
+      effectiveQueueId = handoffQueue?.id || glpiQueue?.id || userQueueIds[0];
+    }
+  }
+
   const shouldDisableBot = status === "closed" || (status === "open" && !!userId);
   const shouldDisableUra = status === "closed" || (status === "open" && !!userId);
   const disableBotAt = shouldDisableBot && ticket.aiActive ? new Date() : aiFinishedAt;
 
   await ticket.update({
     status,
-    queueId,
+    queueId: effectiveQueueId,
     userId,
     categoryId,
     closingReasonId,
@@ -217,8 +251,8 @@ const UpdateTicketService = async ({
   let updatedTicket = await ShowTicketService(ticket.id);
 
   if (
-    queueId &&
-    queueId !== oldQueueId &&
+    effectiveQueueId &&
+    effectiveQueueId !== oldQueueId &&
     !updatedTicket.userId &&
     updatedTicket.status !== "closed"
   ) {

@@ -1,129 +1,165 @@
 import axios from "axios";
-
-import Setting from "../../models/Setting";
+import AppError from "../../errors/AppError";
+import GlpiCategory from "../../models/GlpiCategory";
+import GlpiEntity from "../../models/GlpiEntity";
+import GlpiLocation from "../../models/GlpiLocation";
+import GlpiTicketLink from "../../models/GlpiTicketLink";
+import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
-import { logger } from "../../utils/logger";
+import Queue from "../../models/Queue";
+import { buildGlpiTicketUrl, closeGlpiSession, getGlpiSettings, glpiHeaders, initGlpiSession, normalizeGlpiError } from "./GlpiClientService";
+import CreateGlpiLogService from "./GlpiLogService";
 
-type GlpiSettings = {
-  enabled: boolean;
-  apiUrl: string;
-  appToken: string;
-  userToken: string;
-  entityId?: number;
-  categoryId?: number;
+type Request = {
+  ticketId: number;
+  userId: number;
+  title: string;
+  description: string;
+  entityId: number;
+  categoryId: number;
+  locationId?: number | null;
+  descriptionMode?: string;
+  selectedMessageIds?: string[];
+  forceCreate?: boolean;
 };
 
-const getSettingValue = async (key: string): Promise<string> => {
-  const setting = await Setting.findByPk(key);
-  return setting?.value || "";
+const buildMessageExcerpt = async (messageIds: string[]): Promise<string[]> => {
+  const messages = await Message.findAll({
+    where: { id: messageIds },
+    order: [["createdAt", "ASC"]]
+  });
+
+  return messages.map(message => message.body || "").filter(Boolean);
 };
 
-const getGlpiSettings = async (): Promise<GlpiSettings> => {
-  const [
-    enabled,
-    apiUrl,
-    appToken,
-    userToken,
-    entityId,
-    categoryId
-  ] = await Promise.all([
-    getSettingValue("glpiEnabled"),
-    getSettingValue("glpiApiUrl"),
-    getSettingValue("glpiAppToken"),
-    getSettingValue("glpiUserToken"),
-    getSettingValue("glpiEntityId"),
-    getSettingValue("glpiCategoryId")
-  ]);
-
-  return {
-    enabled: enabled === "enabled",
-    apiUrl: apiUrl.replace(/\/$/, ""),
-    appToken,
-    userToken,
-    entityId: entityId ? Number(entityId) : undefined,
-    categoryId: categoryId ? Number(categoryId) : undefined
-  };
-};
-
-const createGlpiTicket = async (ticket: Ticket): Promise<void> => {
-  if (ticket.glpiTicketId) return;
-
+const CreateGlpiTicketService = async ({
+  ticketId,
+  userId,
+  title,
+  description,
+  entityId,
+  categoryId,
+  locationId,
+  descriptionMode = "manual",
+  selectedMessageIds = [],
+  forceCreate = false
+}: Request): Promise<GlpiTicketLink> => {
   const settings = await getGlpiSettings();
+  if (!settings.enabled) throw new AppError("Integracao GLPI desativada.", 400);
 
-  if (
-    !settings.enabled ||
-    !settings.apiUrl ||
-    !settings.appToken ||
-    !settings.userToken
-  ) {
-    return;
+  const ticket = await Ticket.findByPk(ticketId, {
+    include: [
+      { model: Queue, as: "queue" },
+      "contact"
+    ]
+  });
+
+  if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
+  if (ticket.status !== "open") throw new AppError("O chamado GLPI so pode ser aberto em atendimento aberto.", 400);
+  const hasAnyGlpiQueue = ticket.isGroup && !ticket.queue
+    ? await Queue.count({ where: { glpiEnabled: true } })
+    : 0;
+  const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (ticket.isGroup && !ticket.queue && hasAnyGlpiQueue > 0));
+  if (!queueEnabled) throw new AppError("A fila deste atendimento nao permite abertura de chamado GLPI.", 403);
+
+  const existingLinks = await GlpiTicketLink.findAll({ where: { ticketId } });
+  if (existingLinks.length && !settings.allowMultipleTickets && !forceCreate) {
+    throw new AppError("Este atendimento ja possui chamado GLPI vinculado.", 400);
   }
 
+  const entity = await GlpiEntity.findOne({ where: { glpiId: entityId, active: true } });
+  const category = await GlpiCategory.findOne({ where: { glpiId: categoryId, active: true } });
+  const location = locationId
+    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true } })
+    : null;
+  if (!entity) throw new AppError("Escolha uma entidade GLPI sincronizada.", 400);
+  if (!category) throw new AppError("Escolha uma categoria GLPI sincronizada.", 400);
+  if (locationId && !location) throw new AppError("Escolha uma localizacao GLPI sincronizada.", 400);
+  if (!title?.trim()) throw new AppError("Informe o titulo do chamado GLPI.", 400);
+  if (!description?.trim()) throw new AppError("Informe a descricao do chamado GLPI.", 400);
+
+  let finalDescription = description.trim();
+  if (descriptionMode === "selected_messages") {
+    const lines = await buildMessageExcerpt(selectedMessageIds);
+    finalDescription = lines.join("\n");
+  }
+  if (!finalDescription) throw new AppError("A descricao final do chamado GLPI ficou vazia.", 400);
+
+  let session;
   try {
-    const defaultHeaders = {
-      "App-Token": settings.appToken,
-      "Content-Type": "application/json"
-    };
-
-    const sessionResponse = await axios.get(
-      `${settings.apiUrl}/initSession`,
-      {
-        headers: {
-          ...defaultHeaders,
-          Authorization: `user_token ${settings.userToken}`
-        },
-        timeout: 15000
-      }
-    );
-
-    const sessionToken = sessionResponse.data?.session_token;
-    if (!sessionToken) {
-      logger.warn("GLPI did not return a session token");
-      return;
-    }
+    session = await initGlpiSession();
 
     const input: Record<string, any> = {
-      name: `WhatsApp #${ticket.id} - ${ticket.contact?.name || "Contato"}`,
-      content: [
-        `Chamado criado automaticamente pelo WhatsApp.`,
-        `Ticket interno: #${ticket.id}`,
-        `Contato: ${ticket.contact?.name || ""}`,
-        `Numero: ${ticket.contact?.number || ""}`,
-        ticket.lastMessage ? `Mensagem: ${ticket.lastMessage}` : ""
-      ].filter(Boolean).join("\n"),
-      type: 1
+      name: title.trim(),
+      content: finalDescription,
+      entities_id: entityId,
+      itilcategories_id: categoryId,
+      type: 1,
+      urgency: 3,
+      impact: 3,
+      priority: 3
     };
+    if (locationId) input.locations_id = locationId;
 
-    if (settings.entityId) input.entities_id = settings.entityId;
-    if (settings.categoryId) input.itilcategories_id = settings.categoryId;
-
-    const createResponse = await axios.post(
-      `${settings.apiUrl}/Ticket`,
+    const response = await axios.post(
+      `${session.settings.apiUrl}/Ticket`,
       { input },
       {
-        headers: {
-          ...defaultHeaders,
-          "Session-Token": sessionToken
-        },
-        timeout: 15000
+        headers: glpiHeaders(session),
+        timeout: session.settings.timeoutMs
       }
     );
 
-    const glpiTicketId = createResponse.data?.id;
-    if (glpiTicketId) {
-      await ticket.update({ glpiTicketId });
-    }
+    const glpiTicketId = Number(response.data?.id);
+    if (!glpiTicketId) throw new AppError("O GLPI nao retornou o ID do chamado criado.", 400);
 
-    await axios.get(`${settings.apiUrl}/killSession`, {
-      headers: {
-        ...defaultHeaders,
-        "Session-Token": sessionToken
-      },
-      timeout: 15000
-    }).catch(err => logger.warn({ err }, "Could not close GLPI session"));
+    const link = await GlpiTicketLink.create({
+      ticketId,
+      glpiTicketId,
+      glpiTicketNumber: String(glpiTicketId),
+      title: title.trim(),
+      description: finalDescription,
+      entityId,
+      entityName: entity.completeName || entity.name,
+      categoryId,
+      categoryName: category.completeName || category.name,
+      locationId: location?.glpiId || null,
+      locationName: location ? location.completeName || location.name : null,
+      createdByUserId: userId,
+      descriptionMode,
+      selectedMessageIds: JSON.stringify(selectedMessageIds),
+      glpiUrl: buildGlpiTicketUrl(settings, glpiTicketId),
+      status: "created",
+      rawResponse: JSON.stringify(response.data)
+    });
+
+    await ticket.update({ glpiTicketId });
+
+    await CreateGlpiLogService({
+      action: "create_ticket",
+      status: "success",
+      message: `Chamado GLPI ${glpiTicketId} criado.`,
+      ticketId,
+      userId,
+      payload: { input: { ...input, content: "[masked-description]" } },
+      response: response.data
+    });
+
+    return link;
   } catch (err) {
-    logger.error({ err, ticketId: ticket.id }, "Error creating GLPI ticket");
+    await CreateGlpiLogService({
+      action: "create_ticket",
+      status: "error",
+      message: "Falha ao criar chamado GLPI.",
+      ticketId,
+      userId,
+      error: err instanceof AppError ? err.message : normalizeGlpiError(err)
+    });
+    if (err instanceof AppError) throw err;
+    throw new AppError(`Falha ao criar chamado GLPI: ${normalizeGlpiError(err)}`, 400);
+  } finally {
+    if (session) await closeGlpiSession(session);
   }
 };
 
-export default createGlpiTicket;
+export default CreateGlpiTicketService;

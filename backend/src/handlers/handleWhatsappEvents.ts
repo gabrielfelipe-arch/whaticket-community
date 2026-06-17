@@ -35,7 +35,6 @@ import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTi
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
-import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
 import { tryRegisterSatisfactionResponse } from "../services/SatisfactionSurveyServices/SatisfactionSurveyService";
 import DecideAiTicketActionService, { AiDecision } from "../services/AiServices/DecideAiTicketActionService";
 import ExecuteAiToolService, { AiToolName } from "../services/AiServices/AiToolService";
@@ -2695,7 +2694,6 @@ export const handleMessage = async (
     await ticket.update({ lastMessage: lastMessageText });
 
     await CreateMessageService({ messageData });
-    CreateGlpiTicketService(ticket);
 
     if (!processedMessage.fromMe && !contextPayload.groupContact) {
       const satisfactionHandled = await tryRegisterSatisfactionResponse(

@@ -108,6 +108,10 @@ class Queue extends Model<Queue> {
   @Column
   useAI: boolean;
 
+  @Default(false)
+  @Column
+  glpiEnabled: boolean;
+
   @ForeignKey(() => AiSetting)
   @Column
   aiSettingId: number;

@@ -21,6 +21,7 @@ import TicketOptionsMenu from "../TicketOptionsMenu";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import GlpiTicketModal from "../GlpiTicketModal";
 
 const useStyles = makeStyles(theme => ({
 	actionButtons: {
@@ -50,8 +51,29 @@ const TicketActionButtons = ({ ticket }) => {
 	const [categories, setCategories] = useState([]);
 	const [closingReasons, setClosingReasons] = useState([]);
 	const [satisfactionSurvey, setSatisfactionSurvey] = useState(null);
+	const [glpiStatus, setGlpiStatus] = useState(null);
+	const [glpiModalOpen, setGlpiModalOpen] = useState(false);
 	const ticketOptionsMenuOpen = Boolean(anchorEl);
 	const { user } = useContext(AuthContext);
+	const latestGlpiLink = glpiStatus?.links?.[0];
+
+	React.useEffect(() => {
+		if (!ticket?.id || ticket.status !== "open") {
+			setGlpiStatus(null);
+			return;
+		}
+
+		const loadGlpiStatus = async () => {
+			try {
+				const { data } = await api.get(`/tickets/${ticket.id}/glpi`);
+				setGlpiStatus(data);
+			} catch (err) {
+				setGlpiStatus(null);
+			}
+		};
+
+		loadGlpiStatus();
+	}, [ticket?.id, ticket?.status, ticket?.queueId]);
 
 	const handleOpenTicketOptionsMenu = e => {
 		setAnchorEl(e.currentTarget);
@@ -122,12 +144,19 @@ const TicketActionButtons = ({ ticket }) => {
 
 	const isGroupTicket = !!ticket?.isGroup;
 	const canCloseTicket = isGroupTicket || (closingData.categoryId && closingData.closingReasonId);
+	const getPreferredQueueId = () => {
+		if (ticket.queueId && !ticket.queue?.useAI) return ticket.queueId;
+		const availableQueues = user?.queues || [];
+		const glpiQueue = availableQueues.find(queue => queue.glpiEnabled);
+		return glpiQueue?.id || availableQueues[0]?.id || null;
+	};
 
 	const handleAssumeAiTicket = async e => {
-		const humanQueue = user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId);
+		const humanQueue = user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId && queue.glpiEnabled)
+			|| user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId);
 		await handleUpdateTicketStatus(e, "open", user?.id, {
 			assumeAi: true,
-			queueId: humanQueue?.id || null,
+			queueId: humanQueue?.id || getPreferredQueueId(),
 		});
 	};
 
@@ -173,6 +202,28 @@ const TicketActionButtons = ({ ticket }) => {
 					>
 						{i18n.t("messagesList.header.buttons.resolve")}
 					</ButtonWithSpinner>
+					{latestGlpiLink?.glpiUrl && (
+						<ButtonWithSpinner
+							loading={loading}
+							size="small"
+							variant="outlined"
+							color="primary"
+							onClick={() => window.open(latestGlpiLink.glpiUrl, "_blank", "noopener,noreferrer")}
+						>
+							GLPI #{latestGlpiLink.glpiTicketNumber || latestGlpiLink.glpiTicketId}
+						</ButtonWithSpinner>
+					)}
+					{glpiStatus?.enabled && glpiStatus?.queueEnabled && glpiStatus?.configValid && glpiStatus.canCreate && (
+						<ButtonWithSpinner
+							loading={loading}
+							size="small"
+							variant="outlined"
+							color="primary"
+							onClick={() => setGlpiModalOpen(true)}
+						>
+							Chamado GLPI
+						</ButtonWithSpinner>
+					)}
 					<IconButton onClick={handleOpenTicketOptionsMenu}>
 						<MoreVert />
 					</IconButton>
@@ -190,7 +241,7 @@ const TicketActionButtons = ({ ticket }) => {
 					size="small"
 					variant="contained"
 					color="primary"
-					onClick={e => handleUpdateTicketStatus(e, "open", user?.id)}
+					onClick={e => handleUpdateTicketStatus(e, "open", user?.id, { queueId: getPreferredQueueId() })}
 				>
 					{i18n.t("messagesList.header.buttons.accept")}
 				</ButtonWithSpinner>
@@ -297,6 +348,15 @@ const TicketActionButtons = ({ ticket }) => {
 					</ButtonWithSpinner>
 				</DialogActions>
 			</Dialog>
+			<GlpiTicketModal
+				open={glpiModalOpen}
+				onClose={() => setGlpiModalOpen(false)}
+				ticket={ticket}
+				onCreated={async () => {
+					const { data } = await api.get(`/tickets/${ticket.id}/glpi`);
+					setGlpiStatus(data);
+				}}
+			/>
 		</div>
 	);
 };

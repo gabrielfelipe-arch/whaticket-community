@@ -41,7 +41,8 @@ const ShowTicketService = async (id: string | number): Promise<Ticket> => {
           "useAI",
           "aiSettingId",
           "distributionMode",
-          "maxActiveTicketsPerUser"
+          "maxActiveTicketsPerUser",
+          "glpiEnabled"
         ]
       },
       {

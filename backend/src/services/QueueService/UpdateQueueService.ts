@@ -25,6 +25,7 @@ interface QueueData {
   blockIfUserHasStalledTicket?: boolean;
   stalledTicketMinutes?: number | null;
   stalledTicketAction?: string;
+  glpiEnabled?: boolean;
 }
 
 const UpdateQueueService = async (

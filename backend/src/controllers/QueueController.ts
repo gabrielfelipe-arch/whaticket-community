@@ -50,7 +50,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     queuePositionMessage,
     blockIfUserHasStalledTicket,
     stalledTicketMinutes,
-    stalledTicketAction
+    stalledTicketAction,
+    glpiEnabled
   } = req.body;
 
   const queue = await CreateQueueService({
@@ -71,6 +72,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     blockIfUserHasStalledTicket: blockIfUserHasStalledTicket === true || blockIfUserHasStalledTicket === "true",
     stalledTicketMinutes: stalledTicketMinutes ? Number(stalledTicketMinutes) : null,
     stalledTicketAction,
+    glpiEnabled: glpiEnabled === true || glpiEnabled === "true",
     ...mediaDataFromRequest(req)
   });
   await CreateAuditLogService({
@@ -116,6 +118,7 @@ export const update = async (
     sendQueuePositionMessage: req.body.sendQueuePositionMessage === true || req.body.sendQueuePositionMessage === "true",
     blockIfUserHasStalledTicket: req.body.blockIfUserHasStalledTicket === true || req.body.blockIfUserHasStalledTicket === "true",
     stalledTicketMinutes: req.body.stalledTicketMinutes ? Number(req.body.stalledTicketMinutes) : null,
+    glpiEnabled: req.body.glpiEnabled === true || req.body.glpiEnabled === "true",
     ...mediaDataFromRequest(req)
   });
   await CreateAuditLogService({

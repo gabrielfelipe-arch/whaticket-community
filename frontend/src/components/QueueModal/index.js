@@ -168,6 +168,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		blockIfUserHasStalledTicket: false,
 		stalledTicketMinutes: "",
 		stalledTicketAction: "ignore",
+		glpiEnabled: false,
 	};
 
 	const [queue, setQueue] = useState(initialState);
@@ -367,6 +368,17 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										/>
 									}
 									label="Usar IA nesta fila"
+								/>
+								<FormControlLabel
+									control={
+										<Field
+											as={Switch}
+											color="primary"
+											name="glpiEnabled"
+											checked={values.glpiEnabled}
+										/>
+									}
+									label="Permitir abertura de chamado GLPI nesta fila"
 								/>
 								<Field
 									as={TextField}

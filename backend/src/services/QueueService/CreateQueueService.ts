@@ -23,6 +23,7 @@ interface QueueData {
   blockIfUserHasStalledTicket?: boolean;
   stalledTicketMinutes?: number | null;
   stalledTicketAction?: string;
+  glpiEnabled?: boolean;
 }
 
 const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {

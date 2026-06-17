@@ -173,16 +173,19 @@ const TicketListItem = ({ ticket }) => {
 	const handleAcepptTicket = async id => {
 		setLoading(true);
 		try {
+			const preferredQueue = user?.queues?.find(queue => queue.glpiEnabled)
+				|| user?.queues?.[0];
 			const humanQueue = ticket.aiActive
-				? user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId)
+				? user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId && queue.glpiEnabled)
+					|| user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId)
 				: null;
 
 			await api.put(`/tickets/${id}`, {
 				status: "open",
 				userId: user?.id,
 				...(ticket.aiActive
-					? { assumeAi: true, queueId: humanQueue?.id || null }
-					: {}),
+					? { assumeAi: true, queueId: humanQueue?.id || preferredQueue?.id || null }
+					: { queueId: ticket.queueId && !ticket.queue?.useAI ? ticket.queueId : preferredQueue?.id || null }),
 			});
 		} catch (err) {
 			setLoading(false);

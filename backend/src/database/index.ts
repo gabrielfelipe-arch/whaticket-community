@@ -43,6 +43,11 @@ import CommercialService from "../models/CommercialService";
 import CommercialIncludedItem from "../models/CommercialIncludedItem";
 import CommercialPriceRule from "../models/CommercialPriceRule";
 import CommercialQuoteSimulation from "../models/CommercialQuoteSimulation";
+import GlpiEntity from "../models/GlpiEntity";
+import GlpiCategory from "../models/GlpiCategory";
+import GlpiLocation from "../models/GlpiLocation";
+import GlpiTicketLink from "../models/GlpiTicketLink";
+import GlpiLog from "../models/GlpiLog";
 
 
 // eslint-disable-next-line
@@ -95,7 +100,12 @@ const models = [
   CommercialService,
   CommercialIncludedItem,
   CommercialPriceRule,
-  CommercialQuoteSimulation
+  CommercialQuoteSimulation,
+  GlpiEntity,
+  GlpiCategory,
+  GlpiLocation,
+  GlpiTicketLink,
+  GlpiLog
 ];
 
 sequelize.addModels(models);
