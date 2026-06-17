@@ -52,6 +52,10 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
     () => locations.find(location => Number(location.glpiId) === Number(locationId)) || null,
     [locations, locationId]
   );
+  const selectedCategory = useMemo(
+    () => categories.find(category => Number(category.glpiId) === Number(categoryId)) || null,
+    [categories, categoryId]
+  );
 
   const sourceContact = useMemo(() => {
     const incomingSelected = selectedMessages.find(message => !message.fromMe && message.contact);
@@ -88,7 +92,7 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
         setSelectedMessageIds(latestIncomingMessage ? [latestIncomingMessage.id] : []);
         setForceCreate(false);
         setEntityId("");
-        setCategoryId(categoryData?.[0]?.glpiId || "");
+        setCategoryId("");
         setLocationId("");
       } catch (err) {
         toastError(err);
@@ -233,11 +237,36 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField select fullWidth required variant="outlined" margin="dense" label="Categoria GLPI" value={categoryId} onChange={event => setCategoryId(event.target.value)}>
-                {categories.map(category => (
-                  <MenuItem key={category.id} value={category.glpiId}>{category.completeName || category.name}</MenuItem>
-                ))}
-              </TextField>
+              <Autocomplete
+                options={categories}
+                value={selectedCategory}
+                getOptionLabel={optionLabel}
+                getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                noOptionsText="Nenhuma categoria encontrada"
+                onChange={(event, option) => setCategoryId(option?.glpiId || "")}
+                renderInput={params => (
+                  <TextField
+                    {...params}
+                    fullWidth
+                    required
+                    variant="outlined"
+                    margin="dense"
+                    label="Categoria GLPI"
+                    placeholder="Pesquisar categoria"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <SearchIcon color="action" />
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      )
+                    }}
+                  />
+                )}
+              />
             </Grid>
             <Grid item xs={12} sm={6}>
               <Autocomplete

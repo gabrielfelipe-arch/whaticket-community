@@ -2520,22 +2520,22 @@ const QualificationFormsPanel = ({ classes }) => {
 									setQuestionField("label", value);
 								}}
 							/>
-							<Typography variant="subtitle2" style={{ marginTop: 12 }}>
-								Tipo de resposta
-							</Typography>
-							<div className={classes.questionTypeGrid}>
+							<TextField
+								select
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								label="Tipo de resposta"
+								value={questionForm.type || "text"}
+								onChange={event => setQuestionField("type", event.target.value)}
+								style={{ marginTop: 12 }}
+							>
 								{questionTypeOptions.map(option => (
-									<Button
-										key={option.value}
-										variant={(questionForm.type || "text") === option.value ? "contained" : "outlined"}
-										color={(questionForm.type || "text") === option.value ? "primary" : "default"}
-										className={classes.questionTypeButton}
-										onClick={() => setQuestionField("type", option.value)}
-									>
+									<MenuItem key={option.value} value={option.value}>
 										{option.label}
-									</Button>
+									</MenuItem>
 								))}
-							</div>
+							</TextField>
 							<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
 								{getQuestionTypeHelp(questionForm.type)}
 							</Typography>
