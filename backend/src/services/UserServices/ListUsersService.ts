@@ -41,6 +41,7 @@ const ListUsersService = async ({
       "email",
       "profile",
       "active",
+      "glpiEnabled",
       "attendanceGreeting",
       "operationalStatus",
       "lastActivityAt",

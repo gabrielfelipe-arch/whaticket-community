@@ -11,6 +11,8 @@ const ShowUserService = async (id: string | number): Promise<User> => {
       "email",
       "profile",
       "active",
+      "glpiEnabled",
+      "glpiUserToken",
       "tokenVersion",
       "whatsappId",
       "attendanceGreeting",

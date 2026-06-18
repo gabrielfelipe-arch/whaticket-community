@@ -85,6 +85,8 @@ const UserModal = ({ open, onClose, userId }) => {
 		password: "",
 		profile: "user",
 		active: true,
+		glpiEnabled: false,
+		glpiUserToken: "",
 		attendanceGreeting: "",
 		operationalStatus: "offline",
 	};
@@ -292,6 +294,36 @@ const UserModal = ({ open, onClose, userId }) => {
 											}
 											label={values.active === false ? "Usuario inativo" : "Usuario ativo"}
 										/>
+									)}
+								/>
+								<Can
+									role={loggedInUser.profile}
+									perform="user-modal:editProfile"
+									yes={() => (
+										<>
+											<FormControlLabel
+												control={
+													<Field
+														as={Switch}
+														color="primary"
+														name="glpiEnabled"
+														checked={values.glpiEnabled === true}
+													/>
+												}
+												label={values.glpiEnabled ? "Usuario utiliza GLPI" : "Usuario nao utiliza GLPI"}
+											/>
+											{values.glpiEnabled && (
+												<Field
+													as={TextField}
+													label="User Token GLPI"
+													name="glpiUserToken"
+													variant="outlined"
+													margin="dense"
+													fullWidth
+													helperText="Token individual do GLPI usado quando este usuario abrir chamado manualmente."
+												/>
+											)}
+										</>
 									)}
 								/>
 								<Can

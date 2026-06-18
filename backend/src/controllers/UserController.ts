@@ -33,7 +33,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { email, password, name, profile, queueIds, whatsappId, attendanceGreeting, active } = req.body;
+  const { email, password, name, profile, queueIds, whatsappId, attendanceGreeting, active, glpiEnabled, glpiUserToken } = req.body;
 
   if (
     req.url === "/signup" &&
@@ -52,7 +52,9 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     queueIds,
     whatsappId,
     attendanceGreeting,
-    active
+    active,
+    glpiEnabled: glpiEnabled === true || glpiEnabled === "true",
+    glpiUserToken
   });
 
   const io = getIO();
@@ -69,7 +71,7 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
 
   const user = await ShowUserService(userId);
 
-  return res.status(200).json(user);
+  return res.status(200).json(SerializeUser(user));
 };
 
 export const update = async (

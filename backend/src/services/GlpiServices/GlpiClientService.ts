@@ -1,6 +1,7 @@
 import axios, { AxiosError } from "axios";
 import Setting from "../../models/Setting";
 import AppError from "../../errors/AppError";
+import { isMaskedSecret, maskSecret } from "../../helpers/MaskSecret";
 
 export type GlpiSettings = {
   enabled: boolean;
@@ -10,7 +11,25 @@ export type GlpiSettings = {
   userToken: string;
   allowMultipleTickets: boolean;
   autoCreateEnabled: boolean;
+  automationMode: string;
+  autoCategoryId: number | null;
+  autoEntityId: number | null;
+  autoLocationId: number | null;
+  autoTitleTemplate: string;
+  autoSuccessMessage: string;
+  autoCloseEnabled: boolean;
+  autoCloseMessage: string;
+  autoCloseReasonId: number | null;
+  allowedFormEntityIds: number[];
+  allowedFormLocationIds: number[];
+  entityLocationRules: GlpiEntityLocationRule[];
   timeoutMs: number;
+};
+
+export type GlpiEntityLocationRule = {
+  entityId: number;
+  allowedLocationIds: number[];
+  defaultLocationId: number | null;
 };
 
 type Session = {
@@ -18,9 +37,46 @@ type Session = {
   settings: GlpiSettings;
 };
 
+type InitSessionOptions = {
+  userToken?: string;
+};
+
 const getSettingValue = async (key: string): Promise<string> => {
   const setting = await Setting.findByPk(key);
   return String(setting?.value || "").trim();
+};
+
+const parseNumberList = (value: string): number[] =>
+  String(value || "")
+    .split(/[,\s;|]+/)
+    .map(item => Number(item))
+    .filter(item => Number.isInteger(item) && item >= 0);
+
+const parseEntityLocationRules = (value: string): GlpiEntityLocationRule[] => {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map(item => {
+        const entityId = Number(item?.entityId);
+        const defaultLocationId = Number(item?.defaultLocationId);
+        const allowedLocationIds = Array.isArray(item?.allowedLocationIds)
+          ? item.allowedLocationIds
+              .map((locationId: unknown) => Number(locationId))
+              .filter((locationId: number) => Number.isInteger(locationId) && locationId > 0)
+          : [];
+
+        return {
+          entityId,
+          allowedLocationIds,
+          defaultLocationId: Number.isInteger(defaultLocationId) && defaultLocationId > 0 ? defaultLocationId : null
+        };
+      })
+      .filter(item => Number.isInteger(item.entityId) && item.entityId > 0);
+  } catch (error) {
+    return [];
+  }
 };
 
 export const getGlpiSettings = async (): Promise<GlpiSettings> => {
@@ -32,6 +88,18 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     userToken,
     allowMultipleTickets,
     autoCreateEnabled,
+    automationMode,
+    autoCategoryId,
+    autoEntityId,
+    autoLocationId,
+    autoTitleTemplate,
+    autoSuccessMessage,
+    autoCloseEnabled,
+    autoCloseMessage,
+    autoCloseReasonId,
+    allowedFormEntityIds,
+    allowedFormLocationIds,
+    entityLocationRules,
     timeoutMs
   ] = await Promise.all([
     getSettingValue("glpiEnabled"),
@@ -41,6 +109,18 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     getSettingValue("glpiUserToken"),
     getSettingValue("glpiAllowMultipleTickets"),
     getSettingValue("glpiAutoCreateEnabled"),
+    getSettingValue("glpiAutomationMode"),
+    getSettingValue("glpiAutoCategoryId"),
+    getSettingValue("glpiAutoEntityId"),
+    getSettingValue("glpiAutoLocationId"),
+    getSettingValue("glpiAutoTitleTemplate"),
+    getSettingValue("glpiAutoSuccessMessage"),
+    getSettingValue("glpiAutoCloseEnabled"),
+    getSettingValue("glpiAutoCloseMessage"),
+    getSettingValue("glpiAutoCloseReasonId"),
+    getSettingValue("glpiAllowedFormEntityIds"),
+    getSettingValue("glpiAllowedFormLocationIds"),
+    getSettingValue("glpiEntityLocationRules"),
     getSettingValue("glpiTimeoutMs")
   ]);
 
@@ -52,20 +132,23 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     userToken,
     allowMultipleTickets: allowMultipleTickets === "true",
     autoCreateEnabled: autoCreateEnabled === "true",
+    automationMode: automationMode || "manual",
+    autoCategoryId: autoCategoryId ? Number(autoCategoryId) : null,
+    autoEntityId: autoEntityId ? Number(autoEntityId) : null,
+    autoLocationId: autoLocationId ? Number(autoLocationId) : null,
+    autoTitleTemplate: autoTitleTemplate || "Solicitacao WhatsApp - {{contactName}}",
+    autoSuccessMessage: autoSuccessMessage || "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
+    autoCloseEnabled: autoCloseEnabled === "true",
+    autoCloseMessage: autoCloseMessage || "",
+    autoCloseReasonId: autoCloseReasonId ? Number(autoCloseReasonId) : null,
+    allowedFormEntityIds: parseNumberList(allowedFormEntityIds),
+    allowedFormLocationIds: parseNumberList(allowedFormLocationIds),
+    entityLocationRules: parseEntityLocationRules(entityLocationRules),
     timeoutMs: Math.max(Number(timeoutMs || 15000), 1000)
   };
 };
 
-export const maskSecret = (value: string): string => {
-  if (!value) return "";
-  if (value.length <= 8) return "********";
-  return `${value.slice(0, 4)}...${value.slice(-4)}`;
-};
-
-export const isMaskedSecret = (value: string): boolean => {
-  const normalized = String(value || "").trim();
-  return normalized === "********" || normalized.includes("...");
-};
+export { isMaskedSecret, maskSecret };
 
 export const normalizeGlpiError = (err: unknown): string => {
   const axiosError = err as AxiosError<any>;
@@ -79,11 +162,13 @@ export const normalizeGlpiError = (err: unknown): string => {
   return axiosError.message || "Erro ao comunicar com o GLPI.";
 };
 
-export const validateGlpiReady = (settings: GlpiSettings): void => {
+export const validateGlpiReady = (settings: GlpiSettings, userToken?: string): void => {
+  const effectiveUserToken = String(userToken || settings.userToken || "").trim();
+
   if (!settings.enabled) throw new AppError("Integracao GLPI desativada.", 400);
   if (!settings.apiUrl) throw new AppError("Informe a URL da API GLPI.", 400);
-  if (!settings.userToken) throw new AppError("Informe o User Token do GLPI.", 400);
-  if (isMaskedSecret(settings.userToken)) {
+  if (!effectiveUserToken) throw new AppError("Informe o User Token do GLPI.", 400);
+  if (isMaskedSecret(effectiveUserToken)) {
     throw new AppError("Informe novamente o User Token real do GLPI. O valor mascarado nao autentica na API.", 400);
   }
   if (settings.appToken && isMaskedSecret(settings.appToken)) {
@@ -91,13 +176,14 @@ export const validateGlpiReady = (settings: GlpiSettings): void => {
   }
 };
 
-export const initGlpiSession = async (): Promise<Session> => {
+export const initGlpiSession = async (options: InitSessionOptions = {}): Promise<Session> => {
   const settings = await getGlpiSettings();
-  validateGlpiReady(settings);
+  const effectiveUserToken = String(options.userToken || settings.userToken || "").trim();
+  validateGlpiReady(settings, effectiveUserToken);
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    Authorization: `user_token ${settings.userToken}`
+    Authorization: `user_token ${effectiveUserToken}`
   };
 
   if (settings.appToken) headers["App-Token"] = settings.appToken;
@@ -113,7 +199,7 @@ export const initGlpiSession = async (): Promise<Session> => {
       throw new AppError("O GLPI nao retornou Session-Token.", 400);
     }
 
-    return { sessionToken, settings };
+    return { sessionToken, settings: { ...settings, userToken: effectiveUserToken } };
   } catch (err) {
     throw new AppError(`Falha ao autenticar no GLPI: ${normalizeGlpiError(err)}`, 400);
   }

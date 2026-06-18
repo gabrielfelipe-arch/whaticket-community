@@ -7,6 +7,8 @@ const ticketRoutes = express.Router();
 
 ticketRoutes.get("/tickets", isAuth, TicketController.index);
 
+ticketRoutes.get("/tickets/:ticketId/previous-messages", isAuth, TicketController.previousMessages);
+
 ticketRoutes.get("/tickets/:ticketId", isAuth, TicketController.show);
 
 ticketRoutes.post("/tickets", isAuth, TicketController.store);

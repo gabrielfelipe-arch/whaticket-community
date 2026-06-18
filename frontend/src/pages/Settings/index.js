@@ -16,6 +16,7 @@ import {
 	MenuItem,
 	Paper,
 	Select,
+	Slider,
 	Switch,
 	Tab,
 	Tabs,
@@ -39,6 +40,7 @@ import { i18n } from "../../translate/i18n.js";
 import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
 import TagCheckboxPicker from "../../components/TagCheckboxPicker";
+import { getBackendUrl } from "../../config";
 
 const businessWeekdayOptions = [
 	{ value: 1, label: "Seg" },
@@ -532,7 +534,20 @@ const resources = [
 					{ value: "time", label: "Horario" },
 					{ value: "boolean", label: "Sim ou nao" },
 					{ value: "email", label: "E-mail" },
-					{ value: "phone", label: "Telefone" }
+					{ value: "phone", label: "Telefone" },
+					{ value: "glpi_entity", label: "Entidade GLPI" },
+					{ value: "glpi_location", label: "Localizacao GLPI" }
+				]
+			},
+			{
+				name: "glpiField",
+				label: "Uso no GLPI automatico",
+				type: "select",
+				options: [
+					{ value: "description", label: "Enviar para descricao" },
+					{ value: "entity", label: "Usar como entidade" },
+					{ value: "location", label: "Usar como localizacao" },
+					{ value: "ignore", label: "Nao enviar ao GLPI" }
 				]
 			},
 			{
@@ -1775,7 +1790,9 @@ const questionTypeOptions = [
 	{ value: "time", label: "Horario" },
 	{ value: "boolean", label: "Sim ou nao" },
 	{ value: "email", label: "E-mail" },
-	{ value: "phone", label: "Telefone" }
+	{ value: "phone", label: "Telefone" },
+	{ value: "glpi_entity", label: "Entidade GLPI" },
+	{ value: "glpi_location", label: "Localizacao GLPI" }
 ];
 
 const getQuestionTypeOption = type =>
@@ -1790,7 +1807,9 @@ const getQuestionTypeHelp = type => ({
 	time: "Use para horarios, como melhor periodo de contato.",
 	boolean: "Use para respostas simples de sim ou nao.",
 	email: "Use quando precisa capturar um endereco de e-mail.",
-	phone: "Use quando precisa capturar ou confirmar um telefone."
+	phone: "Use quando precisa capturar ou confirmar um telefone.",
+	glpi_entity: "Lista as entidades sincronizadas do GLPI para o cliente escolher.",
+	glpi_location: "Lista as localizacoes sincronizadas do GLPI, filtrando pela entidade escolhida antes quando houver."
 }[type || "text"] || "Escolha como o cliente deve responder no WhatsApp.");
 
 const normalizeFormKey = value =>
@@ -1814,6 +1833,7 @@ const emptyQualificationQuestion = formId => ({
 	key: "",
 	label: "",
 	type: "text",
+	glpiField: "description",
 	options: [],
 	required: true,
 	includeInAiContext: true,
@@ -2053,6 +2073,18 @@ const QualificationFormsPanel = ({ classes }) => {
 				next.options = [];
 			}
 
+			if (name === "type" && value === "glpi_entity") {
+				next.glpiField = "entity";
+			}
+
+			if (name === "type" && value === "glpi_location") {
+				next.glpiField = "location";
+			}
+
+			if (name === "type" && !["glpi_entity", "glpi_location"].includes(value) && ["entity", "location"].includes(next.glpiField)) {
+				next.glpiField = "description";
+			}
+
 			if (name === "type" && ["single_choice", "multiple_choice"].includes(value) && !parseQuestionOptions(next.options).length) {
 				next.options = [
 					{ value: "1", label: "", tagRefs: [], nextAction: "NEXT", nextMessage: "", nextMessages: [], nextQuestionId: "", targetQueueId: "", uraOptionId: "" },
@@ -2177,6 +2209,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				formId: selectedFormId,
 				key: normalizeFormKey(questionForm.key || questionForm.label),
 				options: choiceQuestion ? options : null,
+				glpiField: questionForm.glpiField || (questionForm.type === "glpi_entity" ? "entity" : questionForm.type === "glpi_location" ? "location" : "description"),
 				required: questionForm.required !== false,
 				includeInAiContext: questionForm.includeInAiContext !== false,
 				includeInReports: questionForm.includeInReports !== false,
@@ -2539,6 +2572,23 @@ const QualificationFormsPanel = ({ classes }) => {
 							<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
 								{getQuestionTypeHelp(questionForm.type)}
 							</Typography>
+
+							<TextField
+								select
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								label="Uso no GLPI automatico"
+								value={questionForm.glpiField || "description"}
+								onChange={event => setQuestionField("glpiField", event.target.value)}
+								style={{ marginTop: 12 }}
+								helperText="No modo automatico, respostas de descricao entram no corpo do chamado. Entidade e localizacao definem os campos do GLPI."
+							>
+								<MenuItem value="description">Enviar para descricao</MenuItem>
+								<MenuItem value="entity">Usar como entidade</MenuItem>
+								<MenuItem value="location">Usar como localizacao</MenuItem>
+								<MenuItem value="ignore">Nao enviar ao GLPI</MenuItem>
+							</TextField>
 
 							{choiceQuestion && (
 								<div className={classes.previewBox}>
@@ -3061,6 +3111,124 @@ const RichTextField = ({ label, value, onChange, required, helperText, classes }
 	);
 };
 
+const BrandLogoAdjustments = ({ getSettingValue, onChangeSetting }) => {
+	const backendUrl = getBackendUrl() || "http://localhost:8085";
+	const logo = getSettingValue("brandLogo");
+	const persistedFit = getSettingValue("brandLogoFit") || "contain";
+	const persistedPositionX = getSettingValue("brandLogoPositionX") || "50";
+	const persistedPositionY = getSettingValue("brandLogoPositionY") || "50";
+	const persistedScale = getSettingValue("brandLogoScale") || "1";
+	const [fit, setFit] = useState("contain");
+	const [positionX, setPositionX] = useState(50);
+	const [positionY, setPositionY] = useState(50);
+	const [scale, setScale] = useState(1);
+
+	useEffect(() => {
+		setFit(persistedFit);
+		setPositionX(Number(persistedPositionX || 50));
+		setPositionY(Number(persistedPositionY || 50));
+		setScale(Number(persistedScale || 1));
+	}, [persistedFit, persistedPositionX, persistedPositionY, persistedScale]);
+
+	const saveSetting = (name, value) => {
+		onChangeSetting({ target: { name, value: String(value) } });
+	};
+
+	if (!logo) return null;
+
+	const imageStyle = {
+		width: "100%",
+		height: "100%",
+		padding: 6,
+		objectFit: fit,
+		objectPosition: `${positionX}% ${positionY}%`,
+		transform: `scale(${scale})`,
+		transformOrigin: "center"
+	};
+
+	return (
+		<Grid item xs={12}>
+			<Typography variant="subtitle2" gutterBottom>
+				Ajuste do logo na barra superior
+			</Typography>
+			<div style={{
+				background: "#0B1220",
+				borderRadius: 8,
+				padding: 12,
+				display: "flex",
+				alignItems: "center",
+				gap: 12,
+				marginBottom: 12
+			}}>
+				<div style={{
+					width: 136,
+					height: 48,
+					borderRadius: 8,
+					background: "rgba(255,255,255,0.10)",
+					overflow: "hidden"
+				}}>
+					<img src={`${backendUrl}${logo}`} alt="Previa do logo" style={imageStyle} />
+				</div>
+				<Typography variant="body2" style={{ color: "#FFFFFF", fontWeight: 700 }}>
+					{getSettingValue("brandName") || "Rocket Service"}
+				</Typography>
+			</div>
+			<Grid container spacing={2}>
+				<Grid item xs={12} sm={6}>
+					<TextField
+						select
+						fullWidth
+						margin="dense"
+						variant="outlined"
+						label="Modo de exibicao"
+						value={fit}
+						onChange={event => {
+							setFit(event.target.value);
+							saveSetting("brandLogoFit", event.target.value);
+						}}
+					>
+						<MenuItem value="contain">Conter imagem inteira</MenuItem>
+						<MenuItem value="cover">Preencher espaco</MenuItem>
+					</TextField>
+				</Grid>
+				<Grid item xs={12} sm={6}>
+					<Typography variant="caption" color="textSecondary">Zoom</Typography>
+					<Slider
+						value={scale}
+						min={0.5}
+						max={3}
+						step={0.05}
+						onChange={(event, value) => setScale(value)}
+						onChangeCommitted={(event, value) => saveSetting("brandLogoScale", value)}
+					/>
+				</Grid>
+				<Grid item xs={12} sm={6}>
+					<Typography variant="caption" color="textSecondary">Posicao horizontal</Typography>
+					<Slider
+						value={positionX}
+						min={0}
+						max={100}
+						step={1}
+						onChange={(event, value) => setPositionX(value)}
+						onChangeCommitted={(event, value) => saveSetting("brandLogoPositionX", value)}
+					/>
+				</Grid>
+				<Grid item xs={12} sm={6}>
+					<Typography variant="caption" color="textSecondary">Posicao vertical</Typography>
+					<Slider
+						value={positionY}
+						min={0}
+						max={100}
+						step={1}
+						onChange={(event, value) => setPositionY(value)}
+						onChangeCommitted={(event, value) => saveSetting("brandLogoPositionY", value)}
+					/>
+				</Grid>
+			</Grid>
+		</Grid>
+	);
+};
+
 const GeneralSettings = ({
 	settings,
 	onChangeSetting,
@@ -3138,12 +3306,16 @@ const GeneralSettings = ({
 					</label>
 					{getSettingValue("brandLogo") && (
 						<img
-							src={`http://localhost:8085${getSettingValue("brandLogo")}`}
+							src={`${getBackendUrl() || "http://localhost:8085"}${getSettingValue("brandLogo")}`}
 							alt="Logo"
 							style={{ height: 36, marginLeft: 12, verticalAlign: "middle" }}
 						/>
 					)}
 				</Grid>
+				<BrandLogoAdjustments
+					getSettingValue={getSettingValue}
+					onChangeSetting={onChangeSetting}
+				/>
 			</Grid>
 		</Paper>
 

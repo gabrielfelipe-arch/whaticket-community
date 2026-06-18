@@ -1,6 +1,7 @@
 import * as Yup from "yup";
 
 import AppError from "../../errors/AppError";
+import { isMaskedSecret } from "../../helpers/MaskSecret";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import ShowUserService from "./ShowUserService";
 
@@ -14,6 +15,8 @@ interface UserData {
   attendanceGreeting?: string;
   operationalStatus?: string;
   active?: boolean;
+  glpiEnabled?: boolean;
+  glpiUserToken?: string;
 }
 
 interface Request {
@@ -50,7 +53,9 @@ const UpdateUserService = async ({
     whatsappId,
     attendanceGreeting,
     operationalStatus,
-    active
+    active,
+    glpiEnabled,
+    glpiUserToken
   } = userData;
 
   try {
@@ -59,7 +64,7 @@ const UpdateUserService = async ({
     throw new AppError(err.message);
   }
 
-  await user.update({
+  const updateData: Record<string, unknown> = {
     email,
     password,
     profile,
@@ -67,8 +72,17 @@ const UpdateUserService = async ({
     whatsappId: whatsappId ? whatsappId : null,
     attendanceGreeting,
     operationalStatus,
-    active
-  });
+    active,
+    glpiEnabled
+  };
+
+  if (glpiEnabled === false) {
+    updateData.glpiUserToken = null;
+  } else if (glpiUserToken !== undefined && !isMaskedSecret(glpiUserToken)) {
+    updateData.glpiUserToken = String(glpiUserToken || "").trim() || null;
+  }
+
+  await user.update(updateData);
 
   await user.$set("queues", queueIds);
 

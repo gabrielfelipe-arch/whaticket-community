@@ -9,6 +9,7 @@ import GlpiLog from "../models/GlpiLog";
 import GlpiTicketLink from "../models/GlpiTicketLink";
 import Ticket from "../models/Ticket";
 import Queue from "../models/Queue";
+import User from "../models/User";
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
 import TestGlpiConnectionService from "../services/GlpiServices/TestGlpiConnectionService";
 import SyncGlpiCatalogService from "../services/GlpiServices/SyncGlpiCatalogService";
@@ -23,6 +24,18 @@ const configKeys = [
   "glpiUserToken",
   "glpiAllowMultipleTickets",
   "glpiAutoCreateEnabled",
+  "glpiAutomationMode",
+  "glpiAutoCategoryId",
+  "glpiAutoEntityId",
+  "glpiAutoLocationId",
+  "glpiAutoTitleTemplate",
+  "glpiAutoSuccessMessage",
+  "glpiAutoCloseEnabled",
+  "glpiAutoCloseMessage",
+  "glpiAutoCloseReasonId",
+  "glpiAllowedFormEntityIds",
+  "glpiAllowedFormLocationIds",
+  "glpiEntityLocationRules",
   "glpiTimeoutMs",
   "glpiApiMode"
 ];
@@ -46,6 +59,11 @@ export const config = async (req: Request, res: Response): Promise<Response> => 
 
 export const updateConfig = async (req: Request, res: Response): Promise<Response> => {
   requireAdmin(req);
+
+  const requestedAutomationMode = String(req.body.glpiAutomationMode || "");
+  if (requestedAutomationMode === "automatic") {
+    req.body.glpiAutoCreateEnabled = "true";
+  }
 
   for (const key of configKeys) {
     if (req.body[key] === undefined) continue;
@@ -107,7 +125,7 @@ export const listCategories = async (req: Request, res: Response): Promise<Respo
       ...(search ? { [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { completeName: { [Op.iLike]: `%${search}%` } }] } : {})
     },
     order: [["completeName", "ASC"], ["name", "ASC"]],
-    limit: 100
+    limit: 1000
   });
   return res.json(rows);
 };
@@ -133,6 +151,9 @@ export const ticketStatus = async (req: Request, res: Response): Promise<Respons
   const settings = await getGlpiSettings();
   const ticket = await Ticket.findByPk(ticketId, { include: [{ model: Queue, as: "queue" }] });
   if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
+  const glpiUser = await User.findByPk(req.user.id, {
+    attributes: ["id", "glpiEnabled", "glpiUserToken"]
+  });
 
   const links = await GlpiTicketLink.findAll({
     where: { ticketId },
@@ -141,14 +162,15 @@ export const ticketStatus = async (req: Request, res: Response): Promise<Respons
   const entitiesCount = await GlpiEntity.count({ where: { active: true } });
   const categoriesCount = await GlpiCategory.count({ where: { active: true } });
   const locationsCount = await GlpiLocation.count({ where: { active: true } });
-  const hasUsableToken = !!settings.userToken && !isMaskedSecret(settings.userToken);
-  const configValid = settings.enabled && !!settings.apiUrl && hasUsableToken && entitiesCount > 0 && categoriesCount > 0;
+  const hasUserToken = !!glpiUser?.glpiEnabled && !!glpiUser?.glpiUserToken && !isMaskedSecret(glpiUser.glpiUserToken);
+  const configValid = settings.enabled && !!settings.apiUrl && hasUserToken && entitiesCount > 0 && categoriesCount > 0;
   const hasAnyGlpiQueue = ticket.isGroup && !ticket.queue
     ? await Queue.count({ where: { glpiEnabled: true } })
     : 0;
   const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (ticket.isGroup && !ticket.queue && hasAnyGlpiQueue > 0));
   const canCreate = Boolean(
     configValid &&
+    settings.automationMode !== "automatic" &&
     ticket.status === "open" &&
     queueEnabled &&
     (settings.allowMultipleTickets || links.length === 0)
@@ -160,13 +182,15 @@ export const ticketStatus = async (req: Request, res: Response): Promise<Respons
     queueEnabled,
     canCreate,
     allowMultipleTickets: settings.allowMultipleTickets,
+    automationMode: settings.automationMode,
     hasLinkedTicket: links.length > 0,
     links,
     locationsCount,
     reasons: {
       notOpen: ticket.status !== "open",
       queueDisabled: !queueEnabled,
-      missingToken: !hasUsableToken,
+      missingToken: !hasUserToken,
+      userGlpiDisabled: !glpiUser?.glpiEnabled,
       missingCatalog: entitiesCount === 0 || categoriesCount === 0,
       multipleBlocked: links.length > 0 && !settings.allowMultipleTickets
     }

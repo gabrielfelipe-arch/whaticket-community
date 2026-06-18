@@ -20,8 +20,15 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
 const messageLine = message => message.body || "";
+const messageAuthorLabel = message => {
+  if (message.fromMe) return "Atendente";
+  const name = message.contact?.name || "Contato";
+  const number = message.contact?.number ? ` (${message.contact.number})` : "";
+  return `${name}${number}`;
+};
 const hasSelectedValue = value => value !== "" && value !== null && value !== undefined;
 const optionLabel = option => option?.completeName || option?.name || "";
+const entityOptionLabel = option => option?.name || option?.completeName || "";
 
 const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
   const [entities, setEntities] = useState([]);
@@ -205,7 +212,7 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
               <Autocomplete
                 options={entities}
                 value={selectedEntity}
-                getOptionLabel={optionLabel}
+                getOptionLabel={entityOptionLabel}
                 getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                 noOptionsText="Nenhuma entidade encontrada"
                 onChange={(event, option) => {
@@ -320,7 +327,14 @@ const GlpiTicketModal = ({ open, onClose, ticket, onCreated }) => {
                     key={message.id}
                     style={{ display: "flex", alignItems: "flex-start", margin: 0 }}
                     control={<Checkbox color="primary" checked={selectedMessageIds.includes(message.id)} onChange={() => toggleMessage(message.id)} />}
-                    label={<Typography variant="body2">{messageLine(message)}</Typography>}
+                    label={
+                      <div>
+                        <Typography variant="caption" color="textSecondary">
+                          {messageAuthorLabel(message)}
+                        </Typography>
+                        <Typography variant="body2">{messageLine(message)}</Typography>
+                      </div>
+                    }
                   />
                 ))}
                 {!messages.length && <Typography variant="body2" color="textSecondary">Nenhuma mensagem encontrada.</Typography>}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useReducer, useRef } from "react";
 
 import { isSameDay, parseISO, format } from "date-fns";
 import openSocket from "../../services/socket-io";
@@ -271,6 +271,44 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "inherit",
     padding: 10,
   },
+
+  historyBar: {
+    alignSelf: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 14,
+    padding: "8px 12px",
+    borderRadius: 8,
+    backgroundColor: theme.palette.type === "dark" ? "#111A2E" : "#FFFFFF",
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.palette.type === "dark"
+      ? "0 8px 18px rgba(0,0,0,0.18)"
+      : "0 8px 18px rgba(15,23,42,0.06)",
+  },
+
+  historyDivider: {
+    alignSelf: "center",
+    width: "100%",
+    margin: "16px 0 12px",
+    padding: "8px 12px",
+    borderRadius: 0,
+    textAlign: "center",
+    fontSize: 13,
+    fontWeight: 600,
+    color: theme.palette.type === "dark" ? "#BAE6FD" : "#0369A1",
+    backgroundColor: theme.palette.type === "dark" ? "#111A2E" : "#E0F2FE",
+    border: `1px solid ${theme.palette.divider}`,
+  },
+
+  historyMeta: {
+    display: "block",
+    marginTop: 2,
+    fontSize: 11,
+    fontWeight: 400,
+    color: theme.palette.text.secondary,
+  },
 }));
 
 const reducer = (state, action) => {
@@ -326,7 +364,13 @@ const MessagesList = ({ ticketId, isGroup }) => {
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [historyGroups, setHistoryGroups] = useState([]);
+  const [historyPageNumber, setHistoryPageNumber] = useState(1);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const lastMessageRef = useRef();
+  const messagesListRef = useRef();
+  const preserveScrollRef = useRef(null);
 
   const [selectedMessage, setSelectedMessage] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
@@ -336,9 +380,24 @@ const MessagesList = ({ ticketId, isGroup }) => {
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
+    setHistoryGroups([]);
+    setHistoryPageNumber(1);
+    setHasMoreHistory(true);
+    preserveScrollRef.current = null;
 
     currentTicketId.current = ticketId;
   }, [ticketId]);
+
+  useLayoutEffect(() => {
+    const scrollState = preserveScrollRef.current;
+    const messagesListElement = messagesListRef.current;
+
+    if (!scrollState || !messagesListElement) return;
+
+    const heightDiff = messagesListElement.scrollHeight - scrollState.scrollHeight;
+    messagesListElement.scrollTop = scrollState.scrollTop + heightDiff;
+    preserveScrollRef.current = null;
+  }, [historyGroups]);
 
   useEffect(() => {
     setLoading(true);
@@ -393,6 +452,35 @@ const MessagesList = ({ ticketId, isGroup }) => {
 
   const loadMore = () => {
     setPageNumber((prevPageNumber) => prevPageNumber + 1);
+  };
+
+  const loadPreviousTickets = async () => {
+    if (loadingHistory || !hasMoreHistory) return;
+
+    const messagesListElement = messagesListRef.current;
+    preserveScrollRef.current = messagesListElement
+      ? {
+        scrollHeight: messagesListElement.scrollHeight,
+        scrollTop: messagesListElement.scrollTop,
+      }
+      : null;
+
+    setLoadingHistory(true);
+    try {
+      const { data } = await api.get(`/tickets/${ticketId}/previous-messages`, {
+        params: { pageNumber: historyPageNumber },
+      });
+
+      if (currentTicketId.current === ticketId) {
+        setHistoryGroups(prev => [...(data.groups || []), ...prev]);
+        setHasMoreHistory(data.hasMore);
+        setHistoryPageNumber(prev => prev + 1);
+      }
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setLoadingHistory(false);
+    }
   };
 
   const scrollToBottom = () => {
@@ -524,7 +612,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
     }
   };
 
-  const renderDailyTimestamps = (message, index) => {
+  const renderDailyTimestamps = (message, index, list, useLastRef = false) => {
     if (index === 0) {
       return (
         <span
@@ -532,14 +620,14 @@ const MessagesList = ({ ticketId, isGroup }) => {
           key={`timestamp-${message.id}`}
         >
           <div className={classes.dailyTimestampText}>
-            {format(parseISO(messagesList[index].createdAt), "dd/MM/yyyy")}
+            {format(parseISO(list[index].createdAt), "dd/MM/yyyy")}
           </div>
         </span>
       );
     }
-    if (index < messagesList.length - 1) {
-      let messageDay = parseISO(messagesList[index].createdAt);
-      let previousMessageDay = parseISO(messagesList[index - 1].createdAt);
+    if (index < list.length - 1) {
+      let messageDay = parseISO(list[index].createdAt);
+      let previousMessageDay = parseISO(list[index - 1].createdAt);
 
       if (!isSameDay(messageDay, previousMessageDay)) {
         return (
@@ -548,13 +636,13 @@ const MessagesList = ({ ticketId, isGroup }) => {
             key={`timestamp-${message.id}`}
           >
             <div className={classes.dailyTimestampText}>
-              {format(parseISO(messagesList[index].createdAt), "dd/MM/yyyy")}
+              {format(parseISO(list[index].createdAt), "dd/MM/yyyy")}
             </div>
           </span>
         );
       }
     }
-    if (index === messagesList.length - 1) {
+    if (useLastRef && index === list.length - 1) {
       return (
         <div
           key={`ref-${message.createdAt}`}
@@ -565,10 +653,10 @@ const MessagesList = ({ ticketId, isGroup }) => {
     }
   };
 
-  const renderMessageDivider = (message, index) => {
-    if (index < messagesList.length && index > 0) {
-      let messageUser = messagesList[index].fromMe;
-      let previousMessageUser = messagesList[index - 1].fromMe;
+  const renderMessageDivider = (message, index, list) => {
+    if (index < list.length && index > 0) {
+      let messageUser = list[index].fromMe;
+      let previousMessageUser = list[index - 1].fromMe;
 
       if (messageUser !== previousMessageUser) {
         return (
@@ -602,25 +690,29 @@ const MessagesList = ({ ticketId, isGroup }) => {
     );
   };
 
-  const renderMessages = () => {
-    if (messagesList.length > 0) {
-      const viewMessagesList = messagesList.map((message, index) => {
+  const renderMessagesForList = (list, options = {}) => {
+    const { readOnly = false, keyPrefix = "message", useLastRef = false } = options;
+
+    if (list.length > 0) {
+      const viewMessagesList = list.map((message, index) => {
         if (!message.fromMe) {
           return (
-            <React.Fragment key={message.id}>
-              {renderDailyTimestamps(message, index)}
-              {renderMessageDivider(message, index)}
+            <React.Fragment key={`${keyPrefix}-${message.id}`}>
+              {renderDailyTimestamps(message, index, list, useLastRef)}
+              {renderMessageDivider(message, index, list)}
               <div className={classes.messageLeft}>
-                <IconButton
-                  variant="contained"
-                  size="small"
-                  id="messageActionsButton"
-                  disabled={message.isDeleted}
-                  className={classes.messageActionsButton}
-                  onClick={(e) => handleOpenMessageOptionsMenu(e, message)}
-                >
-                  <ExpandMore />
-                </IconButton>
+                {!readOnly && (
+                  <IconButton
+                    variant="contained"
+                    size="small"
+                    id="messageActionsButton"
+                    disabled={message.isDeleted}
+                    className={classes.messageActionsButton}
+                    onClick={(e) => handleOpenMessageOptionsMenu(e, message)}
+                  >
+                    <ExpandMore />
+                  </IconButton>
+                )}
                 {isGroup && (
                   <span className={classes.messageContactName}>
                     {message.contact?.name}
@@ -641,20 +733,22 @@ const MessagesList = ({ ticketId, isGroup }) => {
           );
         } else {
           return (
-            <React.Fragment key={message.id}>
-              {renderDailyTimestamps(message, index)}
-              {renderMessageDivider(message, index)}
+            <React.Fragment key={`${keyPrefix}-${message.id}`}>
+              {renderDailyTimestamps(message, index, list, useLastRef)}
+              {renderMessageDivider(message, index, list)}
               <div className={classes.messageRight}>
-                <IconButton
-                  variant="contained"
-                  size="small"
-                  id="messageActionsButton"
-                  disabled={message.isDeleted}
-                  className={classes.messageActionsButton}
-                  onClick={(e) => handleOpenMessageOptionsMenu(e, message)}
-                >
-                  <ExpandMore />
-                </IconButton>
+                {!readOnly && (
+                  <IconButton
+                    variant="contained"
+                    size="small"
+                    id="messageActionsButton"
+                    disabled={message.isDeleted}
+                    className={classes.messageActionsButton}
+                    onClick={(e) => handleOpenMessageOptionsMenu(e, message)}
+                  >
+                    <ExpandMore />
+                  </IconButton>
+                )}
                 {(message.mediaUrl || message.mediaType === "location" || message.mediaType === "vcard"
                   //|| message.mediaType === "multi_vcard" 
                 ) && checkMessageMedia(message)}
@@ -684,9 +778,37 @@ const MessagesList = ({ ticketId, isGroup }) => {
       });
       return viewMessagesList;
     } else {
-      return <div>Say hello to your new contact!</div>;
+      return null;
     }
   };
+
+  const formatTicketPeriod = (ticket) => {
+    const createdAt = ticket?.createdAt ? format(parseISO(ticket.createdAt), "dd/MM/yyyy HH:mm") : "";
+    const updatedAt = ticket?.updatedAt ? format(parseISO(ticket.updatedAt), "dd/MM/yyyy HH:mm") : "";
+    if (createdAt && updatedAt) return `${createdAt} ate ${updatedAt}`;
+    return createdAt || updatedAt;
+  };
+
+  const renderHistoryGroups = () => historyGroups.map(group => {
+    const glpiText = group.glpiLinks?.length
+      ? `GLPI: ${group.glpiLinks.map(link => `#${link.glpiTicketNumber || link.glpiTicketId}`).join(", ")}`
+      : "Sem GLPI vinculado";
+
+    return (
+      <React.Fragment key={`history-ticket-${group.ticket.id}`}>
+        <div className={classes.historyDivider}>
+          Atendimento anterior #{group.ticket.id}
+          <span className={classes.historyMeta}>
+            {formatTicketPeriod(group.ticket)} - {group.ticket.status || "sem status"} - {glpiText}
+          </span>
+        </div>
+        {renderMessagesForList(group.messages || [], {
+          readOnly: true,
+          keyPrefix: `history-${group.ticket.id}`,
+        })}
+      </React.Fragment>
+    );
+  });
 
   return (
     <div className={classes.messagesListWrapper}>
@@ -699,10 +821,34 @@ const MessagesList = ({ ticketId, isGroup }) => {
       />
       <div
         id="messagesList"
+        ref={messagesListRef}
         className={classes.messagesList}
         onScroll={handleScroll}
       >
-        {messagesList.length > 0 ? renderMessages() : []}
+        <div className={classes.historyBar}>
+          <Button
+            size="small"
+            variant="outlined"
+            color="primary"
+            onClick={loadPreviousTickets}
+            disabled={loadingHistory || !hasMoreHistory}
+          >
+            {loadingHistory
+              ? "Carregando historico..."
+              : hasMoreHistory
+                ? "Carregar historico anterior"
+                : "Todo o historico foi carregado"}
+          </Button>
+        </div>
+        {renderHistoryGroups()}
+        {historyGroups.length > 0 && (
+          <div className={classes.historyDivider}>
+            Atendimento atual #{ticketId}
+          </div>
+        )}
+        {messagesList.length > 0
+          ? renderMessagesForList(messagesList, { keyPrefix: "current", useLastRef: true })
+          : <div>Say hello to your new contact!</div>}
       </div>
       {loading && (
         <div>

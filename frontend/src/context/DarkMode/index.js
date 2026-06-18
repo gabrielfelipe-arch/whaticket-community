@@ -1,16 +1,31 @@
-import React, { createContext, useState, useContext, useMemo } from "react";
+import React, { createContext, useState, useContext, useMemo, useEffect } from "react";
 import PropTypes from "prop-types";
 import { createMuiTheme, ThemeProvider as MUIThemeProvider } from "@material-ui/core/styles";
 import { CssBaseline } from "@material-ui/core";
 
 const ThemeContext = createContext();
+const THEME_STORAGE_KEY = "rocketserviceDarkMode";
 
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem(THEME_STORAGE_KEY) === "true";
+    } catch (err) {
+      return false;
+    }
+  });
 
   const toggleTheme = () => {
     setDarkMode((prevMode) => !prevMode);
   };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, String(darkMode));
+    } catch (err) {
+      // Ignore storage errors and keep the in-memory theme.
+    }
+  }, [darkMode]);
 
   const theme = useMemo(
     () =>

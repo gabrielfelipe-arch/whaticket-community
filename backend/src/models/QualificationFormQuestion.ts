@@ -28,6 +28,10 @@ class QualificationFormQuestion extends Model<QualificationFormQuestion> {
   @Column
   type: string;
 
+  @Default("description")
+  @Column
+  glpiField: string;
+
   @Column(DataType.TEXT)
   options: string;
 

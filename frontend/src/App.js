@@ -7,12 +7,27 @@ import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import { ptBR } from "@material-ui/core/locale";
 import { CssBaseline } from "@material-ui/core";
 import { BrandingProvider } from "./context/Branding";
+import { getBackendUrl } from "./config";
+import openSocket from "./services/socket-io";
+
+const brandingKeys = [
+  "brandName",
+  "brandLogo",
+  "brandLogoFit",
+  "brandLogoPositionX",
+  "brandLogoPositionY",
+  "brandLogoScale"
+];
 
 const App = () => {
   const [locale, setLocale] = useState();
   const [branding, setBranding] = useState({
     brandName: "WhaTicket",
-    brandLogo: ""
+    brandLogo: "",
+    brandLogoFit: "contain",
+    brandLogoPositionX: "50",
+    brandLogoPositionY: "50",
+    brandLogoScale: "1"
   });
 
   const theme = createTheme(
@@ -38,7 +53,7 @@ const App = () => {
   useEffect(() => {
     const loadBranding = async () => {
       try {
-        const { data } = await axios.get("http://localhost:8085/public-settings");
+        const { data } = await axios.get(`${getBackendUrl() || "http://localhost:8085"}/public-settings`);
         const nextBranding = { ...branding };
         data.forEach(setting => {
           nextBranding[setting.key] = setting.value;
@@ -51,6 +66,21 @@ const App = () => {
 
     loadBranding();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const socket = openSocket();
+
+    socket.on("settings", data => {
+      if (data.action === "update" && brandingKeys.includes(data.setting?.key)) {
+        setBranding(prev => ({
+          ...prev,
+          [data.setting.key]: data.setting.value
+        }));
+      }
+    });
+
+    return () => socket.disconnect();
   }, []);
 
   useEffect(() => {

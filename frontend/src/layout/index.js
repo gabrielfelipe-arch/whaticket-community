@@ -28,6 +28,7 @@ import { useThemeContext } from "../context/DarkMode";
 import { useBranding } from "../context/Branding";
 import api from "../services/api";
 import toastError from "../errors/toastError";
+import { getBackendUrl } from "../config";
 
 const drawerWidth = 268;
 
@@ -76,17 +77,25 @@ const useStyles = makeStyles((theme) => ({
     minWidth: 0,
     gap: theme.spacing(1.5),
   },
-  brandLogo: {
+  brandLogoFrame: {
     width: 136,
     height: 48,
     borderRadius: 8,
-    objectFit: "contain",
     background: "rgba(255,255,255,0.10)",
-    padding: 6,
+    overflow: "hidden",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
     [theme.breakpoints.down("xs")]: {
       width: 104,
       height: 40,
     },
+  },
+  brandLogo: {
+    width: "100%",
+    height: "100%",
+    padding: 6,
+    transformOrigin: "center",
   },
   brandFallback: {
     width: 64,
@@ -268,6 +277,7 @@ const LoggedInLayout = ({ children }) => {
   const { user } = useContext(AuthContext);
   const { darkMode, toggleTheme } = useThemeContext();
   const branding = useBranding();
+  const backendUrl = getBackendUrl() || "http://localhost:8085";
   const lastActivityRef = useRef(Date.now());
   const lastTouchRef = useRef(0);
   const [inactivitySettings, setInactivitySettings] = useState({});
@@ -447,11 +457,18 @@ const LoggedInLayout = ({ children }) => {
           >
             <div className={classes.brandBox}>
               {branding.brandLogo ? (
-                <img
-                  src={`http://localhost:8085${branding.brandLogo}`}
-                  alt={branding.brandName}
-                  className={classes.brandLogo}
-                />
+                <div className={classes.brandLogoFrame}>
+                  <img
+                    src={`${backendUrl}${branding.brandLogo}`}
+                    alt={branding.brandName}
+                    className={classes.brandLogo}
+                    style={{
+                      objectFit: branding.brandLogoFit || "contain",
+                      objectPosition: `${branding.brandLogoPositionX || 50}% ${branding.brandLogoPositionY || 50}%`,
+                      transform: `scale(${Number(branding.brandLogoScale || 1)})`
+                    }}
+                  />
+                </div>
               ) : (
                 <div className={classes.brandFallback}>
                   {(branding.brandName || "A").charAt(0).toUpperCase()}

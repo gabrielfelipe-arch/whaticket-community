@@ -75,7 +75,16 @@ export const publicIndex = async (
 ): Promise<Response> => {
   const settings = await Setting.findAll({
     where: {
-      key: ["brandName", "brandLogo", "primaryColor", "secondaryColor"]
+      key: [
+        "brandName",
+        "brandLogo",
+        "brandLogoFit",
+        "brandLogoPositionX",
+        "brandLogoPositionY",
+        "brandLogoScale",
+        "primaryColor",
+        "secondaryColor"
+      ]
     }
   });
 

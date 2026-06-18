@@ -550,8 +550,16 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     requireField(data.formId, "Escolha o formulario.");
     requireField(data.label, "Informe a pergunta.");
 
-    const allowedTypes = ["text", "single_choice", "multiple_choice", "number", "date", "time", "boolean", "email", "phone"];
+    const allowedTypes = ["text", "single_choice", "multiple_choice", "number", "date", "time", "boolean", "email", "phone", "glpi_entity", "glpi_location"];
+    const allowedGlpiFields = ["description", "entity", "location", "ignore"];
     const type = allowedTypes.includes(data.type) ? data.type : "text";
+    const glpiField = allowedGlpiFields.includes(data.glpiField)
+      ? data.glpiField
+      : type === "glpi_entity"
+        ? "entity"
+        : type === "glpi_location"
+          ? "location"
+          : "description";
     const key = normalizeQuestionKey(data.key || data.label);
 
     requireField(key, "Informe uma chave valida para a pergunta.");
@@ -566,6 +574,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       key,
       label: data.label,
       type,
+      glpiField,
       options,
       required: data.required !== false && data.required !== "false",
       includeInAiContext: data.includeInAiContext !== false && data.includeInAiContext !== "false",

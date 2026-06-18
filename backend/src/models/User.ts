@@ -53,6 +53,13 @@ class User extends Model<User> {
   @Column
   active: boolean;
 
+  @Default(false)
+  @Column
+  glpiEnabled: boolean;
+
+  @Column(DataType.TEXT)
+  glpiUserToken: string;
+
   @Column(DataType.TEXT)
   attendanceGreeting: string;
 

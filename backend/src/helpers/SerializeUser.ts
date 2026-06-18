@@ -1,6 +1,7 @@
 import Queue from "../models/Queue";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
+import { maskSecret } from "./MaskSecret";
 
 interface SerializedUser {
   id: number;
@@ -8,6 +9,8 @@ interface SerializedUser {
   email: string;
   profile: string;
   active: boolean;
+  glpiEnabled: boolean;
+  glpiUserToken: string;
   attendanceGreeting: string;
   operationalStatus: string;
   lastActivityAt: Date;
@@ -24,6 +27,8 @@ export const SerializeUser = (user: User): SerializedUser => {
     email: user.email,
     profile: user.profile,
     active: user.active,
+    glpiEnabled: user.glpiEnabled,
+    glpiUserToken: maskSecret(user.glpiUserToken),
     attendanceGreeting: user.attendanceGreeting,
     operationalStatus: user.operationalStatus,
     lastActivityAt: user.lastActivityAt,

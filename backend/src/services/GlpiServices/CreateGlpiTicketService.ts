@@ -7,12 +7,13 @@ import GlpiTicketLink from "../../models/GlpiTicketLink";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Queue from "../../models/Queue";
+import User from "../../models/User";
 import { buildGlpiTicketUrl, closeGlpiSession, getGlpiSettings, glpiHeaders, initGlpiSession, normalizeGlpiError } from "./GlpiClientService";
 import CreateGlpiLogService from "./GlpiLogService";
 
 type Request = {
   ticketId: number;
-  userId: number;
+  userId?: number | null;
   title: string;
   description: string;
   entityId: number;
@@ -21,6 +22,7 @@ type Request = {
   descriptionMode?: string;
   selectedMessageIds?: string[];
   forceCreate?: boolean;
+  useGlobalToken?: boolean;
 };
 
 const buildMessageExcerpt = async (messageIds: string[]): Promise<string[]> => {
@@ -42,10 +44,24 @@ const CreateGlpiTicketService = async ({
   locationId,
   descriptionMode = "manual",
   selectedMessageIds = [],
-  forceCreate = false
+  forceCreate = false,
+  useGlobalToken = false
 }: Request): Promise<GlpiTicketLink> => {
   const settings = await getGlpiSettings();
   if (!settings.enabled) throw new AppError("Integracao GLPI desativada.", 400);
+  if (!settings.apiUrl) throw new AppError("Informe a URL da API GLPI.", 400);
+
+  const glpiUser = userId ? await User.findByPk(userId, {
+    attributes: ["id", "name", "glpiEnabled", "glpiUserToken"]
+  }) : null;
+  if (!useGlobalToken) {
+    if (!glpiUser?.glpiEnabled) {
+      throw new AppError("Seu usuario nao esta habilitado para usar GLPI.", 403);
+    }
+    if (!glpiUser.glpiUserToken) {
+      throw new AppError("Configure o User Token GLPI no seu cadastro de usuario.", 403);
+    }
+  }
 
   const ticket = await Ticket.findByPk(ticketId, {
     include: [
@@ -90,7 +106,7 @@ const CreateGlpiTicketService = async ({
 
   let session;
   try {
-    session = await initGlpiSession();
+    session = await initGlpiSession(useGlobalToken ? {} : { userToken: glpiUser?.glpiUserToken });
 
     const input: Record<string, any> = {
       name: title.trim(),
@@ -123,12 +139,12 @@ const CreateGlpiTicketService = async ({
       title: title.trim(),
       description: finalDescription,
       entityId,
-      entityName: entity.completeName || entity.name,
+      entityName: entity.name || entity.completeName,
       categoryId,
       categoryName: category.completeName || category.name,
       locationId: location?.glpiId || null,
       locationName: location ? location.completeName || location.name : null,
-      createdByUserId: userId,
+      createdByUserId: userId || null,
       descriptionMode,
       selectedMessageIds: JSON.stringify(selectedMessageIds),
       glpiUrl: buildGlpiTicketUrl(settings, glpiTicketId),
@@ -143,7 +159,7 @@ const CreateGlpiTicketService = async ({
       status: "success",
       message: `Chamado GLPI ${glpiTicketId} criado.`,
       ticketId,
-      userId,
+      userId: userId || undefined,
       payload: { input: { ...input, content: "[masked-description]" } },
       response: response.data
     });
@@ -155,7 +171,7 @@ const CreateGlpiTicketService = async ({
       status: "error",
       message: "Falha ao criar chamado GLPI.",
       ticketId,
-      userId,
+      userId: userId || undefined,
       error: err instanceof AppError ? err.message : normalizeGlpiError(err)
     });
     if (err instanceof AppError) throw err;

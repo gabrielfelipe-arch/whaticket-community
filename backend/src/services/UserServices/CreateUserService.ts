@@ -14,6 +14,8 @@ interface Request {
   attendanceGreeting?: string;
   operationalStatus?: string;
   active?: boolean;
+  glpiEnabled?: boolean;
+  glpiUserToken?: string;
 }
 
 interface Response {
@@ -32,7 +34,9 @@ const CreateUserService = async ({
   whatsappId,
   attendanceGreeting,
   operationalStatus = "offline",
-  active = true
+  active = true,
+  glpiEnabled = false,
+  glpiUserToken
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().required().min(2),
@@ -68,7 +72,9 @@ const CreateUserService = async ({
       whatsappId: whatsappId ? whatsappId : null,
       attendanceGreeting,
       operationalStatus,
-      active
+      active,
+      glpiEnabled,
+      glpiUserToken: glpiEnabled ? String(glpiUserToken || "").trim() || null : null
     },
     { include: ["queues", "whatsapp"] }
   );

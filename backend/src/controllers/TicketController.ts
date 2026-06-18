@@ -4,6 +4,7 @@ import { getIO } from "../libs/socket";
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
+import ListPreviousTicketMessagesService from "../services/TicketServices/ListPreviousTicketMessagesService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
@@ -99,6 +100,18 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const contact = await ShowTicketService(ticketId);
 
   return res.status(200).json(contact);
+};
+
+export const previousMessages = async (req: Request, res: Response): Promise<Response> => {
+  const { ticketId } = req.params;
+  const { pageNumber } = req.query as { pageNumber: string };
+
+  const result = await ListPreviousTicketMessagesService({
+    ticketId,
+    pageNumber
+  });
+
+  return res.status(200).json(result);
 };
 
 export const update = async (
