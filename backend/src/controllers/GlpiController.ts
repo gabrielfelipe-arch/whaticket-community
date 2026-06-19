@@ -176,10 +176,10 @@ export const ticketStatus = async (req: Request, res: Response): Promise<Respons
   const locationsCount = await GlpiLocation.count({ where: { active: true } });
   const hasUserToken = !!glpiUser?.glpiEnabled && !!glpiUser?.glpiUserToken && !isMaskedSecret(glpiUser.glpiUserToken);
   const configValid = settings.enabled && !!settings.apiUrl && hasUserToken && entitiesCount > 0 && categoriesCount > 0;
-  const hasAnyGlpiQueue = ticket.isGroup && !ticket.queue
+  const hasAnyGlpiQueue = !ticket.queue
     ? await Queue.count({ where: { glpiEnabled: true } })
     : 0;
-  const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (ticket.isGroup && !ticket.queue && hasAnyGlpiQueue > 0));
+  const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (!ticket.queue && hasAnyGlpiQueue > 0));
   const canCreate = Boolean(
     configValid &&
     settings.automationMode !== "automatic" &&

@@ -67,13 +67,13 @@ const healthIntervals = new Map<number, ReturnType<typeof setInterval>>();
 const healthFailures = new Map<number, number>();
 
 const HEALTH_CHECK_INTERVAL_MS = Number(
-  process.env.WWEBJS_HEALTH_CHECK_INTERVAL_MS || 15000
+  process.env.WWEBJS_HEALTH_CHECK_INTERVAL_MS || 60000
 );
 const HEALTH_CHECK_TIMEOUT_MS = Number(
-  process.env.WWEBJS_HEALTH_CHECK_TIMEOUT_MS || 8000
+  process.env.WWEBJS_HEALTH_CHECK_TIMEOUT_MS || 20000
 );
 const HEALTH_CHECK_MAX_FAILURES = Number(
-  process.env.WWEBJS_HEALTH_CHECK_MAX_FAILURES || 2
+  process.env.WWEBJS_HEALTH_CHECK_MAX_FAILURES || 4
 );
 
 const getWbot = (whatsappId: number): Session => {
@@ -156,10 +156,21 @@ const startHealthMonitor = (whatsapp: Whatsapp, wbot: Session): void => {
         )
       );
 
-      healthFailures.delete(whatsapp.id);
+      if (state === "CONNECTED") {
+        healthFailures.delete(whatsapp.id);
+        return;
+      }
 
-      if (state && state !== "CONNECTED") {
-        await markSessionUnavailable(whatsapp.id, state, `getState returned ${state}`);
+      const failures = (healthFailures.get(whatsapp.id) || 0) + 1;
+      healthFailures.set(whatsapp.id, failures);
+
+      logger.warn(
+        { whatsappId: whatsapp.id, state, failures },
+        "WhatsApp health check returned a non-connected state"
+      );
+
+      if (failures >= HEALTH_CHECK_MAX_FAILURES) {
+        await markSessionUnavailable(whatsapp.id, state || "DISCONNECTED", `getState returned ${state}`);
       }
     } catch (err) {
       const failures = (healthFailures.get(whatsapp.id) || 0) + 1;

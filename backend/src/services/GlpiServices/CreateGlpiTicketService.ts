@@ -72,10 +72,10 @@ const CreateGlpiTicketService = async ({
 
   if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
   if (ticket.status !== "open") throw new AppError("O chamado GLPI so pode ser aberto em atendimento aberto.", 400);
-  const hasAnyGlpiQueue = ticket.isGroup && !ticket.queue
+  const hasAnyGlpiQueue = !ticket.queue
     ? await Queue.count({ where: { glpiEnabled: true } })
     : 0;
-  const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (ticket.isGroup && !ticket.queue && hasAnyGlpiQueue > 0));
+  const queueEnabled = Boolean(ticket.queue?.glpiEnabled || (!ticket.queue && hasAnyGlpiQueue > 0));
   if (!queueEnabled) throw new AppError("A fila deste atendimento nao permite abertura de chamado GLPI.", 403);
 
   const existingLinks = await GlpiTicketLink.findAll({ where: { ticketId } });

@@ -25,6 +25,8 @@ import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
 import { AuthContext } from "../context/Auth/AuthContext";
 import { Can } from "../components/Can";
+import useTickets from "../hooks/useTickets";
+import openSocket from "../services/socket-io";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -113,9 +115,10 @@ const useStyles = makeStyles(theme => ({
 }));
 
 function ListItemLink(props) {
-  const { icon, primary, to, className, activeClassName, collapsed, collapsedClassName } = props;
+  const { icon, primary, to, className, activeClassName, collapsed, collapsedClassName, badgeContent = 0 } = props;
   const location = useLocation();
   const active = to === "/" ? location.pathname === "/" : location.pathname.startsWith(to);
+  const showBadge = Number(badgeContent) > 0;
 
   const renderLink = React.useMemo(
     () =>
@@ -135,10 +138,19 @@ function ListItemLink(props) {
       >
         {icon ? (
           <ListItemIcon style={{ color: "#FFFFFF" }}>
-            {React.cloneElement(icon, {
-              style: { ...(icon.props?.style || {}), color: "#FFFFFF", fill: "#FFFFFF" },
-              htmlColor: "#FFFFFF"
-            })}
+            {showBadge ? (
+              <Badge badgeContent={badgeContent} color="secondary">
+                {React.cloneElement(icon, {
+                  style: { ...(icon.props?.style || {}), color: "#FFFFFF", fill: "#FFFFFF" },
+                  htmlColor: "#FFFFFF"
+                })}
+              </Badge>
+            ) : (
+              React.cloneElement(icon, {
+                style: { ...(icon.props?.style || {}), color: "#FFFFFF", fill: "#FFFFFF" },
+                htmlColor: "#FFFFFF"
+              })
+            )}
           </ListItemIcon>
         ) : null}
         {!collapsed && <ListItemText primary={primary} />}
@@ -160,6 +172,45 @@ const MainListItems = (props) => {
   const { user } = useContext(AuthContext);
   const [connectionWarning, setConnectionWarning] = useState(false);
   const [adminOpen, setAdminOpen] = useState(true);
+  const { tickets: unreadTickets } = useTickets({ withUnreadMessages: "true" });
+  const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
+  const ticketsBadgeCount = unreadTicketIds.size;
+
+  useEffect(() => {
+    setUnreadTicketIds(new Set(unreadTickets.map(ticket => Number(ticket.id))));
+  }, [unreadTickets]);
+
+  useEffect(() => {
+    const socket = openSocket();
+
+    socket.on("connect", () => socket.emit("joinNotification"));
+
+    socket.on("appMessage", data => {
+      if (
+        data.action === "create" &&
+        !data.message.read &&
+        (data.ticket.userId === user?.id || !data.ticket.userId)
+      ) {
+        setUnreadTicketIds(prevIds => {
+          const nextIds = new Set(prevIds);
+          nextIds.add(Number(data.ticket.id));
+          return nextIds;
+        });
+      }
+    });
+
+    socket.on("ticket", data => {
+      if (data.action === "updateUnread" || data.action === "delete") {
+        setUnreadTicketIds(prevIds => {
+          const nextIds = new Set(prevIds);
+          nextIds.delete(Number(data.ticketId));
+          return nextIds;
+        });
+      }
+    });
+
+    return () => socket.disconnect();
+  }, [user?.id]);
 
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
@@ -194,6 +245,7 @@ const MainListItems = (props) => {
         activeClassName={classes.activeItem}
         collapsed={!drawerOpen}
         collapsedClassName={classes.itemCollapsed}
+        badgeContent={ticketsBadgeCount}
       />
       <ListItemLink
         to="/contacts"
