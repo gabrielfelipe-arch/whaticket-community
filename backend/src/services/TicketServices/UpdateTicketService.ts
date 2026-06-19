@@ -74,6 +74,12 @@ interface Response {
   oldUserId: number | undefined;
 }
 
+const nullableNumber = (value: unknown): number | null => {
+  if (value === "" || value === null || value === undefined) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 const UpdateTicketService = async ({
   ticketData,
   ticketId
@@ -135,12 +141,14 @@ const UpdateTicketService = async ({
 
   const closingByAiContext = status === "closed" && aiHandled === true && !aiAutoClosed;
   const closingByAutomationContext = status === "closed" && automationClosed === true;
+  const normalizedCategoryId = nullableNumber(categoryId);
+  const normalizedClosingReasonId = nullableNumber(closingReasonId);
 
-  if (status === "closed" && !ticket.isGroup && !aiAutoClosed && !closingByAiContext && !closingByAutomationContext && (!categoryId || !closingReasonId)) {
+  if (status === "closed" && !aiAutoClosed && !closingByAiContext && !closingByAutomationContext && (!normalizedCategoryId || !normalizedClosingReasonId)) {
     throw new AppError("ERR_CLOSING_FIELDS_REQUIRED", 400);
   }
 
-  if (status === "closed" && !ticket.isGroup && (aiAutoClosed || closingByAiContext || closingByAutomationContext) && !closingReasonId) {
+  if (status === "closed" && (aiAutoClosed || closingByAiContext || closingByAutomationContext) && !normalizedClosingReasonId) {
     throw new AppError("ERR_CLOSING_REASON_REQUIRED", 400);
   }
 
@@ -196,8 +204,8 @@ const UpdateTicketService = async ({
     status,
     queueId: effectiveQueueId,
     userId,
-    categoryId,
-    closingReasonId,
+    categoryId: normalizedCategoryId,
+    closingReasonId: normalizedClosingReasonId,
     closingNote,
     aiActive: shouldDisableBot ? false : aiActive,
     aiHandled,

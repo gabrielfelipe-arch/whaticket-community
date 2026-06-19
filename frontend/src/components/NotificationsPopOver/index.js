@@ -13,12 +13,53 @@ import ListItemText from "@material-ui/core/ListItemText";
 import { makeStyles } from "@material-ui/core/styles";
 import Badge from "@material-ui/core/Badge";
 import ChatIcon from "@material-ui/icons/Chat";
+import WarningIcon from "@material-ui/icons/Warning";
 
 import TicketListItem from "../TicketListItem";
 import { i18n } from "../../translate/i18n";
 import useTickets from "../../hooks/useTickets";
 import alertSound from "../../assets/sound.mp3";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import useWhatsApps from "../../hooks/useWhatsApps";
+
+const whatsappAttentionStatuses = new Set([
+	"DISCONNECTED",
+	"OPENING",
+	"PAIRING",
+	"QRCODE",
+	"TIMEOUT",
+	"CONFLICT",
+	"UNPAIRED",
+	"UNPAIRED_IDLE",
+]);
+
+const getWhatsappStatus = session => String(session?.status || "").toUpperCase();
+
+const isWhatsappSessionAttention = session =>
+	session?.id && whatsappAttentionStatuses.has(getWhatsappStatus(session));
+
+const getWhatsappAlertText = whatsapp => {
+	const status = getWhatsappStatus(whatsapp);
+
+	if (status === "OPENING") {
+		return {
+			title: `WhatsApp reconectando: ${whatsapp.name || `Conexao #${whatsapp.id}`}`,
+			subtitle: "A conexao caiu e o sistema esta tentando reconectar.",
+		};
+	}
+
+	if (status === "QRCODE" || status === "PAIRING") {
+		return {
+			title: `WhatsApp precisa de pareamento: ${whatsapp.name || `Conexao #${whatsapp.id}`}`,
+			subtitle: "Abra as configuracoes do WhatsApp e confira o QR Code.",
+		};
+	}
+
+	return {
+		title: `WhatsApp desconectado: ${whatsapp.name || `Conexao #${whatsapp.id}`}`,
+		subtitle: "Verifique a conexao para voltar a receber e enviar mensagens.",
+	};
+};
 
 const useStyles = makeStyles(theme => ({
 	tabContainer: {
@@ -45,6 +86,39 @@ const useStyles = makeStyles(theme => ({
 			fill: "#FFFFFF",
 		},
 	},
+	notificationButton: {
+		position: "relative",
+	},
+	disconnectAlert: {
+		position: "absolute",
+		top: -6,
+		right: 22,
+		color: "#FBBF24 !important",
+		fill: "#FBBF24 !important",
+		fontSize: 18,
+		zIndex: 2,
+		pointerEvents: "none",
+		animation: "$pulseAlert 1s ease-in-out infinite",
+		filter: "drop-shadow(0 0 6px rgba(251, 191, 36, 0.75))",
+	},
+	"@keyframes pulseAlert": {
+		"0%": {
+			transform: "scale(0.9)",
+			opacity: 0.65,
+		},
+		"50%": {
+			transform: "scale(1.2)",
+			opacity: 1,
+		},
+		"100%": {
+			transform: "scale(0.9)",
+			opacity: 0.65,
+		},
+	},
+	disconnectItem: {
+		borderLeft: "4px solid #F59E0B",
+		background: theme.palette.type === "dark" ? "rgba(245, 158, 11, 0.12)" : "#FFFBEB",
+	},
 }));
 
 const NotificationsPopOver = ({ className }) => {
@@ -57,10 +131,12 @@ const NotificationsPopOver = ({ className }) => {
 	const anchorEl = useRef();
 	const [isOpen, setIsOpen] = useState(false);
 	const [notifications, setNotifications] = useState([]);
+	const [disconnectedWhatsapps, setDisconnectedWhatsapps] = useState([]);
 
 	const [, setDesktopNotifications] = useState([]);
 
 	const { tickets } = useTickets({ withUnreadMessages: "true" });
+	const { whatsApps } = useWhatsApps();
 	const [play] = useSound(alertSound);
 	const soundAlertRef = useRef();
 
@@ -79,6 +155,10 @@ const NotificationsPopOver = ({ className }) => {
 	useEffect(() => {
 		setNotifications(tickets);
 	}, [tickets]);
+
+	useEffect(() => {
+		setDisconnectedWhatsapps(whatsApps.filter(isWhatsappSessionAttention));
+	}, [whatsApps]);
 
 	useEffect(() => {
 		ticketIdRef.current = ticketIdUrl;
@@ -141,6 +221,26 @@ const NotificationsPopOver = ({ className }) => {
 			}
 		});
 
+		socket.on("whatsappSession", data => {
+			const session = data?.session;
+			if (!session?.id) return;
+
+			if (isWhatsappSessionAttention(session)) {
+				setDisconnectedWhatsapps(prevState => {
+					const exists = prevState.some(item => Number(item.id) === Number(session.id));
+					if (exists) {
+						return prevState.map(item => Number(item.id) === Number(session.id) ? session : item);
+					}
+					return [session, ...prevState];
+				});
+				return;
+			}
+
+			if (getWhatsappStatus(session) === "CONNECTED") {
+				setDisconnectedWhatsapps(prevState => prevState.filter(item => Number(item.id) !== Number(session.id)));
+			}
+		});
+
 		return () => {
 			socket.disconnect();
 		};
@@ -199,11 +299,12 @@ const NotificationsPopOver = ({ className }) => {
 				onClick={handleClick}
 				ref={anchorEl}
 				aria-label="Open Notifications"
-				className={clsx(classes.iconButton, className)}
+				className={clsx(classes.iconButton, classes.notificationButton, className)}
 			>
-				<Badge badgeContent={notifications.length} color="secondary">
+				<Badge badgeContent={notifications.length + disconnectedWhatsapps.length} color="secondary">
 					<ChatIcon />
 				</Badge>
+				{disconnectedWhatsapps.length > 0 && <WarningIcon className={classes.disconnectAlert} />}
 			</IconButton>
 			<Popover
 				disableScrollLock
@@ -221,7 +322,19 @@ const NotificationsPopOver = ({ className }) => {
 				onClose={handleClickAway}
 			>
 				<List dense className={classes.tabContainer}>
-					{notifications.length === 0 ? (
+					{disconnectedWhatsapps.map(whatsapp => {
+						const alertText = getWhatsappAlertText(whatsapp);
+
+						return (
+							<ListItem key={`whatsapp-${whatsapp.id}`} className={classes.disconnectItem}>
+								<ListItemText
+									primary={alertText.title}
+									secondary={alertText.subtitle}
+								/>
+							</ListItem>
+						);
+					})}
+					{notifications.length === 0 && disconnectedWhatsapps.length === 0 ? (
 						<ListItem>
 							<ListItemText>{i18n.t("notifications.noTickets")}</ListItemText>
 						</ListItem>

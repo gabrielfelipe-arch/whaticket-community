@@ -113,6 +113,27 @@ const useStyles = makeStyles(theme => ({
 		minHeight: 44,
 		borderBottom: `1px solid ${theme.palette.divider}`
 	},
+	navTabs: {
+		marginBottom: theme.spacing(2),
+		minHeight: 44,
+		padding: theme.spacing(0.5),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.type === "dark" ? theme.palette.background.paper : "#f8fafc",
+		"& .MuiTabs-indicator": {
+			display: "none"
+		},
+		"& .MuiTab-root": {
+			minHeight: 36,
+			borderRadius: 6,
+			textTransform: "none",
+			fontWeight: 600
+		},
+		"& .Mui-selected": {
+			background: theme.palette.background.paper,
+			boxShadow: theme.custom?.cardShadow || "0 1px 3px rgba(15, 23, 42, 0.12)"
+		}
+	},
 	generalPaper: {
 		padding: theme.spacing(2),
 		display: "flex",
@@ -291,6 +312,25 @@ const useStyles = makeStyles(theme => ({
 	sectionSubtitle: {
 		color: theme.palette.text.secondary,
 		marginTop: theme.spacing(0.5)
+	},
+	auditItem: {
+		padding: theme.spacing(1.5),
+		marginBottom: theme.spacing(1),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper
+	},
+	auditSummary: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: theme.spacing(1),
+		flexWrap: "wrap"
+	},
+	auditChanges: {
+		marginTop: theme.spacing(1),
+		display: "grid",
+		gap: theme.spacing(0.5)
 	}
 }));
 
@@ -835,7 +875,7 @@ const resources = [
 		endpoint: "/audit-logs",
 		title: "Log de auditoria",
 		fields: [],
-		columns: ["id", "createdAt", "userName", "userProfile", "action", "resource", "resourceId", "route"],
+		columns: ["createdAt", "userName", "action", "resource"],
 		readOnly: true
 	}
 ];
@@ -917,6 +957,142 @@ const htmlToPlainText = value => {
 	return (container.textContent || container.innerText || "")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
+};
+
+const auditActionLabels = {
+	create: { label: "Criou", color: "primary" },
+	update: { label: "Alterou", color: "default" },
+	delete: { label: "Excluiu", color: "secondary" }
+};
+
+const auditResourceLabels = {
+	ticketCategories: "categoria",
+	closingReasons: "motivo de encerramento",
+	satisfactionSurveys: "pesquisa de satisfacao",
+	quickAnswers: "mensagem rapida",
+	tags: "etiqueta",
+	uraFlows: "fluxo da URA",
+	uraOptions: "opcao da URA",
+	aiSettings: "agente de IA",
+	knowledgeBase: "artigo da base de conhecimento",
+	aiCalendarConnections: "conexao de agenda",
+	qualificationForms: "formulario",
+	qualificationFormQuestions: "pergunta do formulario",
+	qualificationFormResponses: "resposta de formulario",
+	qualificationFormAnswers: "resposta coletada",
+	settings: "configuracao"
+};
+
+const auditFieldLabels = {
+	name: "Nome",
+	title: "Titulo",
+	description: "Descricao",
+	active: "Ativo",
+	label: "Pergunta",
+	type: "Tipo",
+	glpiField: "Uso no GLPI",
+	options: "Opcoes",
+	required: "Obrigatoria",
+	greetingMessage: "Mensagem de saudacao",
+	question: "Pergunta",
+	thankYouMessage: "Mensagem de agradecimento",
+	farewellMessage: "Mensagem de encerramento",
+	sendFarewellMessage: "Enviar mensagem",
+	route: "Rota",
+	method: "Metodo"
+};
+
+const parseAuditData = value => {
+	if (!value) return {};
+	if (typeof value === "object") return value;
+	try {
+		return JSON.parse(value);
+	} catch (err) {
+		return {};
+	}
+};
+
+const auditDisplayValue = value => {
+	if (value === true) return "Sim";
+	if (value === false) return "Nao";
+	if (value === null || value === undefined || value === "") return "Vazio";
+	if (Array.isArray(value)) return value.map(auditDisplayValue).join(", ");
+	if (typeof value === "object") return JSON.stringify(value);
+	const text = String(value);
+	return text.length > 90 ? `${text.slice(0, 90)}...` : text;
+};
+
+const getAuditObjectName = (beforeData, afterData, row) =>
+	auditDisplayValue(afterData.name || afterData.title || afterData.label || beforeData.name || beforeData.title || beforeData.label || `#${row.resourceId}`);
+
+const getAuditChanges = row => {
+	const beforeData = parseAuditData(row.beforeData);
+	const afterData = parseAuditData(row.afterData);
+	const keys = Array.from(new Set([...Object.keys(beforeData), ...Object.keys(afterData)]))
+		.filter(key => !["id", "createdAt", "updatedAt"].includes(key));
+
+	if (row.action === "create") {
+		return keys
+			.filter(key => afterData[key] !== null && afterData[key] !== undefined && afterData[key] !== "")
+			.slice(0, 8)
+			.map(key => ({ field: auditFieldLabels[key] || key, after: auditDisplayValue(afterData[key]) }));
+	}
+
+	if (row.action === "delete") {
+		return keys
+			.slice(0, 8)
+			.map(key => ({ field: auditFieldLabels[key] || key, before: auditDisplayValue(beforeData[key]) }));
+	}
+
+	return keys
+		.filter(key => auditDisplayValue(beforeData[key]) !== auditDisplayValue(afterData[key]))
+		.slice(0, 10)
+		.map(key => ({
+			field: auditFieldLabels[key] || key,
+			before: auditDisplayValue(beforeData[key]),
+			after: auditDisplayValue(afterData[key])
+		}));
+};
+
+const formatAuditDate = value => {
+	if (!value) return "";
+	try {
+		return new Date(value).toLocaleString("pt-BR");
+	} catch (err) {
+		return value;
+	}
+};
+
+const searchableResourceEndpoints = [
+	"/ticket-categories",
+	"/closing-reasons",
+	"/quickAnswers",
+	"/tags",
+	"/audit-logs"
+];
+
+const getSearchableRowText = (row, resource) => {
+	if (resource.endpoint === "/audit-logs") {
+		const beforeData = parseAuditData(row.beforeData);
+		const afterData = parseAuditData(row.afterData);
+		const changes = getAuditChanges(row)
+			.map(change => `${change.field} ${change.before || ""} ${change.after || ""}`)
+			.join(" ");
+		return [
+			row.userName,
+			row.userProfile,
+			auditActionLabels[row.action]?.label,
+			auditResourceLabels[row.resource],
+			getAuditObjectName(beforeData, afterData, row),
+			changes,
+			formatAuditDate(row.createdAt)
+		].join(" ");
+	}
+
+	return [
+		...resource.columns.map(column => row[column]),
+		...resource.fields.map(field => row[field.name])
+	].join(" ");
 };
 
 const slugText = value =>
@@ -3722,6 +3898,7 @@ const ResourcePanel = ({ resource, classes }) => {
 	const [mediaFile, setMediaFile] = useState(null);
 	const [testingApi, setTestingApi] = useState(false);
 	const [testingRowId, setTestingRowId] = useState(null);
+	const [search, setSearch] = useState("");
 
 	const loadRows = async () => {
 		try {
@@ -3735,6 +3912,7 @@ const ResourcePanel = ({ resource, classes }) => {
 
 	useEffect(() => {
 		loadRows();
+		setSearch("");
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [resource.endpoint]);
 
@@ -3988,15 +4166,103 @@ const ResourcePanel = ({ resource, classes }) => {
 		return String(value);
 	};
 
+	const canSearch = searchableResourceEndpoints.includes(resource.endpoint);
+	const visibleRows = canSearch && search.trim()
+		? rows.filter(row => normalizeSearchText(getSearchableRowText(row, resource)).includes(normalizeSearchText(search)))
+		: rows;
+
+	const searchField = canSearch ? (
+		<TextField
+			variant="outlined"
+			size="small"
+			placeholder={`Pesquisar ${resource.label.toLowerCase()}`}
+			value={search}
+			onChange={event => setSearch(event.target.value)}
+			InputProps={{
+				startAdornment: (
+					<InputAdornment position="start">
+						<SearchIcon fontSize="small" />
+					</InputAdornment>
+				)
+			}}
+		/>
+	) : null;
+
+	const renderAuditLog = () => (
+		<>
+			<div className={classes.header}>
+				<div>
+					<Typography variant="h6">{resource.label}</Typography>
+					<Typography variant="body2" color="textSecondary">
+						Resumo das alteracoes administrativas feitas no sistema.
+					</Typography>
+				</div>
+				{searchField}
+			</div>
+			{visibleRows.map(row => {
+				const beforeData = parseAuditData(row.beforeData);
+				const afterData = parseAuditData(row.afterData);
+				const action = auditActionLabels[row.action] || { label: row.action || "Alteracao", color: "default" };
+				const resourceName = auditResourceLabels[row.resource] || row.resource || "registro";
+				const objectName = getAuditObjectName(beforeData, afterData, row);
+				const changes = getAuditChanges(row);
+
+				return (
+					<div key={row.id} className={classes.auditItem}>
+						<div className={classes.auditSummary}>
+							<div>
+								<Typography variant="subtitle2">
+									{row.userName || "Sistema"} {String(action.label).toLowerCase()} {resourceName} "{objectName}"
+								</Typography>
+								<Typography variant="caption" color="textSecondary">
+									{formatAuditDate(row.createdAt)} - {row.userProfile || "perfil nao informado"}
+								</Typography>
+							</div>
+							<Chip size="small" color={action.color} label={action.label} />
+						</div>
+						<div className={classes.auditChanges}>
+							{changes.length ? changes.map(change => (
+								<Typography key={`${row.id}-${change.field}`} variant="body2">
+									<strong>{change.field}:</strong>{" "}
+									{row.action === "update"
+										? `de "${change.before}" para "${change.after}"`
+										: row.action === "delete"
+											? change.before
+											: change.after}
+								</Typography>
+							)) : (
+								<Typography variant="body2" color="textSecondary">
+									Nenhum campo relevante para exibir.
+								</Typography>
+							)}
+						</div>
+					</div>
+				);
+			})}
+			{visibleRows.length === 0 && (
+				<Typography variant="body2" color="textSecondary">
+					Nenhum registro encontrado.
+				</Typography>
+			)}
+		</>
+	);
+
+	if (resource.endpoint === "/audit-logs") {
+		return renderAuditLog();
+	}
+
 	return (
 		<>
 			<div className={classes.header}>
 				<Typography variant="h6">{resource.label}</Typography>
-				{!resource.readOnly && (
-					<Button variant="contained" color="primary" onClick={openCreate}>
-						Novo
-					</Button>
-				)}
+				<div className={classes.formBuilderToolbarActions}>
+					{searchField}
+					{!resource.readOnly && (
+						<Button variant="contained" color="primary" onClick={openCreate}>
+							Novo
+						</Button>
+					)}
+				</div>
 			</div>
 
 			<div className={classes.tableWrapper}>
@@ -4011,7 +4277,7 @@ const ResourcePanel = ({ resource, classes }) => {
 					</TableHead>
 
 					<TableBody>
-						{rows.map(row => (
+						{visibleRows.map(row => (
 							<TableRow key={row.id}>
 								{resource.columns.map(col => (
 									<TableCell key={col}>{renderCell(row, col)}</TableCell>
@@ -4048,7 +4314,7 @@ const ResourcePanel = ({ resource, classes }) => {
 							</TableRow>
 						))}
 
-						{rows.length === 0 && (
+						{visibleRows.length === 0 && (
 							<TableRow>
 								<TableCell colSpan={resource.columns.length + (resource.readOnly ? 0 : 1)}>
 									Nenhum registro encontrado.
@@ -4365,7 +4631,7 @@ const Settings = () => {
 				indicatorColor="primary"
 				textColor="primary"
 				onChange={(event, value) => setTab(value)}
-				className={classes.tabs}
+				className={classes.navTabs}
 				variant="scrollable"
 				scrollButtons="auto"
 			>
@@ -4394,7 +4660,7 @@ const Settings = () => {
 							onChange={(event, value) => {
 								setGroupTabs(prev => ({ ...prev, [activeTab.groupKey]: value }));
 							}}
-							className={classes.tabs}
+							className={classes.navTabs}
 							variant="scrollable"
 							scrollButtons="auto"
 						>

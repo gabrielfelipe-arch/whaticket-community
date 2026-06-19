@@ -143,10 +143,17 @@ const TicketActionButtons = ({ ticket }) => {
 		}));
 	};
 
-	const isGroupTicket = !!ticket?.isGroup;
 	const handleResolveTicket = e => {
-		if (!isGroupTicket && (!closingData.categoryId || !closingData.closingReasonId)) {
+		if (!closingData.categoryId && !closingData.closingReasonId) {
 			toast.error("Informe a categoria e o motivo de fechamento antes de resolver o atendimento.");
+			return;
+		}
+		if (!closingData.categoryId) {
+			toast.error("Informe a categoria antes de resolver o atendimento.");
+			return;
+		}
+		if (!closingData.closingReasonId) {
+			toast.error("Informe o motivo de fechamento antes de resolver o atendimento.");
 			return;
 		}
 
@@ -265,7 +272,7 @@ const TicketActionButtons = ({ ticket }) => {
 					<TextField
 						select
 						fullWidth
-						required={!isGroupTicket}
+						required
 						margin="dense"
 						variant="outlined"
 						label="Categoria"
@@ -282,7 +289,7 @@ const TicketActionButtons = ({ ticket }) => {
 					<TextField
 						select
 						fullWidth
-						required={!isGroupTicket}
+						required
 						margin="dense"
 						variant="outlined"
 						label="Motivo de fechamento"
@@ -318,7 +325,7 @@ const TicketActionButtons = ({ ticket }) => {
 						}
 						label="Enviar mensagem de encerramento"
 					/>
-					{satisfactionSurvey && !isGroupTicket && (
+					{satisfactionSurvey && (
 						<FormControlLabel
 							control={
 								<Checkbox

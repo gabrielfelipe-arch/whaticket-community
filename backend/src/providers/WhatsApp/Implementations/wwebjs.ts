@@ -63,6 +63,18 @@ interface Session extends Client {
 const sessions: Session[] = [];
 const intentionalDisconnects = new Set<number>();
 const pairingSessions = new Set<number>();
+const healthIntervals = new Map<number, ReturnType<typeof setInterval>>();
+const healthFailures = new Map<number, number>();
+
+const HEALTH_CHECK_INTERVAL_MS = Number(
+  process.env.WWEBJS_HEALTH_CHECK_INTERVAL_MS || 15000
+);
+const HEALTH_CHECK_TIMEOUT_MS = Number(
+  process.env.WWEBJS_HEALTH_CHECK_TIMEOUT_MS || 8000
+);
+const HEALTH_CHECK_MAX_FAILURES = Number(
+  process.env.WWEBJS_HEALTH_CHECK_MAX_FAILURES || 2
+);
 
 const getWbot = (whatsappId: number): Session => {
   const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
@@ -71,6 +83,104 @@ const getWbot = (whatsappId: number): Session => {
     throw new AppError("ERR_WAPP_NOT_INITIALIZED");
   }
   return sessions[sessionIndex];
+};
+
+const withTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> => {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+};
+
+const clearHealthMonitor = (whatsappId: number): void => {
+  const interval = healthIntervals.get(whatsappId);
+  if (interval) clearInterval(interval);
+
+  healthIntervals.delete(whatsappId);
+  healthFailures.delete(whatsappId);
+};
+
+const emitWhatsappSession = async (whatsappId: number): Promise<void> => {
+  const updatedWhatsapp = await Whatsapp.findByPk(whatsappId);
+  if (!updatedWhatsapp) return;
+
+  getIO().emit("whatsappSession", {
+    action: "update",
+    session: updatedWhatsapp
+  });
+};
+
+const markSessionUnavailable = async (
+  whatsappId: number,
+  status: string,
+  reason: string
+): Promise<void> => {
+  logger.warn({ whatsappId, status, reason }, "WhatsApp session marked unavailable");
+
+  clearHealthMonitor(whatsappId);
+
+  const whatsapp = await Whatsapp.findByPk(whatsappId);
+  if (whatsapp) {
+    await whatsapp.update({
+      status,
+      qrcode: status === "qrcode" ? whatsapp.qrcode : ""
+    });
+  }
+
+  removeSession(whatsappId);
+  await emitWhatsappSession(whatsappId);
+};
+
+const startHealthMonitor = (whatsapp: Whatsapp, wbot: Session): void => {
+  clearHealthMonitor(whatsapp.id);
+
+  const interval = setInterval(async () => {
+    try {
+      const state = String(
+        await withTimeout(
+          wbot.getState(),
+          HEALTH_CHECK_TIMEOUT_MS,
+          `WhatsApp health check timed out after ${HEALTH_CHECK_TIMEOUT_MS}ms`
+        )
+      );
+
+      healthFailures.delete(whatsapp.id);
+
+      if (state && state !== "CONNECTED") {
+        await markSessionUnavailable(whatsapp.id, state, `getState returned ${state}`);
+      }
+    } catch (err) {
+      const failures = (healthFailures.get(whatsapp.id) || 0) + 1;
+      healthFailures.set(whatsapp.id, failures);
+
+      logger.warn(
+        { err, whatsappId: whatsapp.id, failures },
+        "WhatsApp health check failed"
+      );
+
+      if (failures >= HEALTH_CHECK_MAX_FAILURES) {
+        await markSessionUnavailable(
+          whatsapp.id,
+          "DISCONNECTED",
+          "health check failed repeatedly"
+        );
+      }
+    }
+  }, HEALTH_CHECK_INTERVAL_MS);
+
+  healthIntervals.set(whatsapp.id, interval);
 };
 
 const mapMessageType = (wbotType: any): MessageType => {
@@ -330,6 +440,8 @@ const syncUnreadMessages = async (wbot: Session) => {
 
 const removeSession = (whatsappId: number): void => {
   try {
+    clearHealthMonitor(whatsappId);
+
     const sessionIndex = sessions.findIndex(s => s.id === whatsappId);
     if (sessionIndex !== -1) {
       sessions[sessionIndex].destroy();
@@ -593,6 +705,7 @@ const init = async (whatsapp: Whatsapp): Promise<void> => {
           sessions.push(wbot);
         }
 
+        startHealthMonitor(whatsapp, wbot);
         wbot.sendPresenceAvailable();
         await syncUnreadMessages(wbot);
       } catch (err) {

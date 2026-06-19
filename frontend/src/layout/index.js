@@ -280,6 +280,7 @@ const LoggedInLayout = ({ children }) => {
   const backendUrl = getBackendUrl() || "http://localhost:8085";
   const lastActivityRef = useRef(Date.now());
   const lastTouchRef = useRef(0);
+  const returningOnlineRef = useRef(false);
   const [inactivitySettings, setInactivitySettings] = useState({});
 
   useEffect(() => {
@@ -313,10 +314,15 @@ const LoggedInLayout = ({ children }) => {
         lastTouchRef.current = Date.now();
         api.post("/users/activity").catch(() => {});
       }
-      if (user.operationalStatus === "away" && user.statusReason === "auto_away") {
-        const shouldReturn = window.confirm("Você está Ausente por inatividade. Deseja voltar para Online?");
-        if (shouldReturn) {
-          handleChangeStatus("online");
+      if (user.operationalStatus === "away" && !returningOnlineRef.current) {
+        returningOnlineRef.current = true;
+        try {
+          await api.put(`/users/${user.id}/status`, {
+            status: "online",
+            reason: "activity_return"
+          });
+        } finally {
+          returningOnlineRef.current = false;
         }
       }
     };

@@ -37,6 +37,27 @@ const useStyles = makeStyles(theme => ({
     minHeight: 44,
     borderBottom: `1px solid ${theme.palette.divider}`
   },
+  navTabs: {
+    marginBottom: theme.spacing(2),
+    minHeight: 44,
+    padding: theme.spacing(0.5),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.type === "dark" ? theme.palette.background.paper : "#f8fafc",
+    "& .MuiTabs-indicator": {
+      display: "none"
+    },
+    "& .MuiTab-root": {
+      minHeight: 36,
+      borderRadius: 6,
+      textTransform: "none",
+      fontWeight: 600
+    },
+    "& .Mui-selected": {
+      background: theme.palette.background.paper,
+      boxShadow: theme.custom?.cardShadow || "0 1px 3px rgba(15, 23, 42, 0.12)"
+    }
+  },
   contentPaper: {
     padding: theme.spacing(2),
     borderRadius: 8,
@@ -464,7 +485,7 @@ const Integrations = () => {
         </Typography>
       </div>
 
-      <Tabs value={tab} onChange={(event, value) => setTab(value)} indicatorColor="primary" textColor="primary" className={classes.tabs}>
+      <Tabs value={tab} onChange={(event, value) => setTab(value)} indicatorColor="primary" textColor="primary" className={classes.navTabs}>
         <Tab label="GLPI" />
         <Tab label="WhatsApp" />
       </Tabs>
