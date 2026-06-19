@@ -23,6 +23,11 @@ services:
       - BACKEND_URL=${BACKEND_URL:-http://localhost}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - PROXY_PORT=${PROXY_PORT:-8080}
+      - CALENDAR_TOKEN_ENCRYPTION_KEY=${CALENDAR_TOKEN_ENCRYPTION_KEY}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALENDAR_REDIRECT_URI=${GOOGLE_CALENDAR_REDIRECT_URI}
+      - GOOGLE_CALENDAR_SCOPES=${GOOGLE_CALENDAR_SCOPES}
       - CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
       - CHROME_BIN=/usr/bin/google-chrome-stable
     ports:

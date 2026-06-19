@@ -4,9 +4,58 @@ import { getIO } from "../libs/socket";
 import AppError from "../errors/AppError";
 import Setting from "../models/Setting";
 
+import {
+  encryptCalendarToken
+} from "../helpers/CalendarTokenCrypto";
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
 import ListSettingsService from "../services/SettingServices/ListSettingsService";
 import CreateAuditLogService from "../services/AuditLogServices/CreateAuditLogService";
+
+const GOOGLE_CALENDAR_SECRET_KEY = "googleCalendarClientSecret";
+const GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY = "googleCalendarClientSecretEncrypted";
+const MASKED_SECRET = "********";
+
+const isMaskedSecret = (value: string): boolean =>
+  /^(\*+|•+)$/.test(String(value || "").trim());
+
+const serializeGoogleCalendarSecretSetting = (setting?: Setting | null): any => ({
+  key: GOOGLE_CALENDAR_SECRET_KEY,
+  value: setting?.value ? MASKED_SECRET : "",
+  createdAt: setting?.createdAt,
+  updatedAt: setting?.updatedAt
+});
+
+const serializeSetting = (setting: Setting): any => {
+  if (setting.key === GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY) {
+    return serializeGoogleCalendarSecretSetting(setting);
+  }
+
+  if (setting.key === GOOGLE_CALENDAR_SECRET_KEY) {
+    return {
+      ...setting.toJSON(),
+      value: setting.value ? MASKED_SECRET : ""
+    };
+  }
+
+  return setting;
+};
+
+const serializeSettings = (settings: Setting[] = []): any[] => {
+  const encryptedSecret = settings.find(setting => setting.key === GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY);
+  const legacySecret = settings.find(setting => setting.key === GOOGLE_CALENDAR_SECRET_KEY);
+  const serialized = settings
+    .filter(setting => ![
+      GOOGLE_CALENDAR_SECRET_KEY,
+      GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY
+    ].includes(setting.key))
+    .map(serializeSetting);
+
+  if (encryptedSecret || legacySecret) {
+    serialized.push(serializeGoogleCalendarSecretSetting(encryptedSecret || legacySecret));
+  }
+
+  return serialized;
+};
 
 const requireSettingValue = (settings: Setting[], key: string, message: string): void => {
   const setting = settings.find(item => item.key === key);
@@ -22,7 +71,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   const settings = await ListSettingsService();
 
-  return res.status(200).json(settings);
+  return res.status(200).json(serializeSettings(settings || []));
 };
 
 export const update = async (
@@ -34,7 +83,10 @@ export const update = async (
   }
   const { settingKey: key } = req.params;
   const { value } = req.body;
-  const beforeSetting = await Setting.findOne({ where: { key } });
+  const settingKey = key === GOOGLE_CALENDAR_SECRET_KEY
+    ? GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY
+    : key;
+  const beforeSetting = await Setting.findOne({ where: { key: settingKey } });
 
   if (key === "glpiEnabled" && value === "enabled") {
     const settings = await Setting.findAll();
@@ -47,6 +99,42 @@ export const update = async (
     requireSettingValue(nextSettings, "glpiUserToken", "Informe o User Token do GLPI antes de ativar a integracao.");
   }
 
+  if (key === GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY) {
+    throw new AppError("Campo interno nao pode ser atualizado diretamente.", 400);
+  }
+
+  if (key === GOOGLE_CALENDAR_SECRET_KEY) {
+    const nextValue = String(value || "").trim();
+
+    if (!nextValue || isMaskedSecret(nextValue)) {
+      const safeSetting = serializeGoogleCalendarSecretSetting(beforeSetting);
+      return res.status(200).json(safeSetting);
+    }
+
+    const setting = await UpdateSettingService({
+      key: GOOGLE_CALENDAR_SECRET_ENCRYPTED_KEY,
+      value: encryptCalendarToken(nextValue) || ""
+    });
+    const safeSetting = serializeGoogleCalendarSecretSetting(setting);
+
+    await CreateAuditLogService({
+      req,
+      action: "update",
+      resource: "settings",
+      resourceId: GOOGLE_CALENDAR_SECRET_KEY,
+      beforeData: beforeSetting ? serializeGoogleCalendarSecretSetting(beforeSetting) : undefined,
+      afterData: safeSetting
+    });
+
+    const io = getIO();
+    io.emit("settings", {
+      action: "update",
+      setting: safeSetting
+    });
+
+    return res.status(200).json(safeSetting);
+  }
+
   const setting = await UpdateSettingService({
     key,
     value
@@ -56,17 +144,17 @@ export const update = async (
     action: "update",
     resource: "settings",
     resourceId: key,
-    beforeData: beforeSetting?.toJSON(),
-    afterData: setting?.toJSON()
+    beforeData: beforeSetting ? serializeSetting(beforeSetting) : undefined,
+    afterData: setting ? serializeSetting(setting) : undefined
   });
 
   const io = getIO();
   io.emit("settings", {
     action: "update",
-    setting
+    setting: setting ? serializeSetting(setting) : setting
   });
 
-  return res.status(200).json(setting);
+  return res.status(200).json(setting ? serializeSetting(setting) : setting);
 };
 
 export const publicIndex = async (

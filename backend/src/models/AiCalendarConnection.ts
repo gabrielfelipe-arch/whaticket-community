@@ -17,7 +17,19 @@ class AiCalendarConnection extends Model<AiCalendarConnection> {
   provider: string;
 
   @Column
+  companyId: number;
+
+  @Column
+  createdByUserId: number;
+
+  @Column
+  googleAccountEmail: string;
+
+  @Column
   calendarId: string;
+
+  @Column
+  calendarName: string;
 
   @Column
   userPrincipalName: string;
@@ -31,6 +43,18 @@ class AiCalendarConnection extends Model<AiCalendarConnection> {
   @Column
   tokenExpiresAt: Date;
 
+  @Column(DataType.TEXT)
+  accessTokenEncrypted: string;
+
+  @Column(DataType.TEXT)
+  refreshTokenEncrypted: string;
+
+  @Column
+  accessTokenExpiresAt: Date;
+
+  @Column(DataType.TEXT)
+  scopes: string;
+
   @Default("America/Sao_Paulo")
   @Column
   timezone: string;
@@ -38,6 +62,12 @@ class AiCalendarConnection extends Model<AiCalendarConnection> {
   @Default(false)
   @Column
   active: boolean;
+
+  @Column
+  lastSyncAt: Date;
+
+  @Column(DataType.TEXT)
+  lastError: string;
 
   @CreatedAt
   createdAt: Date;

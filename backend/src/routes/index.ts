@@ -16,6 +16,7 @@ import campaignRoutes from "./campaignRoutes";
 import tagRoutes from "./tagRoutes";
 import reportRoutes from "./reportRoutes";
 import glpiRoutes from "./glpiRoutes";
+import calendarRoutes from "./calendarRoutes";
 
 const routes = Router();
 
@@ -35,6 +36,7 @@ routes.use(campaignRoutes);
 routes.use(tagRoutes);
 routes.use(reportRoutes);
 routes.use(glpiRoutes);
+routes.use(calendarRoutes);
 
 export default routes;
 

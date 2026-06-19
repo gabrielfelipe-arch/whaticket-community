@@ -190,6 +190,28 @@ const useStyles = makeStyles(theme => ({
 		boxShadow: theme.custom?.cardShadow,
 		borderColor: theme.palette.divider
 	},
+	calendarSettingsPanel: {
+		padding: theme.spacing(2),
+		marginBottom: theme.spacing(2),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper
+	},
+	calendarSettingsHeader: {
+		display: "flex",
+		justifyContent: "space-between",
+		alignItems: "flex-start",
+		gap: theme.spacing(2),
+		marginBottom: theme.spacing(2),
+		flexWrap: "wrap"
+	},
+	calendarCallbackBox: {
+		padding: theme.spacing(1),
+		borderRadius: 6,
+		background: theme.palette.type === "dark" ? theme.palette.background.default : "#f8fafc",
+		border: `1px solid ${theme.palette.divider}`,
+		wordBreak: "break-all"
+	},
 	formBuilderPanel: {
 		padding: theme.spacing(2),
 		height: "100%",
@@ -717,13 +739,20 @@ const resources = [
 				]
 			},
 			{ name: "calendarId", label: "Calendar ID" },
+			{ name: "calendarName", label: "Nome da agenda" },
+			{ name: "googleAccountEmail", label: "Conta conectada", readOnly: true },
+			{ name: "connectionStatus", label: "Status da conexao", readOnly: true },
 			{ name: "userPrincipalName", label: "Usuario Microsoft" },
 			{ name: "accessToken", label: "Access token", multiline: true },
 			{ name: "refreshToken", label: "Refresh token", multiline: true },
+			{ name: "accessTokenExpiresAt", label: "Access token expira em", readOnly: true },
+			{ name: "scopes", label: "Escopos", readOnly: true, multiline: true },
+			{ name: "lastSyncAt", label: "Ultima sincronizacao", readOnly: true },
+			{ name: "lastError", label: "Ultimo erro", readOnly: true, multiline: true },
 			{ name: "timezone", label: "Fuso horario" },
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
-		columns: ["id", "name", "provider", "calendarId", "timezone", "active"]
+		columns: ["id", "name", "provider", "googleAccountEmail", "calendarId", "timezone", "connectionStatus", "active"]
 	},
 	{
 		label: "Leads da IA",
@@ -3482,6 +3511,86 @@ const SettingTextField = ({ name, getSettingValue, onChangeSetting, ...props }) 
 	);
 };
 
+const GoogleCalendarOAuthSettings = ({ getSettingValue, onChangeSetting, classes }) => {
+	const backendUrl = getBackendUrl() || `${window.location.protocol}//${window.location.hostname}:8085`;
+	const suggestedRedirectUri = `${backendUrl.replace(/\/$/, "")}/calendar/google/callback`;
+	const savedRedirectUri = getSettingValue("googleCalendarRedirectUri");
+
+	return (
+		<Paper className={classes.calendarSettingsPanel} variant="outlined">
+			<div className={classes.calendarSettingsHeader}>
+				<div>
+					<Typography variant="h6">Configuração do Google Agenda</Typography>
+					<Typography variant="body2" color="textSecondary">
+						Informe os dados do aplicativo OAuth criado no Google Cloud. Depois use "Conectar com Google Agenda" para vincular a conta do cliente.
+					</Typography>
+				</div>
+			</div>
+			<Grid container spacing={2}>
+				<Grid item xs={12} md={6}>
+					<SettingTextField
+						name="googleCalendarClientId"
+						label="Google Client ID"
+						variant="outlined"
+						size="small"
+						fullWidth
+						getSettingValue={getSettingValue}
+						onChangeSetting={onChangeSetting}
+					/>
+				</Grid>
+				<Grid item xs={12} md={6}>
+					<SettingTextField
+						name="googleCalendarClientSecret"
+						label="Google Client Secret"
+						variant="outlined"
+						size="small"
+						fullWidth
+						type="password"
+						getSettingValue={getSettingValue}
+						onChangeSetting={onChangeSetting}
+						helperText="Depois de salvo, o segredo fica mascarado e criptografado no servidor."
+					/>
+				</Grid>
+				<Grid item xs={12} md={8}>
+					<SettingTextField
+						name="googleCalendarRedirectUri"
+						label="URL de callback"
+						variant="outlined"
+						size="small"
+						fullWidth
+						placeholder={suggestedRedirectUri}
+						getSettingValue={getSettingValue}
+						onChangeSetting={onChangeSetting}
+						helperText="Cadastre exatamente esta URL no OAuth do Google Cloud."
+					/>
+				</Grid>
+				<Grid item xs={12} md={4}>
+					<SettingTextField
+						name="googleCalendarScopes"
+						label="Escopos"
+						variant="outlined"
+						size="small"
+						fullWidth
+						placeholder="https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email"
+						getSettingValue={getSettingValue}
+						onChangeSetting={onChangeSetting}
+					/>
+				</Grid>
+				<Grid item xs={12}>
+					<div className={classes.calendarCallbackBox}>
+						<Typography variant="caption" color="textSecondary">
+							Callback sugerido
+						</Typography>
+						<Typography variant="body2">
+							{savedRedirectUri || suggestedRedirectUri}
+						</Typography>
+					</div>
+				</Grid>
+			</Grid>
+		</Paper>
+	);
+};
+
 const RichTextField = ({ label, value, onChange, required, helperText, classes }) => {
 	const editorRef = useRef(null);
 
@@ -3956,6 +4065,11 @@ const ResourcePanel = ({ resource, classes }) => {
 					? []
 					: defaultValue(field);
 		});
+		if (resource.endpoint === "/ai-calendar-connections") {
+			nextForm.provider = "google";
+			nextForm.timezone = "America/Sao_Paulo";
+			nextForm.active = true;
+		}
 		setForm(nextForm);
 		setMediaFile(null);
 		setModalOpen(true);
@@ -4166,6 +4280,33 @@ const ResourcePanel = ({ resource, classes }) => {
 		return String(value);
 	};
 
+	const isCalendarConnectionResource = resource.endpoint === "/ai-calendar-connections";
+	const isGoogleCalendarForm = isCalendarConnectionResource && (form.provider || "google") === "google";
+
+	const shouldRenderResourceField = field => {
+		if (!shouldShowField(field, form)) return false;
+		if (!isGoogleCalendarForm) return true;
+		return !["accessToken", "refreshToken", "userPrincipalName"].includes(field.name);
+	};
+
+	const connectGoogleCalendar = async () => {
+		try {
+			const { data } = await api.get("/calendar/google/auth", {
+				params: {
+					connectionId: form.id || undefined,
+					name: form.name || undefined
+				}
+			});
+			if (!data?.authUrl) {
+				toast.error("Nao foi possivel iniciar o OAuth do Google Agenda.");
+				return;
+			}
+			window.location.href = data.authUrl;
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
 	const canSearch = searchableResourceEndpoints.includes(resource.endpoint);
 	const visibleRows = canSearch && search.trim()
 		? rows.filter(row => normalizeSearchText(getSearchableRowText(row, resource)).includes(normalizeSearchText(search)))
@@ -4330,7 +4471,17 @@ const ResourcePanel = ({ resource, classes }) => {
 
 				<DialogContent>
 					<Grid container spacing={2}>
-						{resource.fields.filter(field => shouldShowField(field, form)).map(field => (
+						{isGoogleCalendarForm && (
+							<Grid item xs={12}>
+								<Button variant="outlined" color="primary" onClick={connectGoogleCalendar}>
+									Conectar com Google Agenda
+								</Button>
+								<Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+									O login do Google salva os tokens com seguranca no servidor. Nao cole access token ou refresh token manualmente.
+								</Typography>
+							</Grid>
+						)}
+						{resource.fields.filter(field => shouldRenderResourceField(field)).map(field => (
 							<Grid item xs={12} sm={field.multiline || field.type === "richtext" ? 12 : 6} key={field.name}>
 								{field.type === "boolean" ? (
 									<>
@@ -4559,7 +4710,8 @@ const Settings = () => {
 				setSettings(prevState => {
 					const aux = [...prevState];
 					const settingIndex = aux.findIndex(s => s.key === data.setting.key);
-					if (settingIndex !== -1) aux[settingIndex].value = data.setting.value;
+					if (settingIndex !== -1) aux[settingIndex] = data.setting;
+					else aux.push(data.setting);
 					return aux;
 				});
 			}
@@ -4575,8 +4727,15 @@ const Settings = () => {
 		const settingKey = e.target.name;
 
 		try {
-			await api.put(`/settings/${settingKey}`, {
+			const { data } = await api.put(`/settings/${settingKey}`, {
 				value: selectedValue
+			});
+			setSettings(prevState => {
+				const next = [...prevState];
+				const index = next.findIndex(setting => setting.key === data.key);
+				if (index !== -1) next[index] = data;
+				else next.push(data);
+				return next;
 			});
 			toast.success(i18n.t("settings.success"));
 		} catch (err) {
@@ -4673,11 +4832,29 @@ const Settings = () => {
 								<QualificationFormsPanel classes={classes} />
 							</QualificationFormsBoundary>
 						) : (
-							<ResourcePanel resource={activeResource} classes={classes} />
+							<>
+								{activeResource?.endpoint === "/ai-calendar-connections" && (
+									<GoogleCalendarOAuthSettings
+										getSettingValue={getSettingValue}
+										onChangeSetting={handleChangeSetting}
+										classes={classes}
+									/>
+								)}
+								<ResourcePanel resource={activeResource} classes={classes} />
+							</>
 						)}
 					</>
 				) : (
-					<ResourcePanel resource={activeResource} classes={classes} />
+					<>
+						{activeResource?.endpoint === "/ai-calendar-connections" && (
+							<GoogleCalendarOAuthSettings
+								getSettingValue={getSettingValue}
+								onChangeSetting={handleChangeSetting}
+								classes={classes}
+							/>
+						)}
+						<ResourcePanel resource={activeResource} classes={classes} />
+					</>
 				)}
 			</Paper>
 		</Container>

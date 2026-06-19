@@ -112,6 +112,34 @@ function isEnabled(value: any): boolean {
   return value === true || value === "true" || value === "enabled";
 }
 
+function serializeAiCalendarConnection(row: any): any {
+  const data = row?.toJSON ? row.toJSON() : { ...(row || {}) };
+  delete data.accessToken;
+  delete data.refreshToken;
+  delete data.accessTokenEncrypted;
+  delete data.refreshTokenEncrypted;
+
+  return {
+    ...data,
+    isActive: data.active,
+    connectionStatus: data.lastError
+      ? "error"
+      : data.googleAccountEmail || data.calendarId
+        ? "connected"
+        : "not_connected"
+  };
+}
+
+function serializeResource(resource: string, row: any): any {
+  if (resource === "aiCalendarConnections") return serializeAiCalendarConnection(row);
+  return row;
+}
+
+function sanitizeAuditData(resource: string, row: any): any {
+  if (resource === "aiCalendarConnections") return serializeAiCalendarConnection(row);
+  return row?.toJSON ? row.toJSON() : row;
+}
+
 function normalizeJsonArray(value: any): string | null {
   if (value === null || value === undefined || value === "") return null;
   if (Array.isArray(value)) return JSON.stringify(value.map(item => String(item).trim()).filter(Boolean));
@@ -484,10 +512,16 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       name: data.name,
       provider,
       calendarId: data.calendarId || null,
+      calendarName: data.calendarName || null,
+      googleAccountEmail: data.googleAccountEmail || null,
       userPrincipalName: data.userPrincipalName || null,
-      accessToken: data.accessToken || null,
-      refreshToken: data.refreshToken || null,
+      ...(provider === "microsoft" ? {
+        accessToken: data.accessToken || null,
+        refreshToken: data.refreshToken || null
+      } : {}),
       tokenExpiresAt: data.tokenExpiresAt || null,
+      accessTokenExpiresAt: data.accessTokenExpiresAt || null,
+      scopes: data.scopes || null,
       timezone: data.timezone || "America/Sao_Paulo",
       active: data.active === true || data.active === "true"
     };
@@ -605,7 +639,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     order: [["id", "DESC"]]
   });
 
-  return res.json(rows);
+  return res.json(rows.map((row: any) => serializeResource(resource, row)));
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -639,10 +673,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     action: "create",
     resource,
     resourceId: row.id,
-    afterData: row.toJSON()
+    afterData: sanitizeAuditData(resource, row)
   });
 
-  return res.status(200).json(row);
+  return res.status(200).json(serializeResource(resource, row));
 };
 
 export const update = async (req: Request, res: Response): Promise<Response> => {
@@ -675,7 +709,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       delete data.responseMediaName;
     }
   }
-  const beforeData = row.toJSON();
+  const beforeData = sanitizeAuditData(resource, row);
   await row.update(data);
   await CreateAuditLogService({
     req,
@@ -683,10 +717,10 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     resource,
     resourceId: row.id,
     beforeData,
-    afterData: row.toJSON()
+    afterData: sanitizeAuditData(resource, row)
   });
 
-  return res.status(200).json(row);
+  return res.status(200).json(serializeResource(resource, row));
 };
 
 export const uploadQualificationMessageMedia = async (req: Request, res: Response): Promise<Response> => {
