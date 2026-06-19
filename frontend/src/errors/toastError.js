@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import { i18n } from "../translate/i18n";
 
 const toastError = err => {
-	const errorMsg = err.response?.data?.message || err.response?.data?.error;
+	const errorMsg = err.response?.data?.message || err.response?.data?.error || err.message;
 	if (errorMsg) {
 		if (i18n.exists(`backendErrors.${errorMsg}`)) {
 			toast.error(i18n.t(`backendErrors.${errorMsg}`), {
@@ -14,7 +14,7 @@ const toastError = err => {
 			});
 		}
 	} else {
-		toast.error("An error occurred!");
+		toast.error("Nao foi possivel concluir a acao. Tente novamente ou verifique os dados informados.");
 	}
 };
 

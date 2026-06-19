@@ -65,6 +65,18 @@ export const updateConfig = async (req: Request, res: Response): Promise<Respons
     req.body.glpiAutoCreateEnabled = "true";
   }
 
+  const autoEntityId = Number(req.body.glpiAutoEntityId || 0);
+  const autoLocationId = Number(req.body.glpiAutoLocationId || 0);
+  if (autoEntityId && autoLocationId) {
+    const location = await GlpiLocation.findOne({
+      where: { glpiId: autoLocationId, active: true }
+    });
+
+    if (location && Number(location.entityId) !== autoEntityId) {
+      throw new AppError("A localizacao padrao selecionada nao pertence a entidade padrao.", 400);
+    }
+  }
+
   for (const key of configKeys) {
     if (req.body[key] === undefined) continue;
     const value = String(req.body[key] || "");
@@ -112,7 +124,7 @@ export const listEntities = async (req: Request, res: Response): Promise<Respons
       ...(search ? { [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { completeName: { [Op.iLike]: `%${search}%` } }] } : {})
     },
     order: [["completeName", "ASC"], ["name", "ASC"]],
-    limit: 100
+    limit: 1000
   });
   return res.json(rows);
 };
@@ -141,7 +153,7 @@ export const listLocations = async (req: Request, res: Response): Promise<Respon
       ...(search ? { [Op.or]: [{ name: { [Op.iLike]: `%${search}%` } }, { completeName: { [Op.iLike]: `%${search}%` } }] } : {})
     },
     order: [["completeName", "ASC"], ["name", "ASC"]],
-    limit: hasEntityFilter ? 1000 : 100
+    limit: 1000
   });
   return res.json(rows);
 };

@@ -565,9 +565,9 @@ const MessagesList = ({ ticketId, isGroup }) => {
         )
       } else return (<></>)
     }*/
-    else if ( /^.*\.(jpe?g|png|gif)?$/i.exec(message.mediaUrl) && message.mediaType === "image") {
+    else if (message.mediaUrl && ["image", "sticker"].includes(message.mediaType)) {
       return <ModalImageCors imageUrl={message.mediaUrl} />;
-    } else if (message.mediaType === "audio") {
+    } else if (["audio", "ptt"].includes(message.mediaType)) {
       return <Audio url={message.mediaUrl} />
     } else if (message.mediaType === "video") {
       return (
@@ -587,6 +587,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
               variant="outlined"
               target="_blank"
               href={message.mediaUrl}
+              download
             >
               Download
             </Button>

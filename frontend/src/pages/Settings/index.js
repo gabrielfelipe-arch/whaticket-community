@@ -13,6 +13,7 @@ import {
 	FormControlLabel,
 	Grid,
 	IconButton,
+	InputAdornment,
 	MenuItem,
 	Paper,
 	Select,
@@ -33,6 +34,8 @@ import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import CloudDownloadIcon from "@material-ui/icons/CloudDownload";
 import EditIcon from "@material-ui/icons/Edit";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
+import SearchIcon from "@material-ui/icons/Search";
+import Autocomplete from "@material-ui/lab/Autocomplete";
 import { toast } from "react-toastify";
 
 import api from "../../services/api";
@@ -181,6 +184,42 @@ const useStyles = makeStyles(theme => ({
 		padding: theme.spacing(2),
 		borderRadius: 8,
 		borderColor: theme.palette.divider
+	},
+	formBuilderToolbar: {
+		display: "flex",
+		justifyContent: "flex-end",
+		alignItems: "center",
+		gap: theme.spacing(1),
+		padding: 0,
+		borderRadius: 8,
+		marginTop: -58,
+		marginBottom: theme.spacing(2),
+		minHeight: 46,
+		pointerEvents: "none",
+		[theme.breakpoints.down("sm")]: {
+			marginTop: 0,
+			flexDirection: "column",
+			alignItems: "stretch"
+		}
+	},
+	formBuilderToolbarActions: {
+		display: "flex",
+		gap: theme.spacing(1),
+		alignItems: "center",
+		pointerEvents: "auto",
+		[theme.breakpoints.down("sm")]: {
+			flexDirection: "column",
+			alignItems: "stretch"
+		}
+	},
+	formBuilderList: {
+		display: "grid",
+		gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+		gap: theme.spacing(1),
+		marginTop: theme.spacing(1.5),
+		"& $formBuilderItem": {
+			marginBottom: 0
+		}
 	},
 	formBuilderHeader: {
 		display: "flex",
@@ -1812,6 +1851,33 @@ const getQuestionTypeHelp = type => ({
 	glpi_location: "Lista as localizacoes sincronizadas do GLPI, filtrando pela entidade escolhida antes quando houver."
 }[type || "text"] || "Escolha como o cliente deve responder no WhatsApp.");
 
+const getGlpiFieldOptions = type => {
+	if (type === "glpi_entity") {
+		return [
+			{ value: "entity", label: "Usar como entidade" },
+			{ value: "ignore", label: "Nao enviar ao GLPI" }
+		];
+	}
+
+	if (type === "glpi_location") {
+		return [
+			{ value: "location", label: "Usar como localizacao" },
+			{ value: "ignore", label: "Nao enviar ao GLPI" }
+		];
+	}
+
+	return [
+		{ value: "description", label: "Enviar para descricao" },
+		{ value: "ignore", label: "Nao enviar ao GLPI" }
+	];
+};
+
+const normalizeGlpiFieldForQuestionType = (type, field) => {
+	const options = getGlpiFieldOptions(type);
+	if (options.some(option => option.value === field)) return field;
+	return options[0].value;
+};
+
 const normalizeFormKey = value =>
 	String(value || "")
 		.normalize("NFD")
@@ -1820,6 +1886,96 @@ const normalizeFormKey = value =>
 		.trim()
 		.replace(/\s+/g, "_")
 		.replace(/[^\w.-]/g, "");
+
+const normalizeSearchText = value =>
+	String(value || "")
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.trim();
+
+const FormSearchPicker = ({
+	classes,
+	forms,
+	questions,
+	uraOptions,
+	value,
+	inputValue,
+	onInputChange,
+	onSelect,
+	onNew
+}) => {
+	const safeForms = safeArray(forms);
+	const getUsage = formId => safeArray(uraOptions).filter(option =>
+		Number(option.qualificationFormId) === Number(formId) &&
+		(option.runQualificationFormBeforeAction === true || option.runQualificationFormBeforeAction === "true")
+	);
+	const selected = safeForms.find(item => Number(item.id) === Number(value)) || null;
+
+	return (
+		<div className={classes.formBuilderToolbarActions}>
+			<Autocomplete
+				style={{ minWidth: 340 }}
+				options={safeForms}
+				value={selected}
+				inputValue={inputValue}
+				onInputChange={(event, nextValue) => onInputChange(nextValue)}
+				onChange={(event, option) => {
+					if (option) onSelect(option);
+				}}
+				getOptionLabel={option => textValue(option?.name)}
+				getOptionSelected={(option, selectedOption) => Number(option.id) === Number(selectedOption.id)}
+				filterOptions={(options, state) => {
+					const search = normalizeSearchText(state.inputValue);
+					if (!search) return options;
+					return options.filter(item => [
+						item.name,
+						item.description,
+						item.active === false ? "inativo" : "ativo",
+						...getUsage(item.id).map(option => `${option.optionKey} ${option.title}`)
+					].some(itemValue => normalizeSearchText(itemValue).includes(search)));
+				}}
+				noOptionsText={safeForms.length ? "Nenhum formulario encontrado" : "Nenhum formulario cadastrado"}
+				renderOption={option => {
+					const usage = getUsage(option.id);
+					const questionCount = safeArray(questions).filter(question => Number(question.formId) === Number(option.id)).length;
+					return (
+						<Grid container spacing={1} alignItems="center" wrap="nowrap">
+							<Grid item xs>
+								<Typography variant="subtitle2">{textValue(option.name)}</Typography>
+								<Typography variant="caption" color="textSecondary">
+									{option.active === false ? "Inativo" : "Ativo"} - {questionCount} pergunta(s) - {usage.length ? `${usage.length} vinculo(s) na URA` : "sem vinculo na URA"}
+								</Typography>
+							</Grid>
+						</Grid>
+					);
+				}}
+				renderInput={params => (
+					<TextField
+						{...params}
+						variant="outlined"
+						size="small"
+						placeholder="Pesquisar ou selecionar formulario"
+						InputProps={{
+							...params.InputProps,
+							startAdornment: (
+								<>
+									<InputAdornment position="start">
+										<SearchIcon fontSize="small" />
+									</InputAdornment>
+									{params.InputProps.startAdornment}
+								</>
+							)
+						}}
+					/>
+				)}
+			/>
+			<Button size="small" variant="outlined" color="primary" onClick={onNew}>
+				Novo
+			</Button>
+		</div>
+	);
+};
 
 const emptyQualificationForm = {
 	name: "",
@@ -1954,6 +2110,9 @@ const QualificationFormsPanel = ({ classes }) => {
 	const [loading, setLoading] = useState(false);
 	const [tagDialogOpen, setTagDialogOpen] = useState(false);
 	const [quickTagForm, setQuickTagForm] = useState({ name: "", color: "#607d8b", fixed: false });
+	const [formSearch, setFormSearch] = useState("");
+	const [formEditorOpen, setFormEditorOpen] = useState(false);
+	const [deleteFormTarget, setDeleteFormTarget] = useState(null);
 
 	const selectedFormQuestions = safeArray(questions)
 		.filter(question => Number(question.formId) === Number(selectedFormId))
@@ -1979,11 +2138,19 @@ const QualificationFormsPanel = ({ classes }) => {
 			setUraOptions(safeArray(uraOptionData));
 			setQueues(safeArray(queueData));
 
-			if (!selectedFormId && nextForms.length) {
-				setSelectedFormId(nextForms[0].id);
+			if (selectedFormId) {
+				const selected = nextForms.find(item => Number(item.id) === Number(selectedFormId));
+				if (selected) {
+					setForm({
+						...emptyQualificationForm,
+						...selected
+					});
+				}
+			}
+
+			if (!selectedFormId && !formEditorOpen) {
 				setForm({
-					...emptyQualificationForm,
-					...nextForms[0]
+					...emptyQualificationForm
 				});
 			}
 		} catch (err) {
@@ -2000,6 +2167,8 @@ const QualificationFormsPanel = ({ classes }) => {
 
 	const selectForm = nextForm => {
 		setSelectedFormId(nextForm.id);
+		setFormSearch(textValue(nextForm.name));
+		setFormEditorOpen(true);
 		setForm({
 			...emptyQualificationForm,
 			...nextForm
@@ -2010,6 +2179,8 @@ const QualificationFormsPanel = ({ classes }) => {
 
 	const newForm = () => {
 		setSelectedFormId("");
+		setFormSearch("");
+		setFormEditorOpen(true);
 		setForm({ ...emptyQualificationForm });
 		setQuestionForm(null);
 		setShowAdvancedQuestion(false);
@@ -2084,6 +2255,8 @@ const QualificationFormsPanel = ({ classes }) => {
 			if (name === "type" && !["glpi_entity", "glpi_location"].includes(value) && ["entity", "location"].includes(next.glpiField)) {
 				next.glpiField = "description";
 			}
+
+			next.glpiField = normalizeGlpiFieldForQuestionType(next.type, next.glpiField);
 
 			if (name === "type" && ["single_choice", "multiple_choice"].includes(value) && !parseQuestionOptions(next.options).length) {
 				next.options = [
@@ -2209,7 +2382,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				formId: selectedFormId,
 				key: normalizeFormKey(questionForm.key || questionForm.label),
 				options: choiceQuestion ? options : null,
-				glpiField: questionForm.glpiField || (questionForm.type === "glpi_entity" ? "entity" : questionForm.type === "glpi_location" ? "location" : "description"),
+				glpiField: normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField),
 				required: questionForm.required !== false,
 				includeInAiContext: questionForm.includeInAiContext !== false,
 				includeInReports: questionForm.includeInReports !== false,
@@ -2239,6 +2412,33 @@ const QualificationFormsPanel = ({ classes }) => {
 			await api.delete(`/qualification-form-questions/${question.id}`);
 			toast.success("Pergunta excluida.");
 			if (questionForm?.id === question.id) setQuestionForm(null);
+			await load();
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
+	const deleteForm = (event, item) => {
+		event.stopPropagation();
+		setDeleteFormTarget(item);
+	};
+
+	const confirmDeleteForm = async () => {
+		const item = deleteFormTarget;
+		if (!item) return;
+
+		try {
+			await api.delete(`/qualification-forms/${item.id}`);
+			toast.success("Formulario excluido.");
+			if (Number(selectedFormId) === Number(item.id)) {
+				setSelectedFormId("");
+				setFormSearch("");
+				setFormEditorOpen(false);
+				setForm({ ...emptyQualificationForm });
+				setQuestionForm(null);
+				setShowAdvancedQuestion(false);
+			}
+			setDeleteFormTarget(null);
 			await load();
 		} catch (err) {
 			toastError(err);
@@ -2302,62 +2502,121 @@ const QualificationFormsPanel = ({ classes }) => {
 		);
 
 	const selectedFormUsage = selectedFormId ? getFormUsage(selectedFormId) : [];
+	const glpiFieldOptions = getGlpiFieldOptions(questionForm?.type);
+	const selectedFormOption = safeArray(forms).find(item => Number(item.id) === Number(selectedFormId)) || null;
 
 	return (
 		<>
 		<Grid container spacing={2}>
-			<Grid item xs={12} md={3}>
-				<Paper variant="outlined" className={classes.formBuilderPanel}>
-					<div className={classes.formBuilderHeader}>
-						<div>
-							<Typography variant="h6">Formularios</Typography>
-							<Typography variant="caption" className={classes.formBuilderMuted}>
-								Selecione um formulario para editar as perguntas.
-							</Typography>
-						</div>
-						<Button size="small" variant="outlined" color="primary" onClick={newForm}>
-							Novo
-						</Button>
+			<Grid item xs={12}>
+				<div className={classes.formBuilderToolbar}>
+					<div />
+					<div className={classes.formBuilderToolbarActions}>
+							<Autocomplete
+								style={{ minWidth: 340 }}
+								options={safeArray(forms)}
+								value={selectedFormOption}
+								inputValue={formSearch}
+								onInputChange={(event, value) => setFormSearch(value)}
+								onChange={(event, value) => {
+									if (value) {
+										selectForm(value);
+										setFormSearch(textValue(value.name));
+									}
+								}}
+								getOptionLabel={option => textValue(option?.name)}
+								getOptionSelected={(option, value) => Number(option.id) === Number(value.id)}
+								filterOptions={(options, state) => {
+									const search = normalizeSearchText(state.inputValue);
+									if (!search) return options;
+									return options.filter(item => [
+										item.name,
+										item.description,
+										item.active === false ? "inativo" : "ativo",
+										...getFormUsage(item.id).map(option => `${option.optionKey} ${option.title}`)
+									].some(value => normalizeSearchText(value).includes(search)));
+								}}
+								noOptionsText={safeArray(forms).length ? "Nenhum formulario encontrado" : "Nenhum formulario cadastrado"}
+								renderOption={option => {
+									const usage = getFormUsage(option.id);
+									const questionCount = safeArray(questions).filter(question => Number(question.formId) === Number(option.id)).length;
+									return (
+										<Grid container spacing={1} alignItems="center" wrap="nowrap">
+											<Grid item xs>
+												<Typography variant="subtitle2">{textValue(option.name)}</Typography>
+												<Typography variant="caption" color="textSecondary">
+													{option.active === false ? "Inativo" : "Ativo"} - {questionCount} pergunta(s) - {usage.length ? `${usage.length} vinculo(s) na URA` : "sem vinculo na URA"}
+												</Typography>
+											</Grid>
+										</Grid>
+									);
+								}}
+								renderInput={params => (
+									<TextField
+										{...params}
+										variant="outlined"
+										size="small"
+										placeholder="Pesquisar ou selecionar formulario"
+										InputProps={{
+											...params.InputProps,
+											startAdornment: (
+												<>
+													<InputAdornment position="start">
+														<SearchIcon fontSize="small" />
+													</InputAdornment>
+													{params.InputProps.startAdornment}
+												</>
+											)
+										}}
+									/>
+								)}
+							/>
+							<Button size="small" variant="outlined" color="primary" onClick={newForm}>
+								Novo
+							</Button>
 					</div>
-					<div style={{ marginTop: 12 }}>
-						{safeArray(forms).map(item => {
-							const usage = getFormUsage(item.id);
-							const questionCount = safeArray(questions).filter(question => Number(question.formId) === Number(item.id)).length;
-							return (
-								<div
-									key={item.id}
-									className={`${classes.formBuilderItem} ${Number(item.id) === Number(selectedFormId) ? classes.formBuilderItemActive : ""}`}
-									onClick={() => selectForm(item)}
-								>
-									<Typography variant="subtitle2">{textValue(item.name)}</Typography>
-									<Typography variant="caption" color="textSecondary">
-										{item.active === false ? "Inativo" : "Ativo"} - {questionCount} pergunta(s) - {usage.length ? `${usage.length} vinculo(s) na URA` : "sem vinculo na URA"}
-									</Typography>
-								</div>
-							);
-						})}
-						{!safeArray(forms).length && (
-							<Typography variant="body2" color="textSecondary">
-								Nenhum formulario cadastrado.
-							</Typography>
-						)}
-					</div>
-				</Paper>
+				</div>
 			</Grid>
 
-			<Grid item xs={12} md={9}>
+			<Grid item xs={12}>
 				<div className={classes.formBuilderStack}>
 				<Paper variant="outlined" className={classes.formBuilderCompactPanel}>
-					<div className={classes.formBuilderHeader}>
-						<div>
-							<Typography variant="h6">Configuracao do formulario</Typography>
-							<Typography variant="caption" className={classes.formBuilderMuted}>
-								Nomeie o formulario para ficar claro quando ele for vinculado na URA.
+					{!formEditorOpen ? (
+						<div className={classes.questionEmptyState}>
+							<Typography variant="subtitle2">Nenhum formulario selecionado.</Typography>
+							<Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
+								Pesquise um formulario no cabecalho ou clique em Novo para comecar.
 							</Typography>
 						</div>
-						<Typography variant="caption" color="textSecondary">
-							{form.active === false ? "Inativo" : "Ativo"}
-						</Typography>
+					) : (
+					<>
+					<div className={classes.formBuilderHeader}>
+						<div>
+							<Typography variant="h5">{textValue(form.name) || "Novo formulario"}</Typography>
+							<Typography variant="caption" className={classes.formBuilderMuted}>
+								{form.id ? "Configuracao do formulario selecionado." : "Preencha os dados para criar um formulario."}
+							</Typography>
+						</div>
+						<div className={classes.formBuilderToolbarActions}>
+							<FormControlLabel
+								control={
+									<Switch
+										color="primary"
+										checked={form.active !== false}
+										onChange={event => {
+											const checked = event.target.checked;
+											setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), active: checked }));
+										}}
+									/>
+								}
+								label={form.active === false ? "Desativado" : "Ativado"}
+							/>
+							{selectedFormOption && (
+								<IconButton aria-label="Excluir formulario" onClick={event => deleteForm(event, selectedFormOption)}>
+									<DeleteOutlineIcon />
+								</IconButton>
+							)}
+						</div>
 					</div>
 					<Grid container spacing={2} alignItems="flex-start">
 						<Grid item xs={12} md={5}>
@@ -2406,19 +2665,6 @@ const QualificationFormsPanel = ({ classes }) => {
 							/>
 						</Grid>
 						<Grid item xs={12} md={8}>
-							<FormControlLabel
-								control={
-									<Switch
-										color="primary"
-										checked={form.active !== false}
-										onChange={event => {
-											const checked = event.target.checked;
-											setForm(prev => ({ ...emptyQualificationForm, ...(prev || {}), active: checked }));
-										}}
-									/>
-								}
-								label="Formulario ativo"
-							/>
 							<Typography variant="caption" display="block" color="textSecondary">
 								{selectedFormQuestions.length} pergunta(s). {selectedFormUsage.length ? `${selectedFormUsage.length} vinculo(s) na URA.` : "Sem vinculo na URA."}
 							</Typography>
@@ -2429,15 +2675,22 @@ const QualificationFormsPanel = ({ classes }) => {
 							)}
 						</Grid>
 						<Grid item xs={12} md={4}>
-							<Button fullWidth variant="contained" color="primary" onClick={saveForm} disabled={loading}>
-								Salvar formulario
-							</Button>
+							<Grid container spacing={1}>
+								<Grid item xs>
+									<Button fullWidth variant="contained" color="primary" onClick={saveForm} disabled={loading}>
+										Salvar formulario
+									</Button>
+								</Grid>
+							</Grid>
 						</Grid>
 					</Grid>
+					</>
+					)}
 				</Paper>
 
+				{formEditorOpen && (
 				<Grid container spacing={2} alignItems="stretch">
-					<Grid item xs={12} md={7}>
+					<Grid item xs={12}>
 				<Paper variant="outlined" className={classes.formBuilderPanel}>
 					<div className={classes.formBuilderHeader}>
 						<div>
@@ -2521,24 +2774,10 @@ const QualificationFormsPanel = ({ classes }) => {
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={5}>
-				<Paper variant="outlined" className={classes.formBuilderPanel}>
-					<div className={classes.formBuilderHeader}>
-						<div>
-							<Typography variant="h6">Editor da pergunta</Typography>
-							<Typography variant="caption" className={classes.formBuilderMuted}>
-								Monte a pergunta como o cliente vera no WhatsApp.
-							</Typography>
-						</div>
-					</div>
-					{!questionForm ? (
-						<div className={classes.questionEmptyState}>
-							<Typography variant="subtitle2">Nenhuma pergunta selecionada.</Typography>
-							<Typography variant="body2" color="textSecondary" style={{ marginTop: 4 }}>
-								Clique em Adicionar pergunta ou edite uma pergunta existente.
-							</Typography>
-						</div>
-					) : (
+			<Dialog open={!!questionForm} onClose={() => setQuestionForm(null)} maxWidth="lg" fullWidth>
+				<DialogTitle>{questionForm?.id ? "Editar pergunta" : "Nova pergunta"}</DialogTitle>
+				<DialogContent dividers>
+					{questionForm && (
 						<>
 							<TextField
 								fullWidth
@@ -2579,15 +2818,16 @@ const QualificationFormsPanel = ({ classes }) => {
 								margin="dense"
 								variant="outlined"
 								label="Uso no GLPI automatico"
-								value={questionForm.glpiField || "description"}
+								value={normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField)}
 								onChange={event => setQuestionField("glpiField", event.target.value)}
 								style={{ marginTop: 12 }}
 								helperText="No modo automatico, respostas de descricao entram no corpo do chamado. Entidade e localizacao definem os campos do GLPI."
 							>
-								<MenuItem value="description">Enviar para descricao</MenuItem>
-								<MenuItem value="entity">Usar como entidade</MenuItem>
-								<MenuItem value="location">Usar como localizacao</MenuItem>
-								<MenuItem value="ignore">Nao enviar ao GLPI</MenuItem>
+								{glpiFieldOptions.map(option => (
+									<MenuItem key={option.value} value={option.value}>
+										{option.label}
+									</MenuItem>
+								))}
 							</TextField>
 
 							{choiceQuestion && (
@@ -2967,12 +3207,29 @@ const QualificationFormsPanel = ({ classes }) => {
 							</Grid>
 						</>
 					)}
-				</Paper>
-			</Grid>
+				</DialogContent>
+			</Dialog>
 				</Grid>
+				)}
 				</div>
 		</Grid>
 		</Grid>
+		<Dialog open={!!deleteFormTarget} onClose={() => setDeleteFormTarget(null)} maxWidth="xs" fullWidth>
+			<DialogTitle>Excluir formulario?</DialogTitle>
+			<DialogContent>
+				<Typography variant="body2">
+					Deseja realmente excluir o formulario "{textValue(deleteFormTarget?.name)}"? As perguntas e respostas vinculadas tambem serao removidas.
+				</Typography>
+			</DialogContent>
+			<DialogActions>
+				<Button onClick={() => setDeleteFormTarget(null)} color="secondary">
+					Cancelar
+				</Button>
+				<Button onClick={confirmDeleteForm} color="primary" variant="contained">
+					Excluir
+				</Button>
+			</DialogActions>
+		</Dialog>
 		<Dialog open={tagDialogOpen} onClose={() => setTagDialogOpen(false)} maxWidth="xs" fullWidth>
 			<DialogTitle>Nova etiqueta</DialogTitle>
 			<DialogContent>

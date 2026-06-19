@@ -64,6 +64,14 @@ const useStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.divider}`,
     background: theme.palette.background.default
   },
+  warningNotice: {
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+    padding: theme.spacing(1.5),
+    borderRadius: 6,
+    border: `1px solid ${theme.palette.warning.light}`,
+    background: theme.palette.type === "dark" ? "rgba(255, 193, 7, 0.12)" : "#fff8e1"
+  },
   automaticSection: {
     marginTop: theme.spacing(1),
     paddingTop: theme.spacing(1.5),
@@ -84,6 +92,15 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 6,
     border: `1px solid ${theme.palette.divider}`,
     background: theme.palette.background.default
+  },
+  ruleField: {
+    minHeight: 78
+  },
+  ruleAction: {
+    minHeight: 78,
+    display: "flex",
+    alignItems: "flex-start",
+    paddingTop: theme.spacing(0.5)
   }
 }));
 
@@ -142,6 +159,16 @@ const filterByGlpiIds = (list, value) => {
   return (list || []).filter(item => ids.includes(Number(item.glpiId)));
 };
 
+const mergeByGlpiId = (current, incoming) => {
+  const map = new Map();
+  [...(current || []), ...(incoming || [])].forEach(item => {
+    if (item?.glpiId !== undefined && item?.glpiId !== null) {
+      map.set(Number(item.glpiId), item);
+    }
+  });
+  return Array.from(map.values());
+};
+
 const parseEntityLocationRules = value => {
   try {
     const parsed = JSON.parse(value || "[]");
@@ -194,6 +221,8 @@ const Integrations = () => {
   const [syncing, setSyncing] = useState("");
   const [tab, setTab] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
+  const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [checkingWhatsapp, setCheckingWhatsapp] = useState(false);
   const [catalogs, setCatalogs] = useState({
     categories: [],
     entities: [],
@@ -226,6 +255,24 @@ const Integrations = () => {
     loadSettings();
   }, []);
 
+  const checkWhatsappUpdates = async () => {
+    try {
+      setCheckingWhatsapp(true);
+      const { data } = await api.get("/whatsapp-updates/status");
+      setWhatsappStatus(data);
+      setStatusMessage(data.checkError || "Verificacao do WhatsApp concluida.");
+    } catch (err) {
+      setStatusMessage(errorMessage(err));
+      toastError(err);
+    } finally {
+      setCheckingWhatsapp(false);
+    }
+  };
+
+  const unavailableWhatsappAutomation = action => {
+    toast.info(`${action} ainda precisa da rotina segura de manutencao/rollback no servidor.`);
+  };
+
   const handleChange = event => {
     const { name, value } = event.target;
     setSettings(prev => ({ ...prev, [name]: value }));
@@ -236,15 +283,72 @@ const Integrations = () => {
   };
 
   const entityLocationRules = parseEntityLocationRules(settings.glpiEntityLocationRules);
+  const hasDefaultGlpiEntity = Boolean(settings.glpiAutoEntityId);
 
   const locationsByEntity = entityId =>
     (catalogs.locations || []).filter(location => Number(location.entityId) === Number(entityId));
+
+  const defaultEntityLocations = hasDefaultGlpiEntity
+    ? locationsByEntity(settings.glpiAutoEntityId)
+    : catalogs.locations;
+
+  const loadLocationsForEntity = async entityId => {
+    if (!entityId) return [];
+
+    try {
+      const { data } = await api.get("/glpi/locations", { params: { entityId } });
+      const rows = Array.isArray(data) ? data : [];
+      setCatalogs(prev => ({
+        ...prev,
+        locations: mergeByGlpiId(prev.locations, rows)
+      }));
+      return rows;
+    } catch (err) {
+      toastError(err);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    const entityIds = Array.from(new Set(
+      entityLocationRules.map(rule => Number(rule.entityId)).filter(entityId => Number.isInteger(entityId) && entityId > 0)
+    ));
+
+    entityIds.forEach(entityId => {
+      if (!locationsByEntity(entityId).length) {
+        loadLocationsForEntity(entityId);
+      }
+    });
+  }, [settings.glpiEntityLocationRules]);
+
+  useEffect(() => {
+    if (!settings.glpiAutoEntityId) return;
+
+    loadLocationsForEntity(settings.glpiAutoEntityId);
+  }, [settings.glpiAutoEntityId]);
+
+  useEffect(() => {
+    if (!settings.glpiAutoEntityId || !settings.glpiAutoLocationId) return;
+    const selectedLocation = findByGlpiId(catalogs.locations, settings.glpiAutoLocationId);
+    if (
+      selectedLocation &&
+      Number(selectedLocation.entityId) !== Number(settings.glpiAutoEntityId)
+    ) {
+      handleSettingValue("glpiAutoLocationId", "");
+      toast.warning("A localizacao padrao foi limpa porque pertence a outra entidade.");
+    }
+  }, [settings.glpiAutoEntityId, settings.glpiAutoLocationId, catalogs.locations]);
 
   const updateEntityLocationRules = nextRules => {
     handleSettingValue("glpiEntityLocationRules", serializeEntityLocationRules(nextRules));
   };
 
   const addEntityLocationRule = () => {
+    if (hasDefaultGlpiEntity) {
+      toast.warning("Limpe a entidade padrao antes de adicionar regras por entidade.");
+      return;
+    }
+
     updateEntityLocationRules([
       ...entityLocationRules,
       { entityId: "", allowedLocationIds: [], defaultLocationId: "" }
@@ -270,8 +374,31 @@ const Integrations = () => {
     updateEntityLocationRules(entityLocationRules.filter((rule, ruleIndex) => ruleIndex !== index));
   };
 
+  const handleDefaultLocationChange = option => {
+    const locationId = option?.glpiId ? String(option.glpiId) : "";
+    const entityId = option?.entityId ? String(option.entityId) : "";
+
+    setSettings(prev => ({
+      ...prev,
+      glpiAutoLocationId: locationId,
+      glpiAutoEntityId: entityId || prev.glpiAutoEntityId
+    }));
+
+    if (entityId && entityId !== settings.glpiAutoEntityId) {
+      loadLocationsForEntity(entityId);
+      toast.info("Entidade padrao preenchida automaticamente pela localizacao selecionada.");
+    }
+  };
+
   const saveSettings = async () => {
     try {
+      if (hasDefaultGlpiEntity && entityLocationRules.length) {
+        const message = "Com entidade padrao preenchida, remova as regras por entidade ou limpe a entidade padrao antes de salvar.";
+        setStatusMessage(message);
+        toast.warning(message);
+        return;
+      }
+
       setSaving(true);
       await api.put("/glpi/config", settings);
       toast.success("Integracao GLPI salva com sucesso.");
@@ -339,6 +466,7 @@ const Integrations = () => {
 
       <Tabs value={tab} onChange={(event, value) => setTab(value)} indicatorColor="primary" textColor="primary" className={classes.tabs}>
         <Tab label="GLPI" />
+        <Tab label="WhatsApp" />
       </Tabs>
 
       <Paper className={classes.contentPaper} variant="outlined">
@@ -422,13 +550,13 @@ const Integrations = () => {
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <Autocomplete
-                      options={catalogs.locations}
-                      value={findByGlpiId(catalogs.locations, settings.glpiAutoLocationId)}
+                      options={defaultEntityLocations}
+                      value={findByGlpiId(defaultEntityLocations, settings.glpiAutoLocationId)}
                       getOptionLabel={optionLabel}
                       getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                      noOptionsText="Nenhuma localizacao encontrada"
-                      onChange={(event, option) => handleSettingValue("glpiAutoLocationId", option?.glpiId ? String(option.glpiId) : "")}
-                      renderInput={params => <SearchTextField {...params} label="Localizacao padrao, opcional" placeholder="Pesquisar localizacao" />}
+                      noOptionsText={hasDefaultGlpiEntity ? "Nenhuma localizacao desta entidade" : "Nenhuma localizacao encontrada"}
+                      onChange={(event, option) => handleDefaultLocationChange(option)}
+                      renderInput={params => <SearchTextField {...params} label="Localizacao padrao, opcional" placeholder="Pesquisar localizacao" helperText={hasDefaultGlpiEntity ? "Mostra somente localizacoes da entidade padrao." : "Ao escolher uma localizacao, a entidade padrao dela sera preenchida automaticamente."} />}
                     />
                   </Grid>
                   <Grid item xs={12} sm={6}>
@@ -478,14 +606,24 @@ const Integrations = () => {
                         <div>
                           <Typography variant="subtitle1">Regras de localizacao por entidade</Typography>
                           <Typography variant="body2" color="textSecondary">
-                            Defina quais localizacoes aparecem para cada entidade. A localizacao padrao da entidade e usada quando o formulario nao pergunta o setor.
+                            Defina quais localizacoes aparecem para cada entidade. Use esta area quando o formulario puder trabalhar com mais de uma entidade.
                           </Typography>
                         </div>
-                        <Button color="primary" variant="outlined" onClick={addEntityLocationRule}>
+                        <Button color="primary" variant="outlined" onClick={addEntityLocationRule} disabled={hasDefaultGlpiEntity}>
                           Adicionar regra
                         </Button>
                       </div>
-                      {!entityLocationRules.length && (
+                      {hasDefaultGlpiEntity && (
+                        <div className={classes.warningNotice}>
+                          <Typography variant="body2">
+                            Regras por entidade desabilitadas porque existe uma Entidade padrao selecionada.
+                          </Typography>
+                          <Typography variant="body2" color="textSecondary">
+                            Com entidade padrao, o chamado sempre usa essa entidade fixa. Para configurar regras por unidade, limpe o campo Entidade padrao acima.
+                          </Typography>
+                        </div>
+                      )}
+                      {!entityLocationRules.length && !hasDefaultGlpiEntity && (
                         <Typography variant="body2" color="textSecondary">
                           Sem regra especifica: o formulario usa o filtro global de localizacoes; se ele estiver vazio, mostra todas as localizacoes da entidade selecionada.
                         </Typography>
@@ -501,23 +639,28 @@ const Integrations = () => {
 
                         return (
                           <div className={classes.ruleRow} key={`${rule.entityId || "new"}-${index}`}>
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid item xs={12} md={3}>
+                            <Grid container spacing={2} alignItems="flex-start">
+                              <Grid item xs={12} md={3} className={classes.ruleField}>
                                 <Autocomplete
                                   options={catalogs.entities}
                                   value={findByGlpiId(catalogs.entities, rule.entityId)}
                                   getOptionLabel={entityOptionLabel}
                                   getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                                   noOptionsText="Nenhuma entidade encontrada"
-                                  onChange={(event, option) => updateEntityLocationRule(index, {
-                                    entityId: option?.glpiId ? Number(option.glpiId) : "",
-                                    allowedLocationIds: [],
-                                    defaultLocationId: ""
-                                  })}
+                                  disabled={hasDefaultGlpiEntity}
+                                  onChange={(event, option) => {
+                                    const entityId = option?.glpiId ? Number(option.glpiId) : "";
+                                    updateEntityLocationRule(index, {
+                                      entityId,
+                                      allowedLocationIds: [],
+                                      defaultLocationId: ""
+                                    });
+                                    loadLocationsForEntity(entityId);
+                                  }}
                                   renderInput={params => <SearchTextField {...params} label="Entidade" placeholder="Pesquisar entidade" />}
                                 />
                               </Grid>
-                              <Grid item xs={12} md={5}>
+                              <Grid item xs={12} md={5} className={classes.ruleField}>
                                 <Autocomplete
                                   multiple
                                   disableCloseOnSelect
@@ -526,6 +669,7 @@ const Integrations = () => {
                                   getOptionLabel={optionLabel}
                                   getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                                   noOptionsText={rule.entityId ? "Nenhuma localizacao desta entidade" : "Selecione uma entidade primeiro"}
+                                  disabled={hasDefaultGlpiEntity}
                                   onChange={(event, value) => updateEntityLocationRule(index, {
                                     allowedLocationIds: value.map(location => Number(location.glpiId)),
                                     defaultLocationId: value.some(location => Number(location.glpiId) === Number(rule.defaultLocationId))
@@ -541,20 +685,21 @@ const Integrations = () => {
                                   renderInput={params => <SearchTextField {...params} label="Localizacoes exibidas" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas desta entidade." />}
                                 />
                               </Grid>
-                              <Grid item xs={12} md={3}>
+                              <Grid item xs={12} md={3} className={classes.ruleField}>
                                 <Autocomplete
                                   options={defaultLocationOptions}
                                   value={findByGlpiId(defaultLocationOptions, rule.defaultLocationId)}
                                   getOptionLabel={optionLabel}
                                   getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                                   noOptionsText="Nenhuma localizacao disponivel"
+                                  disabled={hasDefaultGlpiEntity}
                                   onChange={(event, option) => updateEntityLocationRule(index, {
                                     defaultLocationId: option?.glpiId ? Number(option.glpiId) : ""
                                   })}
                                   renderInput={params => <SearchTextField {...params} label="Localizacao padrao" placeholder="Pesquisar localizacao" />}
                                 />
                               </Grid>
-                              <Grid item xs={12} md={1}>
+                              <Grid item xs={12} md={1} className={classes.ruleAction}>
                                 <Button fullWidth color="secondary" variant="outlined" onClick={() => removeEntityLocationRule(index)}>
                                   Remover
                                 </Button>
@@ -610,6 +755,91 @@ const Integrations = () => {
               </Button>
               <Button color="primary" variant="contained" onClick={saveSettings} disabled={saving}>
                 {saving ? "Salvando..." : "Salvar integracao"}
+              </Button>
+            </div>
+
+            {statusMessage && (
+              <Typography variant="body2" color="textSecondary" className={classes.statusMessage}>
+                {statusMessage}
+              </Typography>
+            )}
+          </>
+        )}
+        {tab === 1 && (
+          <>
+            <Typography variant="h6" className={classes.sectionTitle}>
+              WhatsApp
+            </Typography>
+            <Typography variant="body2" color="textSecondary" className={classes.helper}>
+              Acompanhe a versao do provedor Whaileys usado para conexao WhatsApp. A versao do WhatsApp Web pode ser buscada automaticamente, mas a biblioteca nao atualiza sozinha.
+            </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Provedor"
+                  value={whatsappStatus?.provider || "whaileys"}
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Versao instalada"
+                  value={whatsappStatus?.installedVersion || "Nao verificada"}
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Ultima versao disponivel"
+                  value={whatsappStatus?.latestVersion || "Nao verificada"}
+                  InputProps={{ readOnly: true }}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <div className={whatsappStatus?.updateAvailable ? classes.warningNotice : classes.statusMessage}>
+                  <Typography variant="body2">
+                    {whatsappStatus?.updateAvailable
+                      ? "Existe uma atualizacao disponivel para o provedor WhatsApp."
+                      : whatsappStatus
+                        ? "Nenhuma atualizacao detectada para o provedor WhatsApp."
+                        : "Clique em Verificar atualizacao para consultar a versao atual."}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    Instalacao e desfazer atualizacao devem criar ponto de rollback por Docker antes de serem habilitados.
+                  </Typography>
+                </div>
+              </Grid>
+            </Grid>
+
+            <div className={classes.actions}>
+              <Button variant="outlined" color="primary" onClick={checkWhatsappUpdates} disabled={checkingWhatsapp}>
+                {checkingWhatsapp ? "Verificando..." : "Verificar atualizacao"}
+              </Button>
+              <Button
+                variant="outlined"
+                color="primary"
+                disabled={!whatsappStatus?.updateAvailable || !whatsappStatus?.installAutomationReady}
+                onClick={() => unavailableWhatsappAutomation("Instalar atualizacao")}
+              >
+                Instalar atualizacao
+              </Button>
+              <Button
+                variant="outlined"
+                color="secondary"
+                disabled={!whatsappStatus?.rollbackAutomationReady}
+                onClick={() => unavailableWhatsappAutomation("Desfazer ultima atualizacao")}
+              >
+                Desfazer ultima atualizacao
               </Button>
             </div>
 

@@ -4,6 +4,7 @@ import isAuth from "../middleware/isAuth";
 import AppError from "../errors/AppError";
 
 import * as WhatsAppController from "../controllers/WhatsAppController";
+import * as WhatsAppUpdateController from "../controllers/WhatsAppUpdateController";
 
 const whatsappRoutes = express.Router();
 
@@ -15,6 +16,10 @@ const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 whatsappRoutes.get("/whatsapp/", isAuth, WhatsAppController.index);
+
+whatsappRoutes.get("/whatsapp-updates/status", isAuth, isAdmin, WhatsAppUpdateController.status);
+whatsappRoutes.post("/whatsapp-updates/install", isAuth, isAdmin, WhatsAppUpdateController.install);
+whatsappRoutes.post("/whatsapp-updates/rollback", isAuth, isAdmin, WhatsAppUpdateController.rollback);
 
 whatsappRoutes.post("/whatsapp/", isAuth, isAdmin, WhatsAppController.store);
 

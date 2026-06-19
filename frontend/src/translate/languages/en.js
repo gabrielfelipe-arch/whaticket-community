@@ -452,6 +452,12 @@ const messages = {
         ERR_NO_WAPP_FOUND: "No WhatsApp found with this ID.",
         ERR_CREATING_MESSAGE: "Error while creating message on database.",
         ERR_CREATING_TICKET: "Error while creating ticket on database.",
+        "Internal server error":
+          "Internal system error. Try again or contact support.",
+        ERR_CLOSING_FIELDS_REQUIRED:
+          "Select a category and a closing reason before resolving the ticket.",
+        ERR_CLOSING_REASON_REQUIRED:
+          "Select a closing reason before resolving the ticket.",
         ERR_FETCH_WAPP_MSG:
           "Error fetching the message in WhtasApp, maybe it is too old.",
         ERR_QUEUE_COLOR_ALREADY_EXISTS:

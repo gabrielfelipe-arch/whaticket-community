@@ -551,15 +551,15 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     requireField(data.label, "Informe a pergunta.");
 
     const allowedTypes = ["text", "single_choice", "multiple_choice", "number", "date", "time", "boolean", "email", "phone", "glpi_entity", "glpi_location"];
-    const allowedGlpiFields = ["description", "entity", "location", "ignore"];
     const type = allowedTypes.includes(data.type) ? data.type : "text";
-    const glpiField = allowedGlpiFields.includes(data.glpiField)
+    const allowedGlpiFieldsByType = type === "glpi_entity"
+      ? ["entity", "ignore"]
+      : type === "glpi_location"
+        ? ["location", "ignore"]
+        : ["description", "ignore"];
+    const glpiField = allowedGlpiFieldsByType.includes(data.glpiField)
       ? data.glpiField
-      : type === "glpi_entity"
-        ? "entity"
-        : type === "glpi_location"
-          ? "location"
-          : "description";
+      : allowedGlpiFieldsByType[0];
     const key = normalizeQuestionKey(data.key || data.label);
 
     requireField(key, "Informe uma chave valida para a pergunta.");

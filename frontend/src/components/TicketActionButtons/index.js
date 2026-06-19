@@ -14,6 +14,7 @@ import {
 	FormControlLabel
 } from "@material-ui/core";
 import { MoreVert, Replay } from "@material-ui/icons";
+import { toast } from "react-toastify";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
@@ -143,7 +144,14 @@ const TicketActionButtons = ({ ticket }) => {
 	};
 
 	const isGroupTicket = !!ticket?.isGroup;
-	const canCloseTicket = isGroupTicket || (closingData.categoryId && closingData.closingReasonId);
+	const handleResolveTicket = e => {
+		if (!isGroupTicket && (!closingData.categoryId || !closingData.closingReasonId)) {
+			toast.error("Informe a categoria e o motivo de fechamento antes de resolver o atendimento.");
+			return;
+		}
+
+		handleUpdateTicketStatus(e, "closed", user?.id);
+	};
 	const getPreferredQueueId = () => {
 		if (ticket.queueId && !ticket.queue?.useAI) return ticket.queueId;
 		const availableQueues = user?.queues || [];
@@ -341,8 +349,7 @@ const TicketActionButtons = ({ ticket }) => {
 						size="small"
 						variant="contained"
 						color="primary"
-						disabled={!canCloseTicket}
-						onClick={e => handleUpdateTicketStatus(e, "closed", user?.id)}
+						onClick={handleResolveTicket}
 					>
 						Resolver
 					</ButtonWithSpinner>

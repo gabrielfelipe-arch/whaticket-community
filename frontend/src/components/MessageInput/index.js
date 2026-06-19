@@ -36,19 +36,20 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import toastError from "../../errors/toastError";
 
-let Mp3Recorder = null;
+const getSupportedAudioMimeType = () => {
+  if (!window.MediaRecorder) return "";
 
-const initRecorder = async () => {
-  if (!Mp3Recorder) {
-    try {
-      const MicRecorder = (await import("mic-recorder-to-mp3")).default;
-      Mp3Recorder = new MicRecorder({ bitRate: 128 });
-    } catch (error) {
-      console.error("Failed to initialize recorder:", error);
-      return null;
-    }
-  }
-  return Mp3Recorder;
+  return [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg"
+  ].find(type => window.MediaRecorder.isTypeSupported(type)) || "";
+};
+
+const getAudioExtension = type => {
+  if (String(type || "").includes("ogg")) return "ogg";
+  return "webm";
 };
 
 const useStyles = makeStyles(theme => ({
@@ -226,6 +227,9 @@ const MessageInput = ({ ticketStatus }) => {
   const [quickAnswers, setQuickAnswer] = useState([]);
   const [typeBar, setTypeBar] = useState(false);
   const inputRef = useRef();
+  const recorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const audioStreamRef = useRef(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const { setReplyingMessage, replyingMessage } =
     useContext(ReplyMessageContext);
@@ -342,16 +346,39 @@ const MessageInput = ({ ticketStatus }) => {
   const handleStartRecording = async () => {
     setLoading(true);
     try {
-      const recorder = await initRecorder();
-      if (!recorder) {
-        throw new Error("Recorder not available");
+      if (!window.isSecureContext) {
+        throw new Error("Para o navegador pedir permissao do microfone, acesse o sistema por HTTPS. Em HTTP por IP o microfone e bloqueado.");
       }
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      await recorder.start();
+
+      if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+        throw new Error("Seu navegador nao permite gravar audio nesta conexao. Use HTTPS ou acesse por localhost.");
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mimeType = getSupportedAudioMimeType();
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+
+      audioChunksRef.current = [];
+      audioStreamRef.current = stream;
+      recorderRef.current = recorder;
+
+      recorder.ondataavailable = event => {
+        if (event.data?.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.start();
       setRecording(true);
       setLoading(false);
     } catch (err) {
-      toastError(err);
+      if (err?.name === "NotAllowedError") {
+        toastError(new Error("Permissao do microfone negada. Libere o microfone no navegador e tente novamente."));
+      } else if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+        toastError(new Error("O navegador bloqueia microfone em HTTP por IP. Acesse o sistema por HTTPS para gravar audios."));
+      } else {
+        toastError(err);
+      }
       setLoading(false);
     }
   };
@@ -379,11 +406,24 @@ const MessageInput = ({ ticketStatus }) => {
   const handleUploadAudio = async () => {
     setLoading(true);
     try {
-      const recorder = await initRecorder();
+      const recorder = recorderRef.current;
       if (!recorder) {
-        throw new Error("Recorder not available");
+        throw new Error("Gravador de audio nao iniciado.");
       }
-      const [, blob] = await recorder.stop().getMp3();
+
+      const blob = await new Promise((resolve, reject) => {
+        recorder.onstop = () => {
+          const type = recorder.mimeType || "audio/webm";
+          resolve(new Blob(audioChunksRef.current, { type }));
+        };
+        recorder.onerror = event => reject(event.error || new Error("Erro ao finalizar audio."));
+        recorder.stop();
+      });
+
+      audioStreamRef.current?.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+      recorderRef.current = null;
+
       if (blob.size < 10000) {
         setLoading(false);
         setRecording(false);
@@ -391,7 +431,8 @@ const MessageInput = ({ ticketStatus }) => {
       }
 
       const formData = new FormData();
-      const filename = `${new Date().getTime()}.mp3`;
+      const extension = getAudioExtension(blob.type);
+      const filename = `${new Date().getTime()}.${extension}`;
       formData.append("medias", blob, filename);
       formData.append("body", filename);
       formData.append("fromMe", true);
@@ -407,10 +448,14 @@ const MessageInput = ({ ticketStatus }) => {
 
   const handleCancelAudio = async () => {
     try {
-      const recorder = await initRecorder();
-      if (recorder) {
-        await recorder.stop().getMp3();
+      const recorder = recorderRef.current;
+      if (recorder && recorder.state !== "inactive") {
+        recorder.stop();
       }
+      audioStreamRef.current?.getTracks().forEach(track => track.stop());
+      audioStreamRef.current = null;
+      recorderRef.current = null;
+      audioChunksRef.current = [];
       setRecording(false);
     } catch (err) {
       toastError(err);
