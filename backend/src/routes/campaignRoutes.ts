@@ -19,6 +19,7 @@ routes.post("/campaigns/:campaignId/retry-failed", isAuth, CampaignController.re
 routes.post("/campaigns/:campaignId/duplicate", isAuth, CampaignController.duplicate);
 
 routes.get("/scheduled-messages", isAuth, ScheduledMessageController.index);
+routes.post("/scheduled-messages/recipient-preview", isAuth, ScheduledMessageController.recipientPreview);
 routes.post("/scheduled-messages", isAuth, upload.single("media"), ScheduledMessageController.store);
 routes.put("/scheduled-messages/:scheduleId", isAuth, upload.single("media"), ScheduledMessageController.update);
 routes.delete("/scheduled-messages/:scheduleId", isAuth, ScheduledMessageController.remove);

@@ -1291,6 +1291,26 @@ const getGlpiEntityLocationRule = (
   return settings.entityLocationRules.find(rule => Number(rule.entityId) === Number(entityId)) || null;
 };
 
+const parseJsonObject = (value?: string | null): Record<string, unknown> => {
+  try {
+    return value ? JSON.parse(value) : {};
+  } catch (err) {
+    return {};
+  }
+};
+
+const getParentGlpiEntityId = async (entityId?: number | null): Promise<number | null> => {
+  if (!entityId) return null;
+  const entity = await GlpiEntity.findOne({ where: { glpiId: entityId } });
+  const rawData = parseJsonObject(entity?.rawData);
+  const parentId = Number(
+    rawData.entities_id ??
+    rawData.entity_id ??
+    rawData.entityId
+  );
+  return Number.isInteger(parentId) && parentId > 0 ? parentId : null;
+};
+
 const getQualificationGlpiOptions = async (
   question: QualificationFormQuestion,
   response?: QualificationFormResponse | null
@@ -1298,10 +1318,14 @@ const getQualificationGlpiOptions = async (
   const settings = await getGlpiSettings();
 
   if (question.type === "glpi_entity") {
+    const ruleEntityIds = settings.entityLocationRules
+      .map(rule => Number(rule.entityId))
+      .filter(id => Number.isInteger(id) && id > 0);
+    const allowedEntityIds = ruleEntityIds.length ? ruleEntityIds : settings.allowedFormEntityIds;
     const rows = await GlpiEntity.findAll({
       where: {
         active: true,
-        ...(settings.allowedFormEntityIds.length ? { glpiId: { [Op.in]: settings.allowedFormEntityIds } } : {})
+        ...(allowedEntityIds.length ? { glpiId: { [Op.in]: allowedEntityIds } } : {})
       },
       order: [["completeName", "ASC"], ["name", "ASC"]],
       limit: 1000
@@ -1338,7 +1362,7 @@ const getQualificationGlpiOptions = async (
       ? entityRule.allowedLocationIds
       : settings.allowedFormLocationIds;
 
-    const rows = await GlpiLocation.findAll({
+    let rows = await GlpiLocation.findAll({
       where: {
         active: true,
         ...(entityId ? { entityId } : {}),
@@ -1348,9 +1372,24 @@ const getQualificationGlpiOptions = async (
       limit: 1000
     });
 
+    if (entityId && !rows.length) {
+      const parentEntityId = await getParentGlpiEntityId(entityId);
+      if (parentEntityId) {
+        rows = await GlpiLocation.findAll({
+          where: {
+            active: true,
+            entityId: parentEntityId,
+            ...(allowedLocationIds.length ? { glpiId: { [Op.in]: allowedLocationIds } } : {})
+          },
+          order: [["completeName", "ASC"], ["name", "ASC"]],
+          limit: 1000
+        });
+      }
+    }
+
     return rows.map(row => ({
       value: String(row.glpiId),
-      label: row.completeName || row.name,
+      label: row.name || row.completeName,
       tagRefs: [],
       nextAction: "NEXT",
       nextMessages: []
@@ -1366,14 +1405,73 @@ const buildQualificationQuestionMessage = async (
   response?: QualificationFormResponse | null
 ): Promise<string> => {
   const options = await getQualificationGlpiOptions(question, response);
-  const optionText = options.length
-    ? `\n\n${options.map(option => `*${option.value}* - ${option.label}`).join("\n")}`
+  const sortedOptions = ["glpi_entity", "glpi_location"].includes(question.type)
+    ? sortQualificationOptionsByLabel(options)
+    : options;
+  const canGoBack = response && ["glpi_entity", "glpi_location"].includes(question.type)
+    ? (await getQualificationQuestions(response.formId)).some(item =>
+        Number(item.order || 0) < Number(question.order || 0) ||
+        (Number(item.order || 0) === Number(question.order || 0) && Number(item.id) < Number(question.id))
+      )
+    : false;
+  const optionText = sortedOptions.length
+    ? `\n\n${[
+        ...sortedOptions.map((option, index) => `*${index + 1}* - ${option.label}`),
+        ...(canGoBack ? ["*0* - Voltar para pergunta anterior"] : [])
+      ].join("\n")}`
     : "";
   const skipText = allowSkip || !question.required
     ? "\n\nSe preferir, digite *pular*."
     : "";
 
   return `${question.label}${optionText}${skipText}`;
+};
+
+const fillDefaultGlpiLocationIfNeeded = async (
+  response: QualificationFormResponse,
+  question: QualificationFormQuestion
+): Promise<boolean> => {
+  if (question.type !== "glpi_location" && question.glpiField !== "location") return false;
+
+  const answers = await QualificationFormAnswer.findAll({
+    where: { responseId: response.id },
+    include: [{ model: QualificationFormQuestion, as: "question" }],
+    order: [["id", "ASC"]]
+  });
+  const entityAnswer = answers.find(answer => answer.question?.glpiField === "entity");
+  const entityId = Number(entityAnswer?.question?.glpiField === "entity" ? entityAnswer.value : 0);
+  if (!entityId) return false;
+
+  const settings = await getGlpiSettings();
+  const entityRule = getGlpiEntityLocationRule(settings, entityId);
+  const defaultLocationId = Number(entityRule?.defaultLocationId || 0);
+  if (!defaultLocationId) return false;
+
+  const location = await GlpiLocation.findOne({
+    where: { glpiId: defaultLocationId, active: true }
+  });
+  if (!location) return false;
+
+  await QualificationFormAnswer.destroy({
+    where: {
+      responseId: response.id,
+      questionId: question.id
+    }
+  });
+
+  await QualificationFormAnswer.create({
+    responseId: response.id,
+    questionId: question.id,
+    key: question.key,
+    label: question.label,
+    value: String(location.glpiId),
+    rawValue: "localizacao_padrao",
+    optionLabel: location.name || location.completeName || String(location.glpiId),
+    includeInAiContext: question.includeInAiContext,
+    includeInReports: question.includeInReports
+  });
+
+  return true;
 };
 
 const getQualificationQuestions = async (formId: number): Promise<QualificationFormQuestion[]> => {
@@ -1486,11 +1584,16 @@ const parseQualificationAnswer = async (
   const options = await getQualificationGlpiOptions(question, response);
   if (["single_choice", "multiple_choice", "glpi_entity", "glpi_location"].includes(question.type)) {
     if (!options.length) return { ok: true, value: raw, optionLabel: raw };
+    const answerOptions = ["glpi_entity", "glpi_location"].includes(question.type)
+      ? sortQualificationOptionsByLabel(options)
+      : options;
 
     if (question.type === "multiple_choice") {
       const parts = raw.split(/[,\s]+/).map(part => part.trim()).filter(Boolean);
-      const selected = options.filter(option =>
-        parts.includes(option.value) || parts.some(part => normalizeText(part) === normalizeText(option.label))
+      const selected = answerOptions.filter((option, index) =>
+        parts.includes(option.value) ||
+        parts.includes(String(index + 1)) ||
+        parts.some(part => normalizeText(part) === normalizeText(option.label))
       );
       if (!selected.length) return { ok: false };
       return {
@@ -1505,8 +1608,10 @@ const parseQualificationAnswer = async (
       };
     }
 
-    const selected = options.find(option =>
-      option.value === raw || normalizeText(option.label) === normalized
+    const selected = answerOptions.find((option, index) =>
+      option.value === raw ||
+      String(index + 1) === raw ||
+      normalizeText(option.label) === normalized
     );
 
     if (!selected) return { ok: false };
@@ -1691,8 +1796,29 @@ const getQualificationRouteOption = (
   }) || null;
 };
 
+const sortQualificationOptionsByLabel = (options: QualificationOption[]): QualificationOption[] =>
+  [...options].sort((a, b) =>
+    String(a.label || "").localeCompare(String(b.label || ""), "pt-BR", { sensitivity: "base" })
+  );
+
 const renderGlpiTemplate = (template: string, values: Record<string, string | number | null | undefined>): string =>
   String(template || "").replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_match, key) => String(values[key] ?? ""));
+
+const formatQualificationAnswerFieldLabel = (answer: QualificationFormAnswer): string => {
+  const key = String(answer.key || "").trim();
+  if (key) {
+    return key
+      .replace(/[_.-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/\b\w/g, char => char.toUpperCase());
+  }
+
+  return String(answer.label || "Resposta").replace(/[?:]+$/g, "").trim() || "Resposta";
+};
+
+const formatQualificationAnswerValue = (answer: QualificationFormAnswer): string =>
+  String(answer.optionLabel || answer.value || answer.rawValue || "nao informado").trim() || "nao informado";
 
 const tryCreateAutomaticGlpiFromQualification = async (
   response: QualificationFormResponse,
@@ -1701,8 +1827,14 @@ const tryCreateAutomaticGlpiFromQualification = async (
   contactPayload?: ContactPayload
 ): Promise<void> => {
   const settings = await getGlpiSettings();
-  if (!settings.enabled || settings.automationMode !== "automatic") return;
-  if (ticket.status !== "open") return;
+  if (!settings.enabled || !["automatic", "hybrid"].includes(settings.automationMode)) return;
+  if (!["open", "pending"].includes(ticket.status)) {
+    logger.warn(
+      { ticketId: ticket.id, responseId: response.id, status: ticket.status },
+      "[GLPI AUTO] Ticket status does not allow automatic creation"
+    );
+    return;
+  }
 
   const answers = await QualificationFormAnswer.findAll({
     where: { responseId: response.id },
@@ -1754,7 +1886,9 @@ const tryCreateAutomaticGlpiFromQualification = async (
     `Atendimento Rocket Service: #${ticket.id}`,
     "",
     "Respostas do formulario:",
-    ...descriptionAnswers.map(answer => `- ${answer.label}: ${answer.optionLabel || answer.value || answer.rawValue || "nao informado"}`)
+    ...descriptionAnswers.map(answer =>
+      `${formatQualificationAnswerFieldLabel(answer)}: ${formatQualificationAnswerValue(answer)}`
+    )
   ].join("\n");
 
   try {
@@ -1769,7 +1903,8 @@ const tryCreateAutomaticGlpiFromQualification = async (
       descriptionMode: "qualification_form_auto",
       selectedMessageIds: [],
       forceCreate: true,
-      useGlobalToken: true
+      useGlobalToken: true,
+      allowPendingTicket: true
     });
 
     const successValues = {
@@ -2118,6 +2253,66 @@ const handleActiveQualificationForm = async (
     return false;
   }
 
+  if (await fillDefaultGlpiLocationIfNeeded(response, question)) {
+    const questions = await getQualificationQuestions(response.formId);
+    let nextIndex = questions.findIndex(item => Number(item.id) === Number(question.id)) + 1;
+    let nextQuestion = questions[nextIndex];
+    while (nextQuestion && await fillDefaultGlpiLocationIfNeeded(response, nextQuestion)) {
+      nextIndex += 1;
+      nextQuestion = questions[nextIndex];
+    }
+
+    if (nextQuestion) {
+      await response.update({ currentQuestionId: nextQuestion.id, invalidAttempts: 0 });
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        await buildQualificationQuestionMessage(nextQuestion, selectedOption.allowQualificationFormSkip, response),
+        ticket,
+        "ura"
+      );
+      return true;
+    }
+
+    const summary = await finishQualificationResponse(response, ticket, whatsappId, contactPayload);
+    if (ticket.status === "closed") return true;
+    await executeQualificationAfterAction(
+      whatsappId,
+      ticket,
+      contactPayload,
+      flow,
+      selectedOption,
+      summary
+    );
+    return true;
+  }
+
+  if (["glpi_entity", "glpi_location"].includes(question.type) && String(messageBody || "").trim() === "0") {
+    const questions = await getQualificationQuestions(response.formId);
+    const currentIndex = questions.findIndex(item => Number(item.id) === Number(question.id));
+    const previousQuestion = currentIndex > 0 ? questions[currentIndex - 1] : null;
+    if (previousQuestion) {
+      const questionIdsToClear = questions
+        .slice(currentIndex - 1)
+        .map(item => item.id);
+      await QualificationFormAnswer.destroy({
+        where: {
+          responseId: response.id,
+          questionId: { [Op.in]: questionIdsToClear }
+        }
+      });
+      await response.update({ currentQuestionId: previousQuestion.id, invalidAttempts: 0 });
+      await sendTextMessage(
+        whatsappId,
+        contactPayload,
+        await buildQualificationQuestionMessage(previousQuestion, selectedOption.allowQualificationFormSkip, response),
+        ticket,
+        "ura"
+      );
+      return true;
+    }
+  }
+
   const answer = await parseQualificationAnswer(
     question,
     messageBody,
@@ -2179,11 +2374,15 @@ const handleActiveQualificationForm = async (
     return true;
   }
 
-  const currentIndex = questions.findIndex(item => Number(item.id) === Number(question.id));
-  const nextQuestion = questions[currentIndex + 1];
+  let nextIndex = questions.findIndex(item => Number(item.id) === Number(question.id)) + 1;
+  let nextQuestion = questions[nextIndex];
+  while (nextQuestion && await fillDefaultGlpiLocationIfNeeded(response, nextQuestion)) {
+    nextIndex += 1;
+    nextQuestion = questions[nextIndex];
+  }
 
   if (nextQuestion) {
-    await response.update({ currentQuestionId: nextQuestion.id });
+    await response.update({ currentQuestionId: nextQuestion.id, invalidAttempts: 0 });
     await sendTextMessage(
       whatsappId,
       contactPayload,

@@ -23,6 +23,7 @@ type Request = {
   selectedMessageIds?: string[];
   forceCreate?: boolean;
   useGlobalToken?: boolean;
+  allowPendingTicket?: boolean;
 };
 
 const buildMessageExcerpt = async (messageIds: string[]): Promise<string[]> => {
@@ -32,6 +33,14 @@ const buildMessageExcerpt = async (messageIds: string[]): Promise<string[]> => {
   });
 
   return messages.map(message => message.body || "").filter(Boolean);
+};
+
+const parseJsonObject = (value?: string | null): Record<string, unknown> => {
+  try {
+    return value ? JSON.parse(value) : {};
+  } catch (err) {
+    return {};
+  }
 };
 
 const CreateGlpiTicketService = async ({
@@ -45,7 +54,8 @@ const CreateGlpiTicketService = async ({
   descriptionMode = "manual",
   selectedMessageIds = [],
   forceCreate = false,
-  useGlobalToken = false
+  useGlobalToken = false,
+  allowPendingTicket = false
 }: Request): Promise<GlpiTicketLink> => {
   const settings = await getGlpiSettings();
   if (!settings.enabled) throw new AppError("Integracao GLPI desativada.", 400);
@@ -71,7 +81,9 @@ const CreateGlpiTicketService = async ({
   });
 
   if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
-  if (ticket.status !== "open") throw new AppError("O chamado GLPI so pode ser aberto em atendimento aberto.", 400);
+  if (ticket.status !== "open" && !(allowPendingTicket && ticket.status === "pending")) {
+    throw new AppError("O chamado GLPI so pode ser aberto em atendimento aberto.", 400);
+  }
   const hasAnyGlpiQueue = !ticket.queue
     ? await Queue.count({ where: { glpiEnabled: true } })
     : 0;
@@ -92,7 +104,11 @@ const CreateGlpiTicketService = async ({
   if (!category) throw new AppError("Escolha uma categoria GLPI sincronizada.", 400);
   if (locationId && !location) throw new AppError("Escolha uma localizacao GLPI sincronizada.", 400);
   if (location && location.entityId !== null && location.entityId !== undefined && location.entityId !== entityId) {
-    throw new AppError("A localizacao escolhida nao pertence a entidade GLPI selecionada.", 400);
+    const rawData = parseJsonObject(entity.rawData);
+    const parentId = Number(rawData.entities_id ?? rawData.entity_id ?? rawData.entityId);
+    if (!Number.isInteger(parentId) || parentId <= 0 || Number(location.entityId) !== parentId) {
+      throw new AppError("A localizacao escolhida nao pertence a entidade GLPI selecionada.", 400);
+    }
   }
   if (!title?.trim()) throw new AppError("Informe o titulo do chamado GLPI.", 400);
   if (!description?.trim()) throw new AppError("Informe a descricao do chamado GLPI.", 400);

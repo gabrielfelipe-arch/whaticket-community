@@ -165,7 +165,14 @@ const useStyles = makeStyles(theme => ({
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: theme.spacing(1),
-    gap: theme.spacing(1)
+    gap: theme.spacing(1),
+    flexWrap: "wrap"
+  },
+  contactPickerActions: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(0.5),
+    flexWrap: "wrap"
   },
   contactList: {
     maxHeight: 220,
@@ -359,13 +366,22 @@ const contactHasAnyTag = (contact, tagIds) => {
   return (contact.tags || []).some(tag => selected.has(Number(tag.id)));
 };
 
+const sameNumberArray = (left = [], right = []) => {
+  if (left.length !== right.length) return false;
+  const leftSorted = left.map(Number).sort((a, b) => a - b);
+  const rightSorted = right.map(Number).sort((a, b) => a - b);
+  return leftSorted.every((item, index) => item === rightSorted[index]);
+};
+
 const ContactPicker = ({
   classes,
   contacts,
   audience,
   selectedIds,
   onChange,
-  label
+  label,
+  helperText,
+  loading = false
 }) => {
   const [search, setSearch] = useState("");
   const selectedSet = new Set((selectedIds || []).map(Number));
@@ -374,6 +390,12 @@ const ContactPicker = ({
     const searchable = normalizeSearch(`${contact.name} ${contact.number || ""}`);
     return searchable.includes(searchValue);
   });
+  const selectedContacts = contacts.filter(contact => selectedSet.has(Number(contact.id)));
+  const selectedContactCount = selectedContacts.filter(contact => !contact.isGroup).length;
+  const selectedGroupCount = selectedContacts.filter(contact => contact.isGroup).length;
+  const selectedSummary = selectedIds?.length
+    ? `${selectedContactCount} contato(s) e ${selectedGroupCount} grupo(s) selecionado(s)`
+    : "Nenhum contato ou grupo selecionado";
 
   const toggleContact = contactId => {
     const normalizedId = Number(contactId);
@@ -384,15 +406,26 @@ const ContactPicker = ({
     onChange(nextSelected);
   };
 
+  const markFiltered = () => {
+    const nextIds = Array.from(new Set([
+      ...(selectedIds || []).map(Number),
+      ...filteredContacts.map(contact => Number(contact.id))
+    ]));
+    onChange(nextIds);
+  };
+
   return (
     <div className={classes.contactPicker}>
       <div className={classes.contactPickerHeader}>
         <Typography variant="subtitle2">{label}</Typography>
-        {!!selectedIds?.length && (
-          <Button size="small" onClick={() => onChange([])}>
+        <div className={classes.contactPickerActions}>
+          <Button size="small" color="primary" onClick={markFiltered} disabled={!filteredContacts.length}>
+            Marcar todos
+          </Button>
+          <Button size="small" onClick={() => onChange([])} disabled={!selectedIds?.length}>
             Limpar
           </Button>
-        )}
+        </div>
       </div>
       <TextField
         fullWidth
@@ -409,22 +442,20 @@ const ContactPicker = ({
           )
         }}
       />
-      {!!selectedIds?.length && (
-        <div className={classes.tagChips} style={{ marginTop: 8 }}>
-          {selectedIds.map(contactId => {
-            const contact = contacts.find(item => Number(item.id) === Number(contactId));
-            return (
-              <Chip
-                key={contactId}
-                size="small"
-                label={contact?.name || contactId}
-                onDelete={() => toggleContact(contactId)}
-              />
-            );
-          })}
-        </div>
+      {helperText && (
+        <Typography variant="caption" color="textSecondary">
+          {helperText}
+        </Typography>
       )}
+      <Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+        {selectedSummary}
+      </Typography>
       <div className={classes.contactList}>
+        {loading && (
+          <Typography variant="body2" color="textSecondary" style={{ padding: 12 }}>
+            Atualizando destinatarios...
+          </Typography>
+        )}
         {filteredContacts.map(contact => (
           <div
             key={contact.id}
@@ -480,6 +511,8 @@ const CampaignsSchedules = () => {
   const [logsModalOpen, setLogsModalOpen] = useState(false);
   const [logsTitle, setLogsTitle] = useState("");
   const [logs, setLogs] = useState([]);
+  const [recipientPreview, setRecipientPreview] = useState({ contacts: [], total: 0, source: "manual" });
+  const [recipientPreviewLoading, setRecipientPreviewLoading] = useState(false);
 
   const loadData = async () => {
     try {
@@ -510,6 +543,66 @@ const CampaignsSchedules = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (!scheduleModalOpen) return;
+
+    const selectedTagIds = scheduleForm.tagIds || [];
+    const selectedContactIds = scheduleForm.contactIds || [];
+    const selectedExcludeTagIds = scheduleForm.excludeTagIds || [];
+    const shouldPreview =
+      selectedTagIds.length ||
+      (selectedExcludeTagIds.length && selectedContactIds.length);
+
+    if (!shouldPreview) {
+      setRecipientPreview({ contacts: [], total: selectedContactIds.length, source: "manual" });
+      return;
+    }
+
+    let canceled = false;
+    setRecipientPreviewLoading(true);
+
+    api.post("/scheduled-messages/recipient-preview", {
+      audience: scheduleForm.audience,
+      contactIds: selectedTagIds.length ? [] : selectedContactIds,
+      tagIds: selectedTagIds,
+      excludeTagIds: selectedExcludeTagIds,
+      tagAppliedLastDays: scheduleForm.tagAppliedLastDays
+    }).then(({ data }) => {
+      if (canceled) return;
+
+      const previewContacts = data.contacts || [];
+      const previewIds = previewContacts.map(contact => Number(contact.id));
+      setRecipientPreview({
+        contacts: previewContacts,
+        total: Number(data.total || previewContacts.length),
+        source: selectedTagIds.length ? "tags" : "filtered"
+      });
+
+      if (!sameNumberArray(scheduleForm.contactIds, previewIds)) {
+        setScheduleForm(prev => {
+          if (!sameNumberArray(prev.tagIds, selectedTagIds)) return prev;
+          if (!sameNumberArray(prev.contactIds, scheduleForm.contactIds)) return prev;
+          return { ...prev, contactIds: previewIds };
+        });
+      }
+    }).catch(err => {
+      if (!canceled) toastError(err);
+    }).finally(() => {
+      if (!canceled) setRecipientPreviewLoading(false);
+    });
+
+    return () => {
+      canceled = true;
+    };
+  }, [
+    scheduleModalOpen,
+    scheduleForm.audience,
+    scheduleForm.contactIds,
+    scheduleForm.tagIds,
+    scheduleForm.excludeTagIds,
+    scheduleForm.tagAppliedLastDays
+  ]);
 
   const handleCampaignChange = event => {
     const { name, value } = event.target;
@@ -766,6 +859,14 @@ const CampaignsSchedules = () => {
     if (selectedContacts) return `${selectedContacts} selecionado(s)`;
     if (tagContacts) return `${tagContacts} por etiqueta`;
     return "Nenhum destinatario selecionado";
+  };
+
+  const getRecipientContactsForPicker = () => {
+    const usesFilterPreview =
+      !!scheduleForm.tagIds?.length ||
+      (!!scheduleForm.excludeTagIds?.length && !!scheduleForm.contactIds?.length);
+
+    return usesFilterPreview ? recipientPreview.contacts : contacts;
   };
 
   const getWhenSummary = () => {
@@ -1388,10 +1489,11 @@ const CampaignsSchedules = () => {
                   <Grid item xs={12} sm={6}>
                     <ContactPicker
                       classes={classes}
-                      contacts={contacts}
+                      contacts={getRecipientContactsForPicker()}
                       audience={scheduleForm.audience}
                       selectedIds={scheduleForm.contactIds}
                       label="Contatos ou grupos"
+                      loading={recipientPreviewLoading}
                       onChange={contactIds => setScheduleForm(prev => ({ ...prev, contactIds }))}
                     />
                   </Grid>
@@ -1593,10 +1695,11 @@ const CampaignsSchedules = () => {
             <Grid item xs={12} sm={6}>
               <ContactPicker
                 classes={classes}
-                contacts={contacts}
+                contacts={getRecipientContactsForPicker()}
                 audience={scheduleForm.audience}
                 selectedIds={scheduleForm.contactIds}
                 label="Contatos ou grupos"
+                loading={recipientPreviewLoading}
                 onChange={contactIds => setScheduleForm(prev => ({ ...prev, contactIds }))}
               />
             </Grid>

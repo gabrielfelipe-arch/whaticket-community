@@ -7,6 +7,8 @@ import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhats
 import { StartCampaignDispatcher } from "./services/CampaignServices/DispatchCampaignsService";
 import { StartAiAutoClose } from "./services/AiServices/AiAutoCloseService";
 import { StartUraAutoClose } from "./services/UraServices/UraAutoCloseService";
+import { StartUserInactivityMonitor } from "./services/UserServices/UserInactivityMonitorService";
+import { StartGlpiSolvedTicketsMonitor } from "./services/GlpiServices/MonitorGlpiSolvedTicketsService";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -18,6 +20,8 @@ StartAllWhatsAppsSessions();
 StartCampaignDispatcher();
 StartAiAutoClose();
 StartUraAutoClose();
+StartUserInactivityMonitor();
+StartGlpiSolvedTicketsMonitor();
 gracefulShutdown(server);
 
 process.on("uncaughtException", err => {

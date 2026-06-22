@@ -365,7 +365,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     const action = data.action || "SEND_MESSAGE";
     const runQualificationFormBeforeAction = isEnabled(data.runQualificationFormBeforeAction);
 
-    if (action === "SEND_MESSAGE") {
+    if (action === "SEND_MESSAGE" && !runQualificationFormBeforeAction) {
       requireField(data.responseMessage, "Informe a mensagem que sera enviada ao cliente.");
     }
 

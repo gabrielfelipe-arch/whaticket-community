@@ -150,6 +150,76 @@ const validateIntervalPattern = (value: any): void => {
   }
 };
 
+const resolveScheduledRecipients = async ({
+  contactIds = [],
+  tagIds = [],
+  excludeTagIds = [],
+  tagAppliedLastDays,
+  audience = "all"
+}: {
+  contactIds?: number[];
+  tagIds?: number[];
+  excludeTagIds?: number[];
+  tagAppliedLastDays?: number | string | null;
+  audience?: string;
+}): Promise<Contact[]> => {
+  if (!["all", "contacts", "groups"].includes(audience)) {
+    throw new AppError("Escolha o tipo de destinatario do agendamento.", 400);
+  }
+
+  const contactWhere: any =
+    audience === "groups"
+      ? { isGroup: true }
+      : audience === "contacts"
+        ? { isGroup: false }
+        : {};
+
+  if (contactIds.length) {
+    contactWhere.id = { [Op.in]: contactIds };
+  }
+
+  const tagThroughWhere: any = {};
+  const recentDays = Number(tagAppliedLastDays || 0);
+  if (recentDays > 0) {
+    tagThroughWhere.appliedAt = {
+      [Op.gte]: new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000)
+    };
+  }
+
+  const contactRows = await Contact.findAll({
+    where: contactWhere,
+    include: tagIds.length
+      ? [
+          {
+            model: Tag,
+            as: "tags",
+            attributes: ["id", "name", "color"],
+            through: { attributes: ["appliedAt"], where: tagThroughWhere },
+            where: { id: { [Op.in]: tagIds } },
+            required: true
+          }
+        ]
+      : [],
+    order: [["name", "ASC"]]
+  });
+  const contacts = contactRows.filter(
+    (contact, index, self) => self.findIndex(item => item.id === contact.id) === index
+  );
+
+  if (!excludeTagIds.length || !contacts.length) return contacts;
+
+  const excludedRows = await ContactTag.findAll({
+    attributes: ["contactId"],
+    where: {
+      contactId: { [Op.in]: contacts.map(contact => contact.id) },
+      tagId: { [Op.in]: excludeTagIds }
+    }
+  });
+  const excludedContactIds = new Set(excludedRows.map(row => Number(row.contactId)));
+
+  return contacts.filter(contact => !excludedContactIds.has(Number(contact.id)));
+};
+
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const messages = await ScheduledMessage.findAll({
     include,
@@ -157,6 +227,34 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   });
 
   return res.json(messages);
+};
+
+export const recipientPreview = async (req: Request, res: Response): Promise<Response> => {
+  const {
+    contactIds = [],
+    tagIds = [],
+    excludeTagIds = [],
+    tagAppliedLastDays,
+    audience = "all"
+  } = req.body;
+
+  const contacts = await resolveScheduledRecipients({
+    contactIds: parseNumberArray(contactIds),
+    tagIds: parseNumberArray(tagIds),
+    excludeTagIds: parseNumberArray(excludeTagIds),
+    tagAppliedLastDays,
+    audience
+  });
+
+  return res.json({
+    total: contacts.length,
+    contacts: contacts.map(contact => ({
+      id: contact.id,
+      name: contact.name,
+      number: contact.number,
+      isGroup: contact.isGroup
+    }))
+  });
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
@@ -227,59 +325,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError("ERR_SCHEDULE_RECIPIENTS_REQUIRED", 400);
   }
 
-  if (!["all", "contacts", "groups"].includes(audience)) {
-    throw new AppError("Escolha o tipo de destinatario do agendamento.", 400);
-  }
-
-  const contactWhere: any =
-    audience === "groups"
-      ? { isGroup: true }
-      : audience === "contacts"
-        ? { isGroup: false }
-        : {};
-
-  if (selectedContactIds.length) {
-    contactWhere.id = { [Op.in]: selectedContactIds };
-  }
-
-  const tagThroughWhere: any = {};
-  if (recentDays > 0) {
-    tagThroughWhere.appliedAt = {
-      [Op.gte]: new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000)
-    };
-  }
-
-  const contactRows = await Contact.findAll({
-    where: contactWhere,
-    include: selectedTagIds.length
-      ? [
-          {
-            model: Tag,
-            as: "tags",
-            attributes: [],
-            through: { attributes: [], where: tagThroughWhere },
-            where: { id: { [Op.in]: selectedTagIds } },
-            required: true
-          }
-        ]
-      : []
+  const filteredContacts = await resolveScheduledRecipients({
+    contactIds: selectedContactIds,
+    tagIds: selectedTagIds,
+    excludeTagIds: selectedExcludeTagIds,
+    tagAppliedLastDays,
+    audience
   });
-  const contacts = contactRows.filter(
-    (contact, index, self) => self.findIndex(item => item.id === contact.id) === index
-  );
-
-  let filteredContacts = contacts;
-  if (selectedExcludeTagIds.length && contacts.length) {
-    const excludedRows = await ContactTag.findAll({
-      attributes: ["contactId"],
-      where: {
-        contactId: { [Op.in]: contacts.map(contact => contact.id) },
-        tagId: { [Op.in]: selectedExcludeTagIds }
-      }
-    });
-    const excludedContactIds = new Set(excludedRows.map(row => Number(row.contactId)));
-    filteredContacts = contacts.filter(contact => !excludedContactIds.has(Number(contact.id)));
-  }
 
   if (!filteredContacts.length) {
     throw new AppError("ERR_SCHEDULE_NO_RECIPIENTS", 400);

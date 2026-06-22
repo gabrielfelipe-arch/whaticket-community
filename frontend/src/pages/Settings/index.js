@@ -32,6 +32,7 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import CloudDownloadIcon from "@material-ui/icons/CloudDownload";
+import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
 import EditIcon from "@material-ui/icons/Edit";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
@@ -285,6 +286,24 @@ const useStyles = makeStyles(theme => ({
 	formBuilderItemActive: {
 		borderColor: theme.palette.primary.main,
 		boxShadow: `0 0 0 1px ${theme.palette.primary.main}`
+	},
+	formBuilderItemDragging: {
+		opacity: 0.55,
+		borderColor: theme.palette.primary.main,
+		background: theme.palette.action.hover
+	},
+	dragHandle: {
+		cursor: "grab",
+		color: theme.palette.text.secondary,
+		display: "inline-flex",
+		alignItems: "center",
+		justifyContent: "center",
+		width: 32,
+		height: 32,
+		borderRadius: 8,
+		"&:active": {
+			cursor: "grabbing"
+		}
 	},
 	questionTypeGrid: {
 		display: "grid",
@@ -630,25 +649,17 @@ const resources = [
 					{ value: "text", label: "Texto livre" },
 					{ value: "single_choice", label: "Escolha unica" },
 					{ value: "multiple_choice", label: "Multipla escolha" },
-					{ value: "number", label: "Numero" },
-					{ value: "date", label: "Data" },
-					{ value: "time", label: "Horario" },
-					{ value: "boolean", label: "Sim ou nao" },
-					{ value: "email", label: "E-mail" },
-					{ value: "phone", label: "Telefone" },
 					{ value: "glpi_entity", label: "Entidade GLPI" },
 					{ value: "glpi_location", label: "Localizacao GLPI" }
 				]
 			},
 			{
 				name: "glpiField",
-				label: "Uso no GLPI automatico",
+				label: "Campo usado no chamado GLPI",
 				type: "select",
 				options: [
-					{ value: "description", label: "Enviar para descricao" },
-					{ value: "entity", label: "Usar como entidade" },
-					{ value: "location", label: "Usar como localizacao" },
-					{ value: "ignore", label: "Nao enviar ao GLPI" }
+					{ value: "description", label: "Adicionar resposta na descricao" },
+					{ value: "ignore", label: "Nao usar no chamado GLPI" }
 				]
 			},
 			{
@@ -1394,6 +1405,15 @@ const emptyUraOption = flowId => ({
 
 const textValue = value => value === null || value === undefined ? "" : String(value);
 
+const isFormOnlyUraOption = option =>
+	!!option?.runQualificationFormBeforeAction &&
+	(option.action || "SEND_MESSAGE") === "SEND_MESSAGE" &&
+	!textValue(option.responseMessage).trim() &&
+	!option.responseMediaUrl;
+
+const getVisibleUraOptionAction = option =>
+	isFormOnlyUraOption(option) ? "RUN_FORM" : (option?.action || "SEND_MESSAGE");
+
 const UraTreePanel = ({ classes }) => {
 	const [flows, setFlows] = useState([]);
 	const [options, setOptions] = useState([]);
@@ -1554,16 +1574,19 @@ const UraTreePanel = ({ classes }) => {
 	const saveOption = async () => {
 		if (!optionForm) return;
 		try {
+			const formOnlyAction = getVisibleUraOptionAction(optionForm) === "RUN_FORM";
 			const payload = {
 				...optionForm,
 				flowId: selectedFlowId,
 				parentOptionId: optionForm.parentOptionId || null,
 				targetQueueId: optionForm.targetQueueId || null,
 				closingReasonId: optionForm.closingReasonId || null,
-				runQualificationFormBeforeAction: !!optionForm.runQualificationFormBeforeAction,
-				qualificationFormId: optionForm.runQualificationFormBeforeAction ? (optionForm.qualificationFormId || null) : null,
+				action: formOnlyAction ? "SEND_MESSAGE" : optionForm.action,
+				responseMessage: formOnlyAction ? "" : optionForm.responseMessage,
+				runQualificationFormBeforeAction: formOnlyAction || !!optionForm.runQualificationFormBeforeAction,
+				qualificationFormId: (formOnlyAction || optionForm.runQualificationFormBeforeAction) ? (optionForm.qualificationFormId || null) : null,
 				allowQualificationFormSkip: !!optionForm.allowQualificationFormSkip,
-				showMainMenuAfterMessage: optionForm.action === "SEND_MESSAGE" && !!optionForm.showMainMenuAfterMessage,
+				showMainMenuAfterMessage: !formOnlyAction && optionForm.action === "SEND_MESSAGE" && !!optionForm.showMainMenuAfterMessage,
 				aiHumanHandoffEnabled: !!optionForm.aiHumanHandoffEnabled,
 				aiHumanHandoffQueueId: optionForm.aiHumanHandoffEnabled ? (optionForm.aiHumanHandoffQueueId || null) : null,
 				aiHumanHandoffMessage: optionForm.aiHumanHandoffEnabled ? optionForm.aiHumanHandoffMessage : "",
@@ -1606,6 +1629,7 @@ const UraTreePanel = ({ classes }) => {
 	};
 
 	const actionLabel = action => ({
+		RUN_FORM: "Executar formulario",
 		SEND_MESSAGE: "Enviar mensagem",
 		OPEN_SUBMENU: "Abrir submenu",
 		TRANSFER_QUEUE: "Transferir para fila",
@@ -1640,7 +1664,7 @@ const UraTreePanel = ({ classes }) => {
 								<strong>{textValue(option.optionKey)}</strong> - {textValue(option.title)}
 							</Typography>
 							<Typography variant="caption" color="textSecondary">
-								{actionLabel(option.action)}
+								{actionLabel(getVisibleUraOptionAction(option))}
 								{option.action === "OPEN_SUBMENU" ? " · submenu" : ""}
 								{option.runQualificationFormBeforeAction ? " · formulario" : ""}
 							</Typography>
@@ -1791,7 +1815,41 @@ const UraTreePanel = ({ classes }) => {
 									<TextField fullWidth margin="dense" variant="outlined" label="Titulo" value={textValue(optionForm.title)} onChange={event => setOptionField("title", event.target.value)} />
 								</Grid>
 							</Grid>
-							<TextField select fullWidth margin="dense" variant="outlined" label="Acao principal" value={optionForm.action || "SEND_MESSAGE"} onChange={event => setOptionField("action", event.target.value)}>
+							<TextField
+								select
+								fullWidth
+								margin="dense"
+								variant="outlined"
+								label="O que esta opcao faz"
+								value={getVisibleUraOptionAction(optionForm)}
+								onChange={event => {
+									const value = event.target.value;
+									if (value === "RUN_FORM") {
+										setOptionForm(prev => ({
+											...emptyUraOption(selectedFlowId),
+											...(prev || {}),
+											action: "SEND_MESSAGE",
+											runQualificationFormBeforeAction: true,
+											responseMessage: "",
+											responseMediaUrl: "",
+											responseMediaType: "",
+											responseMediaName: "",
+											showMainMenuAfterMessage: false
+										}));
+										setOptionMediaFile(null);
+										return;
+									}
+									setOptionForm(prev => ({
+										...emptyUraOption(selectedFlowId),
+										...(prev || {}),
+										action: value,
+										runQualificationFormBeforeAction: false,
+										qualificationFormId: "",
+										allowQualificationFormSkip: false
+									}));
+								}}
+							>
+								<MenuItem value="RUN_FORM">Executar formulario</MenuItem>
 								<MenuItem value="SEND_MESSAGE">Enviar mensagem</MenuItem>
 								<MenuItem value="OPEN_SUBMENU">Abrir submenu</MenuItem>
 								<MenuItem value="TRANSFER_QUEUE">Transferir para fila</MenuItem>
@@ -1814,15 +1872,21 @@ const UraTreePanel = ({ classes }) => {
 								</TextField>
 							)}
 							<Paper variant="outlined" style={{ padding: 12, marginTop: 12, marginBottom: 8 }}>
-								<Typography variant="subtitle2">Formulario antes da acao principal</Typography>
-								<Typography variant="caption" color="textSecondary">
-									Use quando a URA precisar coletar contexto estruturado antes de transferir, encerrar ou acionar a IA.
+								<Typography variant="subtitle2">
+									{getVisibleUraOptionAction(optionForm) === "RUN_FORM" ? "Formulario executado por esta opcao" : "Formulario antes da acao"}
 								</Typography>
-								<FormControlLabel
-									control={<Switch color="primary" checked={!!optionForm.runQualificationFormBeforeAction} onChange={event => setOptionField("runQualificationFormBeforeAction", event.target.checked)} />}
-									label="Executar formulario antes da acao"
-								/>
-								{optionForm.runQualificationFormBeforeAction && (
+								<Typography variant="caption" color="textSecondary">
+									{getVisibleUraOptionAction(optionForm) === "RUN_FORM"
+										? "Ao escolher esta opcao na URA, o cliente entra direto neste formulario."
+										: "Use somente quando precisar coletar dados antes de transferir, encerrar, acionar IA ou enviar mensagem."}
+								</Typography>
+								{getVisibleUraOptionAction(optionForm) !== "RUN_FORM" && (
+									<FormControlLabel
+										control={<Switch color="primary" checked={!!optionForm.runQualificationFormBeforeAction} onChange={event => setOptionField("runQualificationFormBeforeAction", event.target.checked)} />}
+										label="Executar formulario antes"
+									/>
+								)}
+								{(getVisibleUraOptionAction(optionForm) === "RUN_FORM" || optionForm.runQualificationFormBeforeAction) && (
 									<>
 										<TextField select fullWidth margin="dense" variant="outlined" label="Formulario" value={optionForm.qualificationFormId || ""} onChange={event => setOptionField("qualificationFormId", event.target.value)}>
 											<MenuItem value="">Selecione</MenuItem>
@@ -1833,13 +1897,17 @@ const UraTreePanel = ({ classes }) => {
 											label="Permitir pular perguntas opcionais"
 										/>
 										<Typography variant="caption" display="block" color="textSecondary">
-											Ao concluir, a acao principal configurada acima sera executada com as respostas como contexto.
+											{getVisibleUraOptionAction(optionForm) === "RUN_FORM"
+												? "Ao concluir, o formulario finaliza a opcao. Se o GLPI automatico estiver ativo, o chamado sera criado ao final do formulario."
+												: "Ao concluir, a acao configurada acima sera executada com as respostas como contexto."}
 										</Typography>
 									</>
 								)}
 							</Paper>
-							<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={textValue(optionForm.responseMessage)} rows={5} onChange={event => setOptionField("responseMessage", event.target.value)} />
-							{optionForm.action === "SEND_MESSAGE" && (
+							{getVisibleUraOptionAction(optionForm) !== "RUN_FORM" && (
+								<MessageTemplateField label={optionForm.action === "OPEN_SUBMENU" ? "Mensagem deste submenu" : "Mensagem enviada ao cliente"} name="responseMessage" value={textValue(optionForm.responseMessage)} rows={5} onChange={event => setOptionField("responseMessage", event.target.value)} />
+							)}
+							{getVisibleUraOptionAction(optionForm) !== "RUN_FORM" && optionForm.action === "SEND_MESSAGE" && (
 								<Paper variant="outlined" style={{ padding: 12, marginTop: 12, marginBottom: 8 }}>
 									<Typography variant="subtitle2">Depois de enviar a mensagem</Typography>
 									<FormControlLabel
@@ -1851,21 +1919,25 @@ const UraTreePanel = ({ classes }) => {
 									</Typography>
 								</Paper>
 							)}
-							<input
-								accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-								id="ura-option-media"
-								type="file"
-								style={{ display: "none" }}
-								onChange={event => setOptionMediaFile(event.target.files?.[0] || null)}
-							/>
-							<label htmlFor="ura-option-media">
-								<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
-									Anexar arquivo da opcao
-								</Button>
-							</label>
-							<Typography variant="caption" display="block" color="textSecondary">
-								{optionMediaFile?.name || optionForm.responseMediaName || "Nenhum anexo selecionado"}
-							</Typography>
+							{getVisibleUraOptionAction(optionForm) !== "RUN_FORM" && (
+								<>
+									<input
+										accept="image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+										id="ura-option-media"
+										type="file"
+										style={{ display: "none" }}
+										onChange={event => setOptionMediaFile(event.target.files?.[0] || null)}
+									/>
+									<label htmlFor="ura-option-media">
+										<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
+											Anexar arquivo da opcao
+										</Button>
+									</label>
+									<Typography variant="caption" display="block" color="textSecondary">
+										{optionMediaFile?.name || optionForm.responseMediaName || "Nenhum anexo selecionado"}
+									</Typography>
+								</>
+							)}
 							<Paper variant="outlined" style={{ padding: 12, marginTop: 12 }}>
 								<Typography variant="subtitle2">Regras do atendimento automatico nesta opcao</Typography>
 								<Typography variant="caption" color="textSecondary">
@@ -2025,63 +2097,84 @@ const parseListValue = value => {
 	return [];
 };
 
+const parseNumericList = value => parseListValue(value)
+	.map(item => Number(item))
+	.filter(item => Number.isFinite(item) && item > 0);
+
+const parseGlpiEntityLocationRules = value => {
+	try {
+		const parsed = JSON.parse(value || "[]");
+		if (!Array.isArray(parsed)) return [];
+
+		return parsed
+			.map(rule => ({
+				entityId: Number(rule?.entityId) || null,
+				allowedLocationIds: Array.isArray(rule?.allowedLocationIds)
+					? rule.allowedLocationIds.map(item => Number(item)).filter(item => Number.isInteger(item) && item > 0)
+					: [],
+				defaultLocationId: Number(rule?.defaultLocationId) || null
+			}))
+			.filter(rule => rule.entityId);
+	} catch (err) {
+		return [];
+	}
+};
+
 const questionTypeOptions = [
 	{ value: "text", label: "Texto livre" },
 	{ value: "single_choice", label: "Escolha unica" },
 	{ value: "multiple_choice", label: "Multipla escolha" },
-	{ value: "number", label: "Numero" },
-	{ value: "date", label: "Data" },
-	{ value: "time", label: "Horario" },
-	{ value: "boolean", label: "Sim ou nao" },
-	{ value: "email", label: "E-mail" },
-	{ value: "phone", label: "Telefone" },
 	{ value: "glpi_entity", label: "Entidade GLPI" },
 	{ value: "glpi_location", label: "Localizacao GLPI" }
 ];
 
-const getQuestionTypeOption = type =>
-	questionTypeOptions.find(item => item.value === type) || questionTypeOptions[0];
+const getVisibleQuestionType = type =>
+	questionTypeOptions.some(item => item.value === type) ? type : "text";
+
+const getQuestionTypeOption = type => {
+	return questionTypeOptions.find(item => item.value === type) || questionTypeOptions[0];
+};
 
 const getQuestionTypeHelp = type => ({
 	text: "O cliente digita uma resposta livre.",
 	single_choice: "O cliente escolhe uma unica opcao pelo numero enviado.",
 	multiple_choice: "O cliente pode informar mais de uma opcao, como 1,3.",
-	number: "Use quando a resposta precisa ser numerica.",
-	date: "Use para datas, como nascimento, vencimento ou agendamento.",
-	time: "Use para horarios, como melhor periodo de contato.",
-	boolean: "Use para respostas simples de sim ou nao.",
-	email: "Use quando precisa capturar um endereco de e-mail.",
-	phone: "Use quando precisa capturar ou confirmar um telefone.",
-	glpi_entity: "Lista as entidades sincronizadas do GLPI para o cliente escolher.",
-	glpi_location: "Lista as localizacoes sincronizadas do GLPI, filtrando pela entidade escolhida antes quando houver."
+	glpi_entity: "O cliente escolhe uma entidade sincronizada do GLPI. A escolha tambem pode preencher a entidade do chamado automatico.",
+	glpi_location: "O cliente escolhe uma localizacao sincronizada do GLPI. A escolha tambem pode preencher a localizacao do chamado automatico."
 }[type || "text"] || "Escolha como o cliente deve responder no WhatsApp.");
 
-const getGlpiFieldOptions = type => {
-	if (type === "glpi_entity") {
-		return [
-			{ value: "entity", label: "Usar como entidade" },
-			{ value: "ignore", label: "Nao enviar ao GLPI" }
-		];
-	}
-
-	if (type === "glpi_location") {
-		return [
-			{ value: "location", label: "Usar como localizacao" },
-			{ value: "ignore", label: "Nao enviar ao GLPI" }
-		];
-	}
-
-	return [
-		{ value: "description", label: "Enviar para descricao" },
-		{ value: "ignore", label: "Nao enviar ao GLPI" }
-	];
+const getDefaultGlpiFieldForQuestionType = type => {
+	if (type === "glpi_entity") return "entity";
+	if (type === "glpi_location") return "location";
+	return "description";
 };
 
 const normalizeGlpiFieldForQuestionType = (type, field) => {
-	const options = getGlpiFieldOptions(type);
-	if (options.some(option => option.value === field)) return field;
-	return options[0].value;
+	const defaultField = getDefaultGlpiFieldForQuestionType(type);
+	if (field === defaultField || field === "ignore") return field;
+	return "ignore";
 };
+
+const getGlpiFieldLabel = (type, field) => {
+	const normalized = normalizeGlpiFieldForQuestionType(type, field);
+	if (normalized === "ignore") return "Nao usa GLPI";
+	if (normalized === "entity") return "Preenche entidade do chamado";
+	if (normalized === "location") return "Preenche localizacao do chamado";
+	return "Entra na descricao do chamado";
+};
+
+const getGlpiQuestionUsageText = type => {
+	if (type === "glpi_entity") {
+		return "A entidade escolhida pelo cliente sera usada como entidade do chamado GLPI.";
+	}
+	if (type === "glpi_location") {
+		return "A localizacao escolhida pelo cliente sera usada como localizacao do chamado GLPI.";
+	}
+	return "Quando ligado, a resposta sera adicionada na descricao do chamado GLPI.";
+};
+
+const getGlpiOptionLabel = option =>
+	option?.name || option?.completeName || option?.glpiId || "";
 
 const normalizeFormKey = value =>
 	String(value || "")
@@ -2194,11 +2287,11 @@ const emptyQualificationQuestion = formId => ({
 	key: "",
 	label: "",
 	type: "text",
-	glpiField: "description",
+	glpiField: "ignore",
 	options: [],
 	required: true,
 	includeInAiContext: true,
-	includeInReports: true,
+	includeInReports: false,
 	maxInvalidAttempts: 2,
 	order: 0,
 	active: true
@@ -2308,6 +2401,7 @@ const QualificationFormsPanel = ({ classes }) => {
 	const [tags, setTags] = useState([]);
 	const [uraOptions, setUraOptions] = useState([]);
 	const [queues, setQueues] = useState([]);
+	const [glpiCatalogs, setGlpiCatalogs] = useState({ entities: [], locations: [], settings: {} });
 	const [selectedFormId, setSelectedFormId] = useState("");
 	const [form, setForm] = useState(emptyQualificationForm);
 	const [questionForm, setQuestionForm] = useState(null);
@@ -2318,22 +2412,37 @@ const QualificationFormsPanel = ({ classes }) => {
 	const [formSearch, setFormSearch] = useState("");
 	const [formEditorOpen, setFormEditorOpen] = useState(false);
 	const [deleteFormTarget, setDeleteFormTarget] = useState(null);
+	const [draggedQuestionId, setDraggedQuestionId] = useState(null);
+	const [savingQuestionOrder, setSavingQuestionOrder] = useState(false);
 
 	const selectedFormQuestions = safeArray(questions)
 		.filter(question => Number(question.formId) === Number(selectedFormId))
 		.sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || Number(a.id || 0) - Number(b.id || 0));
 
-	const choiceQuestion = ["single_choice", "multiple_choice"].includes(questionForm?.type);
+	const manualChoiceQuestion = ["single_choice", "multiple_choice"].includes(questionForm?.type);
+	const glpiChoiceQuestion = ["glpi_entity", "glpi_location"].includes(questionForm?.type);
 
 	const load = async () => {
 		setLoading(true);
 		try {
-			const [{ data: formData }, { data: questionData }, { data: tagData }, { data: uraOptionData }, { data: queueData }] = await Promise.all([
+			const [
+				{ data: formData },
+				{ data: questionData },
+				{ data: tagData },
+				{ data: uraOptionData },
+				{ data: queueData },
+				glpiConfig,
+				glpiEntities,
+				glpiLocations
+			] = await Promise.all([
 				api.get("/qualification-forms"),
 				api.get("/qualification-form-questions"),
 				api.get("/tags"),
 				api.get("/ura-options").catch(() => ({ data: [] })),
-				api.get("/queues").catch(() => ({ data: [] }))
+				api.get("/queues").catch(() => ({ data: [] })),
+				api.get("/glpi/config").catch(() => ({ data: {} })),
+				api.get("/glpi/entities").catch(() => ({ data: [] })),
+				api.get("/glpi/locations").catch(() => ({ data: [] }))
 			]);
 
 			const nextForms = safeArray(formData);
@@ -2342,6 +2451,11 @@ const QualificationFormsPanel = ({ classes }) => {
 			setTags(safeArray(tagData));
 			setUraOptions(safeArray(uraOptionData));
 			setQueues(safeArray(queueData));
+			setGlpiCatalogs({
+				settings: glpiConfig.data || {},
+				entities: safeArray(glpiEntities.data),
+				locations: safeArray(glpiLocations.data)
+			});
 
 			if (selectedFormId) {
 				const selected = nextForms.find(item => Number(item.id) === Number(selectedFormId));
@@ -2424,6 +2538,82 @@ const QualificationFormsPanel = ({ classes }) => {
 		setShowAdvancedQuestion(false);
 	};
 
+	const getUniqueQuestionKey = (value, currentQuestionId) => {
+		const baseKey = normalizeFormKey(value) || "pergunta";
+		const usedKeys = new Set(
+			selectedFormQuestions
+				.filter(question => !currentQuestionId || Number(question.id) !== Number(currentQuestionId))
+				.map(question => normalizeFormKey(question.key))
+				.filter(Boolean)
+		);
+
+		if (!usedKeys.has(baseKey)) return baseKey;
+
+		let suffix = 2;
+		let nextKey = `${baseKey}_${suffix}`;
+		while (usedKeys.has(nextKey)) {
+			suffix += 1;
+			nextKey = `${baseKey}_${suffix}`;
+		}
+		return nextKey;
+	};
+
+	const buildQuestionPayload = question => ({
+		formId: question.formId,
+		key: question.key,
+		label: question.label,
+		type: question.type,
+		glpiField: normalizeGlpiFieldForQuestionType(question.type, question.glpiField),
+		options: question.options,
+		required: question.required !== false,
+		includeInAiContext: question.includeInAiContext !== false,
+		includeInReports: question.includeInReports !== false,
+		maxInvalidAttempts: question.maxInvalidAttempts || 2,
+		order: Number(question.order || 0),
+		active: question.active !== false
+	});
+
+	const reorderQuestions = async (sourceId, targetId) => {
+		if (!sourceId || !targetId || Number(sourceId) === Number(targetId) || savingQuestionOrder) return;
+
+		const sourceIndex = selectedFormQuestions.findIndex(question => Number(question.id) === Number(sourceId));
+		const targetIndex = selectedFormQuestions.findIndex(question => Number(question.id) === Number(targetId));
+		if (sourceIndex < 0 || targetIndex < 0) return;
+
+		const previousQuestions = questions;
+		const reordered = [...selectedFormQuestions];
+		const [moved] = reordered.splice(sourceIndex, 1);
+		reordered.splice(targetIndex, 0, moved);
+		const normalized = reordered.map((question, index) => ({
+			...question,
+			order: index + 1
+		}));
+		const normalizedById = new Map(normalized.map(question => [Number(question.id), question]));
+
+		setSavingQuestionOrder(true);
+		setQuestions(prev => safeArray(prev).map(question => normalizedById.get(Number(question.id)) || question));
+		if (questionForm?.id && normalizedById.has(Number(questionForm.id))) {
+			setQuestionForm(prev => ({
+				...(prev || {}),
+				order: normalizedById.get(Number(questionForm.id)).order
+			}));
+		}
+
+		try {
+			await Promise.all(normalized.map(question =>
+				api.put(`/qualification-form-questions/${question.id}`, buildQuestionPayload(question))
+			));
+			toast.success("Ordem das perguntas atualizada.");
+			await load();
+		} catch (err) {
+			setQuestions(previousQuestions);
+			toastError(err);
+		} finally {
+			setSavingQuestionOrder(false);
+			setDraggedQuestionId(null);
+		}
+	};
+
 	const editQuestion = question => {
 		setQuestionForm({
 			...emptyQualificationQuestion(selectedFormId),
@@ -2441,24 +2631,18 @@ const QualificationFormsPanel = ({ classes }) => {
 				[name]: value
 			};
 
-			if (name === "label" && !prev?.id && !prev?.key) {
-				next.key = normalizeFormKey(value);
+			if (name === "label" && !prev?.key) {
+				next.key = getUniqueQuestionKey(value, prev?.id);
 			}
 
 			if (name === "type" && !["single_choice", "multiple_choice"].includes(value)) {
 				next.options = [];
 			}
 
-			if (name === "type" && value === "glpi_entity") {
-				next.glpiField = "entity";
-			}
-
-			if (name === "type" && value === "glpi_location") {
-				next.glpiField = "location";
-			}
-
-			if (name === "type" && !["glpi_entity", "glpi_location"].includes(value) && ["entity", "location"].includes(next.glpiField)) {
-				next.glpiField = "description";
+			if (name === "type") {
+				next.glpiField = normalizeGlpiFieldForQuestionType(value, next.glpiField) === "ignore"
+					? "ignore"
+					: getDefaultGlpiFieldForQuestionType(value);
 			}
 
 			next.glpiField = normalizeGlpiFieldForQuestionType(next.type, next.glpiField);
@@ -2585,12 +2769,12 @@ const QualificationFormsPanel = ({ classes }) => {
 			const payload = {
 				...questionForm,
 				formId: selectedFormId,
-				key: normalizeFormKey(questionForm.key || questionForm.label),
-				options: choiceQuestion ? options : null,
+				key: getUniqueQuestionKey(questionForm.key || questionForm.label, questionForm.id),
+				options: manualChoiceQuestion ? options : null,
 				glpiField: normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField),
 				required: questionForm.required !== false,
 				includeInAiContext: questionForm.includeInAiContext !== false,
-				includeInReports: questionForm.includeInReports !== false,
+				includeInReports: questionForm.includeInReports === true,
 				maxInvalidAttempts: Number(questionForm.maxInvalidAttempts || 2),
 				order: Number(questionForm.order || 0),
 				active: questionForm.active !== false
@@ -2707,8 +2891,21 @@ const QualificationFormsPanel = ({ classes }) => {
 		);
 
 	const selectedFormUsage = selectedFormId ? getFormUsage(selectedFormId) : [];
-	const glpiFieldOptions = getGlpiFieldOptions(questionForm?.type);
+	const glpiEnabledForQuestion = questionForm && normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField) !== "ignore";
 	const selectedFormOption = safeArray(forms).find(item => Number(item.id) === Number(selectedFormId)) || null;
+	const allowedGlpiEntityIds = parseNumericList(glpiCatalogs.settings?.glpiAllowedFormEntityIds);
+	const glpiEntityLocationRules = parseGlpiEntityLocationRules(glpiCatalogs.settings?.glpiEntityLocationRules);
+	const glpiEntityRuleIds = glpiEntityLocationRules.map(rule => Number(rule.entityId)).filter(item => Number.isInteger(item) && item > 0);
+	const previewGlpiEntities = safeArray(glpiCatalogs.entities)
+		.filter(item => glpiEntityRuleIds.length
+			? glpiEntityRuleIds.includes(Number(item.glpiId))
+			: (!allowedGlpiEntityIds.length || allowedGlpiEntityIds.includes(Number(item.glpiId))));
+	const previewGlpiLocationContext = questionForm?.type === "glpi_location"
+		? "A lista de localizacoes nao aparece nesta previa porque depende da entidade escolhida pelo cliente. No WhatsApp, o sistema usa as regras de localizacao por entidade configuradas no GLPI."
+		: "";
+	const previewGlpiOptions = questionForm?.type === "glpi_entity"
+		? previewGlpiEntities
+		: [];
 
 	return (
 		<>
@@ -2901,7 +3098,7 @@ const QualificationFormsPanel = ({ classes }) => {
 						<div>
 							<Typography variant="h6">Perguntas deste formulario</Typography>
 							<Typography variant="caption" className={classes.formBuilderMuted}>
-								A ordem define a sequencia enviada no WhatsApp.
+								{savingQuestionOrder ? "Salvando nova ordem..." : "Arraste as perguntas para mudar a sequencia enviada no WhatsApp."}
 							</Typography>
 						</div>
 						<Button variant="contained" color="primary" onClick={newQuestion} disabled={!selectedFormId}>
@@ -2912,9 +3109,35 @@ const QualificationFormsPanel = ({ classes }) => {
 						{selectedFormQuestions.map(question => {
 							const options = parseQuestionOptions(question.options);
 							const typeOption = getQuestionTypeOption(question.type);
+							const isDragging = Number(draggedQuestionId) === Number(question.id);
 							return (
-								<div key={question.id} className={classes.formBuilderItem}>
+								<div
+									key={question.id}
+									className={`${classes.formBuilderItem} ${isDragging ? classes.formBuilderItemDragging : ""}`}
+									onDragOver={event => {
+										if (draggedQuestionId && !savingQuestionOrder) event.preventDefault();
+									}}
+									onDrop={event => {
+										event.preventDefault();
+										reorderQuestions(draggedQuestionId, question.id);
+									}}
+								>
 									<Grid container spacing={1} alignItems="flex-start">
+										<Grid item>
+											<span
+												className={classes.dragHandle}
+												title="Arrastar pergunta"
+												draggable={!savingQuestionOrder}
+												onDragStart={event => {
+													setDraggedQuestionId(question.id);
+													event.dataTransfer.effectAllowed = "move";
+													event.dataTransfer.setData("text/plain", String(question.id));
+												}}
+												onDragEnd={() => setDraggedQuestionId(null)}
+											>
+												<DragIndicatorIcon fontSize="small" />
+											</span>
+										</Grid>
 										<Grid item xs>
 											<Typography variant="subtitle2">
 												{Number(question.order || 0)}. {textValue(question.label)}
@@ -2925,6 +3148,16 @@ const QualificationFormsPanel = ({ classes }) => {
 											<div className={classes.questionMetaRow}>
 												<Chip size="small" variant="outlined" label={["single_choice", "multiple_choice"].includes(question.type) ? "Respostas configuradas" : "Resposta livre do cliente"} />
 												<Chip size="small" variant="outlined" label={question.required === false ? "Opcional" : "Obrigatoria"} />
+												<Chip size="small" variant="outlined" label={question.includeInReports === false ? "Fora dos relatorios" : "Vai para relatorio"} />
+												{question.includeInAiContext !== false && (
+													<Chip size="small" variant="outlined" label="Contexto da IA" />
+												)}
+												<Chip
+													size="small"
+													variant="outlined"
+													color={normalizeGlpiFieldForQuestionType(question.type, question.glpiField) === "ignore" ? "default" : "primary"}
+													label={getGlpiFieldLabel(question.type, question.glpiField)}
+												/>
 												{options.some(option => option.nextAction && option.nextAction !== "NEXT") && (
 													<Chip size="small" variant="outlined" color="primary" label="Fluxo condicional" />
 												)}
@@ -3003,7 +3236,7 @@ const QualificationFormsPanel = ({ classes }) => {
 								margin="dense"
 								variant="outlined"
 								label="Tipo de resposta"
-								value={questionForm.type || "text"}
+								value={getVisibleQuestionType(questionForm.type)}
 								onChange={event => setQuestionField("type", event.target.value)}
 								style={{ marginTop: 12 }}
 							>
@@ -3017,25 +3250,70 @@ const QualificationFormsPanel = ({ classes }) => {
 								{getQuestionTypeHelp(questionForm.type)}
 							</Typography>
 
-							<TextField
-								select
-								fullWidth
-								margin="dense"
-								variant="outlined"
-								label="Uso no GLPI automatico"
-								value={normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField)}
-								onChange={event => setQuestionField("glpiField", event.target.value)}
-								style={{ marginTop: 12 }}
-								helperText="No modo automatico, respostas de descricao entram no corpo do chamado. Entidade e localizacao definem os campos do GLPI."
-							>
-								{glpiFieldOptions.map(option => (
-									<MenuItem key={option.value} value={option.value}>
-										{option.label}
-									</MenuItem>
-								))}
-							</TextField>
+							<div className={classes.previewBox}>
+								<div className={classes.formBuilderHeader}>
+									<div>
+										<Typography variant="subtitle2">GLPI automatico</Typography>
+										<Typography variant="caption" color="textSecondary">
+											Deixe desligado quando a resposta deve ficar apenas no historico, nos relatorios ou no contexto da IA.
+										</Typography>
+									</div>
+									<FormControlLabel
+										control={
+											<Switch
+												color="primary"
+												checked={!!glpiEnabledForQuestion}
+												onChange={event => {
+													const checked = event.target.checked;
+													setQuestionField("glpiField", checked ? getDefaultGlpiFieldForQuestionType(questionForm.type) : "ignore");
+												}}
+											/>
+										}
+										label={glpiEnabledForQuestion ? "Usar no GLPI" : "Nao usar"}
+									/>
+								</div>
+								<Typography variant="body2" color="textSecondary">
+									{glpiEnabledForQuestion
+										? getGlpiQuestionUsageText(questionForm.type)
+										: "Esta pergunta nao sera usada para abrir chamado GLPI automatico."}
+								</Typography>
+								{glpiChoiceQuestion && (
+									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+										Esta pergunta apenas coleta o campo do chamado. O chamado GLPI e criado quando o formulario termina, se a integracao estiver em modo automatico.
+									</Typography>
+								)}
+								{!["automatic", "hybrid"].includes(glpiCatalogs.settings?.glpiAutomationMode) && (
+									<Typography variant="caption" color="error" display="block" style={{ marginTop: 8 }}>
+										O modo automatico do GLPI esta desligado nas integracoes; neste caso o formulario nao abre chamado sozinho.
+									</Typography>
+								)}
+							</div>
 
-							{choiceQuestion && (
+							<div className={classes.previewBox}>
+								<Typography variant="subtitle2">Uso da resposta</Typography>
+								<Grid container spacing={1}>
+									<Grid item xs={12} sm={6}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.includeInReports !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("includeInReports", checked);
+											}} />}
+											label="Disponivel para relatorios"
+										/>
+									</Grid>
+									<Grid item xs={12} sm={6}>
+										<FormControlLabel
+											control={<Switch color="primary" checked={questionForm.includeInAiContext !== false} onChange={event => {
+												const checked = event.target.checked;
+												setQuestionField("includeInAiContext", checked);
+											}} />}
+											label="Enviar como contexto para IA"
+										/>
+									</Grid>
+								</Grid>
+							</div>
+
+							{manualChoiceQuestion && (
 								<div className={classes.previewBox}>
 									<Typography variant="subtitle2">Respostas como opcoes da URA</Typography>
 									<Typography variant="caption" color="textSecondary">
@@ -3067,15 +3345,8 @@ const QualificationFormsPanel = ({ classes }) => {
 														label="Etiquetas aplicadas se escolher esta opcao"
 														helperText={renderOptionTags(option)}
 														onChange={value => updateOption(index, { tagRefs: value.map(String) })}
+														onCreateTag={() => setTagDialogOpen(true)}
 													/>
-													<Button
-														size="small"
-														variant="outlined"
-														color="primary"
-														onClick={() => setTagDialogOpen(true)}
-													>
-														Nova etiqueta
-													</Button>
 												</Grid>
 												<Grid item xs={12}>
 													<TextField
@@ -3268,7 +3539,40 @@ const QualificationFormsPanel = ({ classes }) => {
 									</Button>
 								</div>
 							)}
-							{!choiceQuestion && (
+							{glpiChoiceQuestion && (
+								<div className={classes.previewBox}>
+									<Typography variant="subtitle2">
+										{questionForm.type === "glpi_entity" ? "Entidades GLPI como opcoes" : "Localizacoes por entidade"}
+									</Typography>
+									<Typography variant="body2" color="textSecondary">
+										{questionForm.type === "glpi_entity"
+											? "No WhatsApp, o cliente recebe uma lista numerada com as entidades configuradas nas regras."
+											: previewGlpiLocationContext}
+									</Typography>
+									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+										Apos a resposta, o formulario segue para a proxima pergunta. A acao final acontece ao terminar o formulario.
+									</Typography>
+									{questionForm.type === "glpi_entity" && previewGlpiOptions.length > 0 ? (
+										<div className={classes.inlineChips}>
+											{previewGlpiOptions.slice(0, 8).map((option, index) => (
+												<Chip
+													key={`${questionForm.type}-${option.glpiId || option.id || index}`}
+													size="small"
+													label={`${index + 1}. ${getGlpiOptionLabel(option)}`}
+												/>
+											))}
+											{previewGlpiOptions.length > 8 && (
+												<Chip size="small" variant="outlined" label={`+${previewGlpiOptions.length - 8} opcoes`} />
+											)}
+										</div>
+									) : questionForm.type === "glpi_entity" ? (
+										<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+											Nenhuma entidade sincronizada encontrada para as regras configuradas.
+										</Typography>
+									) : null}
+								</div>
+							)}
+							{!manualChoiceQuestion && !glpiChoiceQuestion && (
 								<div className={classes.previewBox}>
 									<Typography variant="subtitle2">Resposta livre</Typography>
 									<Typography variant="body2" color="textSecondary">
@@ -3321,24 +3625,6 @@ const QualificationFormsPanel = ({ classes }) => {
 										/>
 									</Grid>
 									<Grid item xs={12}>
-										<FormControlLabel
-											control={<Switch color="primary" checked={questionForm.includeInAiContext !== false} onChange={event => {
-												const checked = event.target.checked;
-												setQuestionField("includeInAiContext", checked);
-											}} />}
-											label="Enviar resposta como contexto para IA"
-										/>
-									</Grid>
-									<Grid item xs={12}>
-										<FormControlLabel
-											control={<Switch color="primary" checked={questionForm.includeInReports !== false} onChange={event => {
-												const checked = event.target.checked;
-												setQuestionField("includeInReports", checked);
-											}} />}
-											label="Disponivel para relatorios"
-										/>
-									</Grid>
-									<Grid item xs={12}>
 										<TextField
 											fullWidth
 											margin="dense"
@@ -3369,7 +3655,7 @@ const QualificationFormsPanel = ({ classes }) => {
 								<Typography variant="body2">
 									{textValue(questionForm.label) || "Pergunta ainda nao preenchida"}
 								</Typography>
-								{choiceQuestion && parseQuestionOptions(questionForm.options).map((option, index) => (
+								{manualChoiceQuestion && parseQuestionOptions(questionForm.options).map((option, index) => (
 									<div key={option.value}>
 										<Typography variant="body2">
 											<strong>{index + 1}</strong> - {option.label || "Opcao sem texto"}
@@ -3391,7 +3677,27 @@ const QualificationFormsPanel = ({ classes }) => {
 										)}
 									</div>
 								))}
-								{!choiceQuestion && (
+								{questionForm.type === "glpi_entity" && previewGlpiOptions.slice(0, 8).map((option, index) => (
+									<Typography key={`${questionForm.type}-preview-${option.glpiId || option.id || index}`} variant="body2">
+										<strong>{index + 1}</strong> - {getGlpiOptionLabel(option)}
+									</Typography>
+								))}
+								{questionForm.type === "glpi_entity" && previewGlpiOptions.length > 8 && (
+									<Typography variant="caption" color="textSecondary" display="block">
+										...mais {previewGlpiOptions.length - 8} opcao(oes) sincronizada(s)
+									</Typography>
+								)}
+								{questionForm.type === "glpi_entity" && !previewGlpiOptions.length && (
+									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+										As entidades serao exibidas aqui depois de sincronizar o catalogo GLPI e configurar as regras.
+									</Typography>
+								)}
+								{questionForm.type === "glpi_location" && (
+									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
+										As localizacoes serao exibidas no WhatsApp conforme a entidade escolhida pelo cliente e as regras configuradas.
+									</Typography>
+								)}
+								{!manualChoiceQuestion && !glpiChoiceQuestion && (
 									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
 										Resposta do cliente: digitada livremente no WhatsApp.
 									</Typography>

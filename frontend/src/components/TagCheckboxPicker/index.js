@@ -3,12 +3,14 @@ import React from "react";
 import {
   Button,
   Checkbox,
-  Chip,
   Divider,
+  InputAdornment,
   MenuItem,
-  TextField
+  TextField,
+  Typography
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
+import SearchIcon from "@material-ui/icons/Search";
 
 const useStyles = makeStyles(theme => ({
   chips: {
@@ -20,9 +22,15 @@ const useStyles = makeStyles(theme => ({
     display: "flex",
     alignItems: "center",
     gap: theme.spacing(1),
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    flexWrap: "wrap",
     paddingTop: theme.spacing(0.5),
     paddingBottom: theme.spacing(0.5),
+    cursor: "default"
+  },
+  menuSearch: {
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(1),
     cursor: "default"
   },
   menuItem: {
@@ -43,6 +51,12 @@ const useStyles = makeStyles(theme => ({
   }
 }));
 
+const normalizeSearch = value =>
+  String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
 const TagCheckboxPicker = ({
   tags = [],
   selectedIds = [],
@@ -52,21 +66,18 @@ const TagCheckboxPicker = ({
   fullWidth = true,
   margin = "dense",
   size = "small",
-  disabled = false
+  disabled = false,
+  onCreateTag
 }) => {
   const classes = useStyles();
+  const [search, setSearch] = React.useState("");
   const normalizedSelected = (selectedIds || []).map(Number);
   const selectedSet = new Set(normalizedSelected);
+  const filteredTags = tags.filter(tag => normalizeSearch(tag.name).includes(normalizeSearch(search)));
 
   const handleChange = event => {
     const value = Array.isArray(event.target.value) ? event.target.value : [];
-    onChange(value.filter(item => item !== "__actions").map(Number));
-  };
-
-  const removeTag = (event, tagId) => {
-    event.preventDefault();
-    event.stopPropagation();
-    onChange(normalizedSelected.filter(id => Number(id) !== Number(tagId)));
+    onChange(value.filter(item => !["__actions", "__search"].includes(item)).map(Number));
   };
 
   return (
@@ -83,23 +94,7 @@ const TagCheckboxPicker = ({
       disabled={disabled}
       SelectProps={{
         multiple: true,
-        renderValue: selected => (
-          <div className={classes.chips}>
-            {selected.map(tagId => {
-              const tag = tags.find(item => Number(item.id) === Number(tagId));
-              return (
-                <Chip
-                  key={tagId}
-                  size="small"
-                  label={tag?.name || tagId}
-                  onMouseDown={event => event.stopPropagation()}
-                  onDelete={event => removeTag(event, tagId)}
-                  style={{ backgroundColor: tag?.color || "#607d8b", color: "#fff" }}
-                />
-              );
-            })}
-          </div>
-        ),
+        renderValue: selected => `${selected.length} etiqueta(s) selecionada(s)`,
         MenuProps: {
           PaperProps: {
             style: { maxHeight: 360, minWidth: 280 }
@@ -119,9 +114,9 @@ const TagCheckboxPicker = ({
           onClick={event => {
             event.preventDefault();
             event.stopPropagation();
-            onChange(tags.map(tag => Number(tag.id)));
+            onChange(filteredTags.map(tag => Number(tag.id)));
           }}
-          disabled={!tags.length}
+          disabled={!filteredTags.length}
         >
           Marcar todas
         </Button>
@@ -136,17 +131,59 @@ const TagCheckboxPicker = ({
         >
           Limpar
         </Button>
+        {onCreateTag && (
+          <Button
+            size="small"
+            color="primary"
+            variant="outlined"
+            onClick={event => {
+              event.preventDefault();
+              event.stopPropagation();
+              onCreateTag();
+            }}
+          >
+            Nova etiqueta
+          </Button>
+        )}
       </MenuItem>
       <Divider />
-      {tags.map(tag => (
+      <MenuItem
+        value="__search"
+        className={classes.menuSearch}
+        onClick={event => event.stopPropagation()}
+      >
+        <TextField
+          fullWidth
+          size="small"
+          variant="outlined"
+          placeholder="Buscar etiqueta"
+          value={search}
+          onChange={event => setSearch(event.target.value)}
+          onClick={event => event.stopPropagation()}
+          onKeyDown={event => event.stopPropagation()}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            )
+          }}
+        />
+      </MenuItem>
+      <Divider />
+      {filteredTags.map(tag => (
         <MenuItem key={tag.id} value={Number(tag.id)} className={classes.menuItem}>
           <Checkbox color="primary" checked={selectedSet.has(Number(tag.id))} />
           <span className={classes.tagColor} style={{ backgroundColor: tag.color || "#607d8b" }} />
           <span className={classes.tagName}>{tag.name}</span>
         </MenuItem>
       ))}
-      {!tags.length && (
-        <MenuItem disabled>Nenhuma etiqueta cadastrada.</MenuItem>
+      {!filteredTags.length && (
+        <MenuItem disabled>
+          <Typography variant="body2">
+            {tags.length ? "Nenhuma etiqueta encontrada." : "Nenhuma etiqueta cadastrada."}
+          </Typography>
+        </MenuItem>
       )}
     </TextField>
   );

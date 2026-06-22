@@ -61,7 +61,7 @@ export const updateConfig = async (req: Request, res: Response): Promise<Respons
   requireAdmin(req);
 
   const requestedAutomationMode = String(req.body.glpiAutomationMode || "");
-  if (requestedAutomationMode === "automatic") {
+  if (["automatic", "hybrid"].includes(requestedAutomationMode)) {
     req.body.glpiAutoCreateEnabled = "true";
   }
 

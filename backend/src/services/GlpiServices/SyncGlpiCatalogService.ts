@@ -6,6 +6,9 @@ import { closeGlpiSession, glpiHeaders, initGlpiSession } from "./GlpiClientServ
 import CreateGlpiLogService from "./GlpiLogService";
 
 type SyncType = "entities" | "categories" | "locations";
+type GlpiSession = Awaited<ReturnType<typeof initGlpiSession>>;
+
+const PAGE_SIZE = 1000;
 
 const normalizeRows = (data: any): any[] => {
   if (Array.isArray(data)) return data;
@@ -22,20 +25,49 @@ const getEntityId = (row: any): number | null => {
   return Number.isFinite(numberValue) ? numberValue : null;
 };
 
-const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
-  let session;
-  try {
-    session = await initGlpiSession();
-    const endpoint = type === "entities"
-      ? "Entity?range=0-999"
-      : type === "categories"
-        ? "ITILCategory?range=0-999"
-        : "Location?range=0-999";
-    const response = await axios.get(`${session.settings.apiUrl}/${endpoint}`, {
+const endpointNameByType = (type: SyncType): string => {
+  if (type === "entities") return "Entity";
+  if (type === "categories") return "ITILCategory";
+  return "Location";
+};
+
+const getTotalFromContentRange = (contentRange?: string): number | null => {
+  const match = String(contentRange || "").match(/\/(\d+)$/);
+  if (!match) return null;
+  const total = Number(match[1]);
+  return Number.isFinite(total) ? total : null;
+};
+
+const fetchCatalogRows = async (session: GlpiSession, type: SyncType): Promise<any[]> => {
+  const endpointName = endpointNameByType(type);
+  const rowsById = new Map<number, any>();
+  let start = 0;
+  let total: number | null = null;
+
+  while (total === null || start < total) {
+    const end = start + PAGE_SIZE - 1;
+    const response = await axios.get(`${session.settings.apiUrl}/${endpointName}?range=${start}-${end}`, {
       headers: glpiHeaders(session),
       timeout: session.settings.timeoutMs
     });
     const rows = normalizeRows(response.data).filter(row => row?.id);
+
+    rows.forEach(row => rowsById.set(Number(row.id), row));
+
+    total = getTotalFromContentRange(response.headers?.["content-range"]);
+    if (rows.length < PAGE_SIZE) break;
+
+    start += PAGE_SIZE;
+  }
+
+  return Array.from(rowsById.values());
+};
+
+const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
+  let session;
+  try {
+    session = await initGlpiSession();
+    const rows = await fetchCatalogRows(session, type);
     const syncedAt = new Date();
 
     for (const row of rows) {

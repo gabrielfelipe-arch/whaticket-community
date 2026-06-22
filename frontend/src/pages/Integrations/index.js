@@ -180,6 +180,14 @@ const filterByGlpiIds = (list, value) => {
   return (list || []).filter(item => ids.includes(Number(item.glpiId)));
 };
 
+const parseRawData = value => {
+  try {
+    return typeof value === "string" ? JSON.parse(value || "{}") : value || {};
+  } catch (error) {
+    return {};
+  }
+};
+
 const mergeByGlpiId = (current, incoming) => {
   const map = new Map();
   [...(current || []), ...(incoming || [])].forEach(item => {
@@ -306,8 +314,23 @@ const Integrations = () => {
   const entityLocationRules = parseEntityLocationRules(settings.glpiEntityLocationRules);
   const hasDefaultGlpiEntity = Boolean(settings.glpiAutoEntityId);
 
-  const locationsByEntity = entityId =>
+  const getEntityParentId = entityId => {
+    const entity = findByGlpiId(catalogs.entities, entityId);
+    const rawData = parseRawData(entity?.rawData);
+    const parentId = Number(rawData.entities_id ?? rawData.entity_id ?? rawData.entityId);
+    return Number.isInteger(parentId) && parentId > 0 ? parentId : null;
+  };
+
+  const directLocationsByEntity = entityId =>
     (catalogs.locations || []).filter(location => Number(location.entityId) === Number(entityId));
+
+  const locationsByEntity = entityId => {
+    const directLocations = directLocationsByEntity(entityId);
+    if (directLocations.length) return directLocations;
+
+    const parentId = getEntityParentId(entityId);
+    return parentId ? directLocationsByEntity(parentId) : directLocations;
+  };
 
   const defaultEntityLocations = hasDefaultGlpiEntity
     ? locationsByEntity(settings.glpiAutoEntityId)
@@ -319,11 +342,17 @@ const Integrations = () => {
     try {
       const { data } = await api.get("/glpi/locations", { params: { entityId } });
       const rows = Array.isArray(data) ? data : [];
+      const parentId = !rows.length ? getEntityParentId(entityId) : null;
+      const parentRows = parentId
+        ? (await api.get("/glpi/locations", { params: { entityId: parentId } }).catch(() => ({ data: [] }))).data
+        : [];
+      const mergedRows = [...rows, ...(Array.isArray(parentRows) ? parentRows : [])];
+
       setCatalogs(prev => ({
         ...prev,
-        locations: mergeByGlpiId(prev.locations, rows)
+        locations: mergeByGlpiId(prev.locations, mergedRows)
       }));
-      return rows;
+      return mergedRows;
     } catch (err) {
       toastError(err);
       return [];
@@ -511,6 +540,7 @@ const Integrations = () => {
                 <TextField select fullWidth margin="dense" variant="outlined" label="Modo GLPI" name="glpiAutomationMode" value={settings.glpiAutomationMode} onChange={handleChange}>
                   <MenuItem value="manual">Manual</MenuItem>
                   <MenuItem value="automatic">Automatico por formulario</MenuItem>
+                  <MenuItem value="hybrid">Manual e automatico</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -539,7 +569,7 @@ const Integrations = () => {
                   <MenuItem value="true">Sim</MenuItem>
                 </TextField>
               </Grid>
-              {settings.glpiAutomationMode === "automatic" && (
+              {["automatic", "hybrid"].includes(settings.glpiAutomationMode) && (
                 <>
                   <Grid item xs={12}>
                     <Typography variant="subtitle1">Abertura automatica por formulario</Typography>
