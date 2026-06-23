@@ -35,6 +35,7 @@ services:
     volumes:
       - ./backend/public/:/usr/src/app/public/
       - ./backend/.wwebjs_auth/:/usr/src/app/.wwebjs_auth/
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - whaticket
 

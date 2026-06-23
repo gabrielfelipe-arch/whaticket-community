@@ -30,6 +30,7 @@ const configKeys = [
   "glpiAutoLocationId",
   "glpiAutoTitleTemplate",
   "glpiAutoSuccessMessage",
+  "glpiRequireConfirmationBeforeCreate",
   "glpiAutoCloseEnabled",
   "glpiAutoCloseMessage",
   "glpiAutoCloseReasonId",

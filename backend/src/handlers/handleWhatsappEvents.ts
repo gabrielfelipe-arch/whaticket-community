@@ -17,6 +17,7 @@ import AiSetting from "../models/AiSetting";
 import Setting from "../models/Setting";
 import ClosingReason from "../models/ClosingReason";
 import UraOption from "../models/UraOption";
+import UraFlow from "../models/UraFlow";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import QualificationForm from "../models/QualificationForm";
@@ -51,6 +52,7 @@ import { MessageType, MessageAck } from "../providers/WhatsApp/types";
 const writeFileAsync = promisify(writeFile);
 const uraMenuLocks = new Set<number>();
 const AI_CLOSE_TAG = "[FECHAR TICKET]";
+const QUALIFICATION_GLPI_CONFIRMATION_STATUS = "waiting_glpi_confirmation";
 const AI_NO_SAFE_ANSWER_HANDOFF_MESSAGE =
   "Nao consegui identificar uma orientacao segura para esse caso com as informacoes disponiveis.\n\nPara evitar te passar uma informacao incorreta, vou encaminhar seu atendimento para um atendente.";
 
@@ -1015,7 +1017,7 @@ const handleAiReply = async (
     if (aiDecision.acao === "pedir_confirmacao") {
       const options = aiDecision.opcoes || [];
       const optionLines = options
-        .map(option => `${option.numero} - ${option.valor}`)
+        .map(option => formatNumberedOption(option.numero, option.valor))
         .join("\n");
       const rawBody = [aiDecision.perguntaConfirmacao, optionLines].filter(Boolean).join("\n\n");
       const prepared = await prepareAiResponseForSend(ticket, aiDecision, rawBody);
@@ -1149,6 +1151,44 @@ const sortUraOptions = (options: any[]): any[] =>
     (a, b) => Number(a.order || 0) - Number(b.order || 0)
   );
 
+const numericEmojiMap: Record<string, string> = {
+  "0": "0️⃣",
+  "1": "1️⃣",
+  "2": "2️⃣",
+  "3": "3️⃣",
+  "4": "4️⃣",
+  "5": "5️⃣",
+  "6": "6️⃣",
+  "7": "7️⃣",
+  "8": "8️⃣",
+  "9": "9️⃣"
+};
+
+const formatMenuNumber = (value: number | string): string => {
+  const raw = String(value).trim();
+  return numericEmojiMap[raw] || raw;
+};
+
+const formatNumberedOption = (value: number | string, label: string): string =>
+  `${formatMenuNumber(value)} ${label}`;
+
+const extractLeadingOptionNumber = (value: string): string => {
+  const raw = String(value || "").trim();
+  const normalizedEmoji = raw
+    .replace(/0️⃣/g, "0")
+    .replace(/1️⃣/g, "1")
+    .replace(/2️⃣/g, "2")
+    .replace(/3️⃣/g, "3")
+    .replace(/4️⃣/g, "4")
+    .replace(/5️⃣/g, "5")
+    .replace(/6️⃣/g, "6")
+    .replace(/7️⃣/g, "7")
+    .replace(/8️⃣/g, "8")
+    .replace(/9️⃣/g, "9");
+  const match = normalizedEmoji.match(/^\s*(\d+)/);
+  return match?.[1] || normalizedEmoji.trim();
+};
+
 const getUraOptionsByParent = (flow: any, parentOptionId: number | null): any[] =>
   sortUraOptions(flow.options || []).filter(option => {
     const optionParentId = option.parentOptionId ? Number(option.parentOptionId) : null;
@@ -1181,7 +1221,7 @@ const buildUraMenu = (flow: any, parentOption?: any | null): string => {
   const options = getUraOptionsByParent(flow, parentOption?.id ? Number(parentOption.id) : null);
 
   const optionLines = options
-    .map(option => `*${option.optionKey}* - ${option.title}`)
+    .map(option => formatNumberedOption(option.optionKey, option.title))
     .join("\n");
 
   const menuMessage = parentOption?.responseMessage || flow.welcomeMessage;
@@ -1416,8 +1456,8 @@ const buildQualificationQuestionMessage = async (
     : false;
   const optionText = sortedOptions.length
     ? `\n\n${[
-        ...sortedOptions.map((option, index) => `*${index + 1}* - ${option.label}`),
-        ...(canGoBack ? ["*0* - Voltar para pergunta anterior"] : [])
+        ...sortedOptions.map((option, index) => formatNumberedOption(index + 1, option.label)),
+        ...(canGoBack ? [formatNumberedOption(0, "Voltar para pergunta anterior")] : [])
       ].join("\n")}`
     : "";
   const skipText = allowSkip || !question.required
@@ -1589,10 +1629,14 @@ const parseQualificationAnswer = async (
       : options;
 
     if (question.type === "multiple_choice") {
-      const parts = raw.split(/[,\s]+/).map(part => part.trim()).filter(Boolean);
+      const parts = Array.from(new Set([
+        ...raw.split(/[,;\n]+/).map(part => part.trim()).filter(Boolean),
+        ...raw.split(/\s+/).map(part => part.trim()).filter(part => /^\d+$/.test(extractLeadingOptionNumber(part)))
+      ]));
+      const numberedParts = parts.map(part => extractLeadingOptionNumber(part));
       const selected = answerOptions.filter((option, index) =>
         parts.includes(option.value) ||
-        parts.includes(String(index + 1)) ||
+        numberedParts.includes(String(index + 1)) ||
         parts.some(part => normalizeText(part) === normalizeText(option.label))
       );
       if (!selected.length) return { ok: false };
@@ -1610,7 +1654,7 @@ const parseQualificationAnswer = async (
 
     const selected = answerOptions.find((option, index) =>
       option.value === raw ||
-      String(index + 1) === raw ||
+      String(index + 1) === extractLeadingOptionNumber(raw) ||
       normalizeText(option.label) === normalized
     );
 
@@ -1820,21 +1864,14 @@ const formatQualificationAnswerFieldLabel = (answer: QualificationFormAnswer): s
 const formatQualificationAnswerValue = (answer: QualificationFormAnswer): string =>
   String(answer.optionLabel || answer.value || answer.rawValue || "nao informado").trim() || "nao informado";
 
-const tryCreateAutomaticGlpiFromQualification = async (
+const getQualificationGlpiCreationContext = async (
   response: QualificationFormResponse,
   ticket: Ticket,
-  whatsappId?: number,
   contactPayload?: ContactPayload
-): Promise<void> => {
+) => {
   const settings = await getGlpiSettings();
-  if (!settings.enabled || !["automatic", "hybrid"].includes(settings.automationMode)) return;
-  if (!["open", "pending"].includes(ticket.status)) {
-    logger.warn(
-      { ticketId: ticket.id, responseId: response.id, status: ticket.status },
-      "[GLPI AUTO] Ticket status does not allow automatic creation"
-    );
-    return;
-  }
+  if (!settings.enabled || !["automatic", "hybrid"].includes(settings.automationMode)) return null;
+  if (!["open", "pending"].includes(ticket.status)) return null;
 
   const answers = await QualificationFormAnswer.findAll({
     where: { responseId: response.id },
@@ -1851,12 +1888,151 @@ const tryCreateAutomaticGlpiFromQualification = async (
   const entityId = Number(entityAnswer?.value || settings.autoEntityId || 0);
   const categoryId = Number(settings.autoCategoryId || 0);
   const entityRule = getGlpiEntityLocationRule(settings, entityId);
+  const ruleDefaultLocationId = Number(entityRule?.defaultLocationId || 0) || null;
   const locationId = Number(
     locationAnswer?.value ||
-    entityRule?.defaultLocationId ||
+    ruleDefaultLocationId ||
     settings.autoLocationId ||
     0
   ) || null;
+
+  if (!entityId || !categoryId) return null;
+
+  const form = await QualificationForm.findByPk(response.formId);
+  const entity = entityId && !entityAnswer?.optionLabel
+    ? await GlpiEntity.findOne({ where: { glpiId: entityId, active: true } })
+    : null;
+  const location = locationId && !locationAnswer?.optionLabel
+    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true } })
+    : null;
+  const entityName = entityAnswer?.optionLabel || entity?.name || entity?.completeName || "";
+  const shouldShowLocationInSummary = !!locationAnswer;
+  const locationName = shouldShowLocationInSummary
+    ? locationAnswer?.optionLabel || location?.name || location?.completeName || ""
+    : "";
+  const templateValues = {
+    ticketId: ticket.id,
+    contactName: contactPayload?.name || ticket.contact?.name || "",
+    contactNumber: contactPayload?.number || ticket.contact?.number || "",
+    formName: form?.name || "",
+    entityName,
+    locationName,
+    glpiTicketNumber: "",
+    glpiTicketId: ""
+  };
+
+  return {
+    settings,
+    answers,
+    entityAnswer,
+    locationAnswer,
+    shouldShowLocationInSummary,
+    descriptionAnswers,
+    entityId,
+    categoryId,
+    locationId,
+    templateValues
+  };
+};
+
+const buildQualificationGlpiConfirmationMessage = async (
+  response: QualificationFormResponse,
+  ticket: Ticket,
+  contactPayload: ContactPayload
+): Promise<string | null> => {
+  const context = await getQualificationGlpiCreationContext(response, ticket, contactPayload);
+  if (!context) return null;
+
+  const nameAnswer = context.descriptionAnswers.find(answer =>
+    normalizeText(`${answer.key} ${answer.label}`).includes("nome")
+  );
+  const relatoAnswers = context.descriptionAnswers.filter(answer => answer.id !== nameAnswer?.id);
+  const isRelatoAnswer = (answer: QualificationFormAnswer): boolean => {
+    const text = normalizeText(`${answer.key} ${answer.label}`);
+    return ["relato", "descricao", "descrisao", "descrição"].some(term => text.includes(normalizeText(term)));
+  };
+  const relato = relatoAnswers.length
+    ? relatoAnswers.map(answer =>
+        isRelatoAnswer(answer)
+          ? `- ${formatQualificationAnswerValue(answer)}`
+          : `- ${formatQualificationAnswerFieldLabel(answer)}: ${formatQualificationAnswerValue(answer)}`
+      ).join("\n")
+    : "- Nao informado";
+
+  return [
+    "*📋 Resumo da solicitacao*",
+    "",
+    `*🏥 Unidade:* ${context.templateValues.entityName || "Nao informada"}`,
+    ...(context.shouldShowLocationInSummary
+      ? [`*📍 Localizacao:* ${context.templateValues.locationName || "Padrao da unidade"}`]
+      : []),
+    `*👤 Nome:* ${nameAnswer ? formatQualificationAnswerValue(nameAnswer) : context.templateValues.contactName || "Nao informado"}`,
+    "*📝 Relato:*",
+    relato,
+    "",
+    "*Confirma a abertura do chamado?*",
+    formatNumberedOption(1, "Confirmar abertura"),
+    formatNumberedOption(2, "Cancelar solicitacao"),
+    formatNumberedOption(3, "Refazer solicitacao")
+  ].join("\n");
+};
+
+const sendGlpiConfirmationIfNeeded = async (
+  response: QualificationFormResponse,
+  ticket: Ticket,
+  whatsappId: number,
+  contactPayload: ContactPayload
+): Promise<boolean> => {
+  const message = await buildQualificationGlpiConfirmationMessage(response, ticket, contactPayload);
+  if (!message) return false;
+  const selectedOption = response.uraOptionId ? await UraOption.findByPk(response.uraOptionId) : null;
+  const flow = ticket.uraFlowId ? await UraFlow.findByPk(ticket.uraFlowId) : null;
+  const autoCloseConfig = getUraAiAutoCloseConfig(flow, selectedOption);
+  const settings = await getGlpiSettings();
+  if (!settings.requireConfirmationBeforeCreate) return false;
+
+  await response.update({
+    status: QUALIFICATION_GLPI_CONFIRMATION_STATUS,
+    currentQuestionId: null,
+    invalidAttempts: 0
+  });
+
+  await sendTextMessage(whatsappId, contactPayload, message, ticket, "ura");
+  await ticket.update({
+    uraActive: true,
+    currentUraOptionId: response.uraOptionId || ticket.currentUraOptionId || null,
+    lastUraInteractionAt: new Date(),
+    ...autoCloseConfig
+  });
+  return true;
+};
+
+const tryCreateAutomaticGlpiFromQualification = async (
+  response: QualificationFormResponse,
+  ticket: Ticket,
+  whatsappId?: number,
+  contactPayload?: ContactPayload
+): Promise<void> => {
+  const context = await getQualificationGlpiCreationContext(response, ticket, contactPayload);
+  if (!context) return;
+  const {
+    settings,
+    entityAnswer,
+    locationAnswer,
+    descriptionAnswers,
+    entityId,
+    categoryId,
+    locationId,
+    templateValues
+  } = context;
+
+  if (!["open", "pending"].includes(ticket.status)) {
+    logger.warn(
+      { ticketId: ticket.id, responseId: response.id, status: ticket.status },
+      "[GLPI AUTO] Ticket status does not allow automatic creation"
+    );
+    return;
+  }
 
   if (!entityId || !categoryId) {
     logger.warn(
@@ -1865,18 +2041,6 @@ const tryCreateAutomaticGlpiFromQualification = async (
     );
     return;
   }
-
-  const form = await QualificationForm.findByPk(response.formId);
-  const templateValues = {
-    ticketId: ticket.id,
-    contactName: contactPayload?.name || ticket.contact?.name || "",
-    contactNumber: contactPayload?.number || ticket.contact?.number || "",
-    formName: form?.name || "",
-    entityName: entityAnswer?.optionLabel || "",
-    locationName: locationAnswer?.optionLabel || "",
-    glpiTicketNumber: "",
-    glpiTicketId: ""
-  };
 
   const title = renderGlpiTemplate(settings.autoTitleTemplate, templateValues).trim()
     || `Solicitacao WhatsApp - ${templateValues.contactName || ticket.id}`;
@@ -2165,6 +2329,114 @@ const executeQualificationRoute = async (
   return false;
 };
 
+const handleQualificationGlpiConfirmation = async (
+  whatsappId: number,
+  messageBody: string,
+  ticket: Ticket,
+  contactPayload: ContactPayload,
+  flow: any,
+  selectedOption: UraOption,
+  response: QualificationFormResponse
+): Promise<boolean> => {
+  const selectedNumber = extractLeadingOptionNumber(messageBody);
+  const normalized = normalizeText(messageBody);
+
+  if (selectedNumber === "1" || normalized.includes("confirmar")) {
+    const summary = await finishQualificationResponse(response, ticket, whatsappId, contactPayload);
+    if (ticket.status === "closed") return true;
+
+    const effectiveOption = {
+      ...selectedOption.get({ plain: true }),
+      action: response.afterAction || selectedOption.action,
+      targetQueueId: response.afterQueueId || selectedOption.targetQueueId || null
+    } as UraOption;
+
+    await executeQualificationAfterAction(
+      whatsappId,
+      ticket,
+      contactPayload,
+      flow,
+      effectiveOption,
+      summary
+    );
+    return true;
+  }
+
+  if (selectedNumber === "2" || normalized.includes("cancelar")) {
+    const autoCloseConfig = getUraAiAutoCloseConfig(flow, selectedOption);
+    const closingReasonId =
+      selectedOption.closingReasonId ||
+      autoCloseConfig.aiAutoCloseReasonId ||
+      await getUraClosingReasonId(flow);
+
+    await response.update({
+      status: "canceled",
+      currentQuestionId: null,
+      invalidAttempts: 0
+    });
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      "Solicitacao cancelada. O chamado nao foi aberto no GLPI.",
+      ticket,
+      "ura"
+    );
+    await UpdateTicketService({
+      ticketId: ticket.id,
+      ticketData: {
+        status: "closed",
+        queueId: ticket.queueId,
+        aiActive: false,
+        aiSettingId: null,
+        closingReasonId,
+        closingNote: "Solicitacao GLPI cancelada pelo cliente antes da abertura do chamado.",
+        uraActive: false,
+        currentUraOptionId: null,
+        automationClosed: true
+      }
+    });
+    return true;
+  }
+
+  if (selectedNumber === "3" || normalized.includes("refazer")) {
+    const questions = await getQualificationQuestions(response.formId);
+    const firstQuestion = questions[0];
+    if (!firstQuestion) {
+      await response.update({ status: "canceled", currentQuestionId: null });
+      return true;
+    }
+
+    await QualificationFormAnswer.destroy({ where: { responseId: response.id } });
+    await response.update({
+      status: "in_progress",
+      currentQuestionId: firstQuestion.id,
+      invalidAttempts: 0
+    });
+    await sendTextMessage(
+      whatsappId,
+      contactPayload,
+      await buildQualificationQuestionMessage(firstQuestion, selectedOption.allowQualificationFormSkip, response),
+      ticket,
+      "ura"
+    );
+    return true;
+  }
+
+  const message = await buildQualificationGlpiConfirmationMessage(response, ticket, contactPayload);
+  await sendTextMessage(
+    whatsappId,
+    contactPayload,
+    `Nao consegui identificar essa opcao.\n\n${message || [
+      formatNumberedOption(1, "Confirmar abertura"),
+      formatNumberedOption(2, "Cancelar solicitacao"),
+      formatNumberedOption(3, "Refazer solicitacao")
+    ].join("\n")}`,
+    ticket,
+    "ura"
+  );
+  return true;
+};
+
 const beginQualificationForm = async (
   whatsappId: number,
   ticket: Ticket,
@@ -2218,10 +2490,12 @@ const beginQualificationForm = async (
     "ura"
   );
 
+  const flow = selectedOption.flowId ? await UraFlow.findByPk(selectedOption.flowId) : null;
   await ticket.update({
     uraActive: true,
     currentUraOptionId: selectedOption.id,
-    lastUraInteractionAt: new Date()
+    lastUraInteractionAt: new Date(),
+    ...getUraAiAutoCloseConfig(flow, selectedOption)
   });
 
   return true;
@@ -2235,7 +2509,10 @@ const handleActiveQualificationForm = async (
   flow: any
 ): Promise<boolean> => {
   const response = await QualificationFormResponse.findOne({
-    where: { ticketId: ticket.id, status: "in_progress" },
+    where: {
+      ticketId: ticket.id,
+      status: { [Op.in]: ["in_progress", QUALIFICATION_GLPI_CONFIRMATION_STATUS] }
+    },
     order: [["id", "DESC"]]
   });
 
@@ -2247,6 +2524,18 @@ const handleActiveQualificationForm = async (
   const question = response.currentQuestionId
     ? await QualificationFormQuestion.findByPk(response.currentQuestionId)
     : null;
+
+  if (response.status === QUALIFICATION_GLPI_CONFIRMATION_STATUS && selectedOption) {
+    return handleQualificationGlpiConfirmation(
+      whatsappId,
+      messageBody,
+      ticket,
+      contactPayload,
+      flow,
+      selectedOption,
+      response
+    );
+  }
 
   if (!selectedOption || !question) {
     await response.update({ status: "canceled" });
@@ -2271,6 +2560,10 @@ const handleActiveQualificationForm = async (
         ticket,
         "ura"
       );
+      return true;
+    }
+
+    if (await sendGlpiConfirmationIfNeeded(response, ticket, whatsappId, contactPayload)) {
       return true;
     }
 
@@ -2393,6 +2686,10 @@ const handleActiveQualificationForm = async (
     return true;
   }
 
+  if (await sendGlpiConfirmationIfNeeded(response, ticket, whatsappId, contactPayload)) {
+    return true;
+  }
+
   const summary = await finishQualificationResponse(response, ticket, whatsappId, contactPayload);
   if (ticket.status === "closed") return true;
 
@@ -2415,9 +2712,11 @@ const handleActiveQualificationForm = async (
 
 const findUraOption = (options: any[], messageBody: string): any | undefined => {
   const normalizedMessage = (messageBody || "").trim().toLowerCase();
+  const leadingNumber = extractLeadingOptionNumber(normalizedMessage).toLowerCase();
   return options.find(
     option =>
       String(option.optionKey).trim().toLowerCase() === normalizedMessage ||
+      String(option.optionKey).trim().toLowerCase() === leadingNumber ||
       normalizeText(option.title) === normalizeText(normalizedMessage)
   );
 };
@@ -2954,7 +3253,7 @@ const handleQueueLogic = async (
     return;
   }
 
-  const selectedOption = messageBody;
+  const selectedOption = extractLeadingOptionNumber(messageBody);
   const choosenQueue = queues[+selectedOption - 1];
 
   if (choosenQueue) {
@@ -2995,7 +3294,7 @@ const handleQueueLogic = async (
   } else {
     let options = "";
     queues.forEach((queue, index) => {
-      options += `*${index + 1}* - ${queue.name}\n`;
+      options += `${formatNumberedOption(index + 1, queue.name)}\n`;
     });
 
     const body = formatBody(

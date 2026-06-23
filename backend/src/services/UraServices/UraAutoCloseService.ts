@@ -4,6 +4,7 @@ import Contact from "../../models/Contact";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import UraFlow from "../../models/UraFlow";
+import UraOption from "../../models/UraOption";
 import { whatsappProvider } from "../../providers/WhatsApp/whatsappProvider";
 import CreateMessageService from "../MessageServices/CreateMessageService";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
@@ -51,8 +52,18 @@ const processTicket = async (ticket: Ticket): Promise<void> => {
   const flow = await UraFlow.findByPk(ticket.uraFlowId);
   if (!flow || !flow.active) return;
 
-  const source = ticket.aiAutoCloseEnabled ? ticket : flow.aiAutoCloseEnabled ? flow : null;
+  const option = ticket.currentUraOptionId
+    ? await UraOption.findByPk(ticket.currentUraOptionId)
+    : null;
+  const source = ticket.aiAutoCloseEnabled
+    ? ticket
+    : option?.aiAutoCloseEnabled
+      ? option
+      : flow.aiAutoCloseEnabled
+        ? flow
+        : null;
   if (!source) return;
+  if (source.aiAutoCloseOnlyIfNotHandedOff !== false && ticket.aiHumanHandoffAt) return;
 
   if (!source.aiAutoCloseMinutes || Number(source.aiAutoCloseMinutes) <= 0) return;
   if (!source.aiAutoCloseMessage || !source.aiAutoCloseReasonId) {
@@ -60,6 +71,7 @@ const processTicket = async (ticket: Ticket): Promise<void> => {
       {
         ticketId: ticket.id,
         uraFlowId: flow.id,
+        uraOptionId: option?.id || null,
         autoCloseMessage: !!source.aiAutoCloseMessage,
         autoCloseReasonId: source.aiAutoCloseReasonId
       },
@@ -73,15 +85,12 @@ const processTicket = async (ticket: Ticket): Promise<void> => {
     order: [["createdAt", "DESC"]]
   });
 
-  if (
-    lastCustomerMessage &&
-    new Date(lastCustomerMessage.createdAt).getTime() >
-      new Date(ticket.lastUraInteractionAt).getTime()
-  ) {
-    return;
-  }
-
-  const elapsedMs = Date.now() - new Date(ticket.lastUraInteractionAt).getTime();
+  const lastUraAt = new Date(ticket.lastUraInteractionAt).getTime();
+  const lastCustomerAt = lastCustomerMessage
+    ? new Date(lastCustomerMessage.createdAt).getTime()
+    : 0;
+  const lastActivityAt = Math.max(lastUraAt, lastCustomerAt);
+  const elapsedMs = Date.now() - lastActivityAt;
   const requiredMs = Number(source.aiAutoCloseMinutes) * 60 * 1000;
   if (elapsedMs < requiredMs) return;
 

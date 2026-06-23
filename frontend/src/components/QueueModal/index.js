@@ -72,6 +72,9 @@ const distributionModes = [
 	},
 ];
 
+const modesWithActiveLimit = ["manual_limit", "manual_balanced", "auto_least_load", "round_robin", "least_load_round_robin"];
+const modesWithManualAcceptanceRules = ["manual_limit", "manual_balanced"];
+
 const defaultBusinessHoursRule = () => ({
 	days: [1, 2, 3, 4, 5],
 	start: "08:00",
@@ -235,14 +238,20 @@ const QueueModal = ({ open, onClose, queueId }) => {
 	const handleSaveQueue = async values => {
 		try {
 			const { businessHoursRules, ...formValues } = values;
+			const usesActiveLimit = modesWithActiveLimit.includes(values.distributionMode);
+			const usesManualAcceptanceRules = modesWithManualAcceptanceRules.includes(values.distributionMode);
 			const queueData = {
 				...formValues,
 				aiSettingId: values.useAI && values.aiSettingId ? values.aiSettingId : null,
 				businessHoursMode: values.businessHoursMode || "always",
 				businessHoursEnabled: values.businessHoursMode !== "always",
 				businessHours: values.businessHoursMode === "custom" ? serializeBusinessHours(businessHoursRules) : "",
-				maxActiveTicketsPerUser: values.maxActiveTicketsPerUser || "",
-				stalledTicketMinutes: values.blockIfUserHasStalledTicket ? values.stalledTicketMinutes : "",
+				maxActiveTicketsPerUser: usesActiveLimit ? values.maxActiveTicketsPerUser || "" : "",
+				balanceAction: values.distributionMode === "manual_balanced" && values.balanceAction === "block" ? "block" : "ignore",
+				overflowAction: usesActiveLimit ? values.overflowAction : "keep_waiting",
+				blockIfUserHasStalledTicket: usesManualAcceptanceRules ? values.blockIfUserHasStalledTicket : false,
+				stalledTicketMinutes: usesManualAcceptanceRules && values.blockIfUserHasStalledTicket ? values.stalledTicketMinutes : "",
+				stalledTicketAction: usesManualAcceptanceRules && values.blockIfUserHasStalledTicket ? "block" : "ignore",
 				queuePositionMessage: values.sendQueuePositionMessage ? values.queuePositionMessage : "",
 			};
 			const payload = new FormData();
@@ -548,34 +557,37 @@ const QueueModal = ({ open, onClose, queueId }) => {
 								<Typography variant="caption" color="textSecondary">
 									{distributionModes.find(mode => mode.value === values.distributionMode)?.help}
 								</Typography>
-								<Grid container spacing={1}>
-									<Grid item xs={12} sm={6}>
-										<Field
-											as={TextField}
-											fullWidth
-											type="number"
-											label="Maximo de atendimentos por atendente"
-											name="maxActiveTicketsPerUser"
-											variant="outlined"
-											margin="dense"
-											helperText="Deixe vazio para nao limitar."
-										/>
+								{modesWithActiveLimit.includes(values.distributionMode) && (
+									<Grid container spacing={1}>
+										<Grid item xs={12} sm={6}>
+											<Field
+												as={TextField}
+												fullWidth
+												type="number"
+												label="Limite por atendente"
+												name="maxActiveTicketsPerUser"
+												variant="outlined"
+												margin="dense"
+												helperText="Maximo de atendimentos ativos por atendente nesta fila. Vazio nao limita."
+											/>
+										</Grid>
+										<Grid item xs={12} sm={6}>
+											<Field
+												as={TextField}
+												select
+												fullWidth
+												label="Ao atingir o limite"
+												name="overflowAction"
+												variant="outlined"
+												margin="dense"
+												helperText="Usado quando todos os atendentes disponiveis ja estao no limite."
+											>
+												<MenuItem value="keep_waiting">Manter aguardando</MenuItem>
+												<MenuItem value="allow_overflow">Permitir exceder limite</MenuItem>
+											</Field>
+										</Grid>
 									</Grid>
-									<Grid item xs={12} sm={6}>
-										<Field
-											as={TextField}
-											select
-											fullWidth
-											label="Se todos atingirem o limite"
-											name="overflowAction"
-											variant="outlined"
-											margin="dense"
-										>
-											<MenuItem value="keep_waiting">Manter aguardando</MenuItem>
-											<MenuItem value="allow_overflow">Permitir exceder limite</MenuItem>
-										</Field>
-									</Grid>
-								</Grid>
+								)}
 								{values.distributionMode === "manual_balanced" && (
 									<Field
 										as={TextField}
@@ -587,9 +599,45 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										margin="dense"
 									>
 										<MenuItem value="block">Bloquear aceite</MenuItem>
-										<MenuItem value="warn">Apenas alertar</MenuItem>
 										<MenuItem value="ignore">Ignorar regra</MenuItem>
 									</Field>
+								)}
+								{modesWithManualAcceptanceRules.includes(values.distributionMode) && (
+									<>
+										<Typography variant="subtitle2" style={{ marginTop: 12 }}>
+											Bloqueio no aceite manual
+										</Typography>
+										<Typography variant="caption" color="textSecondary">
+											Aplicado quando o atendente tenta aceitar um novo atendimento. Se ele ja tiver conversa desta fila sem resposta pelo tempo definido, o aceite sera bloqueado.
+										</Typography>
+										<FormControlLabel
+											control={
+												<Field
+													as={Switch}
+													color="primary"
+													name="blockIfUserHasStalledTicket"
+													checked={values.blockIfUserHasStalledTicket}
+												/>
+											}
+											label="Bloquear aceite com atendimento sem resposta"
+										/>
+										{values.blockIfUserHasStalledTicket && (
+											<Grid container spacing={1}>
+												<Grid item xs={12}>
+													<Field
+														as={TextField}
+														fullWidth
+														type="number"
+														label="Tempo sem resposta"
+														name="stalledTicketMinutes"
+														variant="outlined"
+														margin="dense"
+														helperText="Depois desse tempo, a conversa conta como pendente para novo aceite."
+													/>
+												</Grid>
+											</Grid>
+										)}
+									</>
 								)}
 								<FormControlLabel
 									control={
@@ -609,47 +657,6 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										name="queuePositionMessage"
 										rows={5}
 									/>
-								)}
-								<FormControlLabel
-									control={
-										<Field
-											as={Switch}
-											color="primary"
-											name="blockIfUserHasStalledTicket"
-											checked={values.blockIfUserHasStalledTicket}
-										/>
-									}
-									label="Controlar atendimento parado antes de novo aceite"
-								/>
-								{values.blockIfUserHasStalledTicket && (
-									<Grid container spacing={1}>
-										<Grid item xs={12} sm={6}>
-											<Field
-												as={TextField}
-												fullWidth
-												type="number"
-												label="Minutos para considerar parado"
-												name="stalledTicketMinutes"
-												variant="outlined"
-												margin="dense"
-											/>
-										</Grid>
-										<Grid item xs={12} sm={6}>
-											<Field
-												as={TextField}
-												select
-												fullWidth
-												label="Acao para atendimento parado"
-												name="stalledTicketAction"
-												variant="outlined"
-												margin="dense"
-											>
-												<MenuItem value="ignore">Ignorar</MenuItem>
-												<MenuItem value="block">Bloquear novo aceite</MenuItem>
-												<MenuItem value="warn">Apenas alertar</MenuItem>
-											</Field>
-										</Grid>
-									</Grid>
 								)}
 							</DialogContent>
 							<DialogActions>

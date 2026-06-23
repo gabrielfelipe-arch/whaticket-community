@@ -18,6 +18,7 @@ const isAdmin = (req: Request, res: Response, next: NextFunction) => {
 whatsappRoutes.get("/whatsapp/", isAuth, WhatsAppController.index);
 
 whatsappRoutes.get("/whatsapp-updates/status", isAuth, isAdmin, WhatsAppUpdateController.status);
+whatsappRoutes.get("/whatsapp-updates/progress", isAuth, isAdmin, WhatsAppUpdateController.progress);
 whatsappRoutes.post("/whatsapp-updates/install", isAuth, isAdmin, WhatsAppUpdateController.install);
 whatsappRoutes.post("/whatsapp-updates/rollback", isAuth, isAdmin, WhatsAppUpdateController.rollback);
 

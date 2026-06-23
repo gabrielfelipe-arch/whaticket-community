@@ -284,6 +284,7 @@ function normalizeQuestionOptions(value: any): string | null {
 
 async function normalizeBody(resource: string, body: any): Promise<any> {
   const data = { ...body };
+  const currentId = body?.id;
 
   delete data.id;
   delete data.createdAt;
@@ -418,7 +419,7 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     }
 
     const parentOptionId = nullableNumber(data.parentOptionId);
-    const currentOptionId = nullableNumber(data.id);
+    const currentOptionId = nullableNumber(currentId);
     const optionKey = String(data.optionKey || "").trim();
     const duplicatedOptions = await UraOption.findAll({
       where: {

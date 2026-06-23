@@ -6,6 +6,7 @@ import {
   Container,
   Grid,
   InputAdornment,
+  LinearProgress,
   MenuItem,
   Paper,
   Tab,
@@ -93,6 +94,46 @@ const useStyles = makeStyles(theme => ({
     border: `1px solid ${theme.palette.warning.light}`,
     background: theme.palette.type === "dark" ? "rgba(255, 193, 7, 0.12)" : "#fff8e1"
   },
+  progressBox: {
+    marginTop: theme.spacing(2),
+    padding: theme.spacing(1.5),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.default
+  },
+  progressHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1)
+  },
+  progressSteps: {
+    display: "grid",
+    gap: theme.spacing(0.75),
+    marginTop: theme.spacing(1)
+  },
+  progressStep: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    padding: theme.spacing(0.75, 1),
+    borderRadius: 6,
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.paper
+  },
+  progressStepRunning: {
+    borderColor: theme.palette.primary.main,
+    background: theme.palette.type === "dark" ? "rgba(37, 99, 235, 0.14)" : "#EFF6FF"
+  },
+  progressStepDone: {
+    opacity: 0.82
+  },
+  progressStepError: {
+    borderColor: theme.palette.error.main,
+    background: theme.palette.type === "dark" ? "rgba(244, 67, 54, 0.12)" : "#FEE2E2"
+  },
   automaticSection: {
     marginTop: theme.spacing(1),
     paddingTop: theme.spacing(1.5),
@@ -142,6 +183,7 @@ const defaultSettings = {
   glpiEntityLocationRules: "[]",
   glpiAutoTitleTemplate: "Solicitacao WhatsApp - {{contactName}}",
   glpiAutoSuccessMessage: "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
+  glpiRequireConfirmationBeforeCreate: "true",
   glpiAutoCloseEnabled: "false",
   glpiAutoCloseMessage: "Atendimento finalizado automaticamente apos abertura do chamado #{{glpiTicketNumber}}.",
   glpiAutoCloseReasonId: "",
@@ -242,6 +284,28 @@ const SearchTextField = params => (
   />
 );
 
+const createLocalWhatsappMaintenance = action => ({
+  active: true,
+  action,
+  percent: 5,
+  currentStep: action === "rollback" ? "npm-rollback" : "rollback-image",
+  message: action === "rollback"
+    ? "Iniciando rollback do provedor WhatsApp..."
+    : "Iniciando atualizacao do provedor WhatsApp...",
+  steps: action === "rollback"
+    ? [
+        { key: "npm-rollback", label: "Restaurar versao anterior do Whaileys", status: "running" },
+        { key: "commit-restored", label: "Salvar imagem Docker restaurada", status: "pending" },
+        { key: "restart", label: "Reiniciar backend", status: "pending" }
+      ]
+    : [
+        { key: "rollback-image", label: "Criar ponto de rollback Docker", status: "running" },
+        { key: "npm-install", label: "Instalar nova versao do Whaileys", status: "pending" },
+        { key: "commit-updated", label: "Salvar imagem Docker atualizada", status: "pending" },
+        { key: "restart", label: "Reiniciar backend", status: "pending" }
+      ]
+});
+
 const Integrations = () => {
   const classes = useStyles();
   const [settings, setSettings] = useState(defaultSettings);
@@ -252,6 +316,8 @@ const Integrations = () => {
   const [statusMessage, setStatusMessage] = useState("");
   const [whatsappStatus, setWhatsappStatus] = useState(null);
   const [checkingWhatsapp, setCheckingWhatsapp] = useState(false);
+  const [updatingWhatsapp, setUpdatingWhatsapp] = useState("");
+  const [localWhatsappMaintenance, setLocalWhatsappMaintenance] = useState(null);
   const [catalogs, setCatalogs] = useState({
     categories: [],
     entities: [],
@@ -284,22 +350,76 @@ const Integrations = () => {
     loadSettings();
   }, []);
 
-  const checkWhatsappUpdates = async () => {
+  const checkWhatsappUpdates = async (silent = false) => {
     try {
-      setCheckingWhatsapp(true);
+      if (!silent) setCheckingWhatsapp(true);
       const { data } = await api.get("/whatsapp-updates/status");
       setWhatsappStatus(data);
-      setStatusMessage(data.checkError || "Verificacao do WhatsApp concluida.");
+      if (data.maintenance?.steps?.length) {
+        setLocalWhatsappMaintenance(data.maintenance);
+      }
+      if (!silent) setStatusMessage(data.checkError || "Verificacao do WhatsApp concluida.");
     } catch (err) {
-      setStatusMessage(errorMessage(err));
-      toastError(err);
+      if (!silent) {
+        setStatusMessage(errorMessage(err));
+        toastError(err);
+      }
     } finally {
-      setCheckingWhatsapp(false);
+      if (!silent) setCheckingWhatsapp(false);
     }
   };
 
-  const unavailableWhatsappAutomation = action => {
-    toast.info(`${action} ainda precisa da rotina segura de manutencao/rollback no servidor.`);
+  useEffect(() => {
+    if (!updatingWhatsapp) return undefined;
+
+    const timer = setInterval(() => {
+      api.get("/whatsapp-updates/progress")
+        .then(({ data }) => {
+          if (data.maintenance?.steps?.length) {
+            setWhatsappStatus(prev => ({ ...(prev || {}), maintenance: data.maintenance }));
+            setLocalWhatsappMaintenance(data.maintenance);
+          }
+        })
+        .catch(() => undefined);
+    }, 1500);
+
+    return () => clearInterval(timer);
+  }, [updatingWhatsapp]);
+
+  const installWhatsappUpdate = async () => {
+    try {
+      setUpdatingWhatsapp("install");
+      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("install"));
+      setStatusMessage("Criando ponto de rollback Docker e instalando atualizacao...");
+      const { data } = await api.post("/whatsapp-updates/install");
+      setWhatsappStatus(prev => ({ ...(prev || {}), maintenance: data.maintenance || prev?.maintenance }));
+      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("install"));
+      setStatusMessage(data.message || "Atualizacao iniciada.");
+    } catch (err) {
+      setStatusMessage(errorMessage(err));
+      setLocalWhatsappMaintenance(prev => prev ? { ...prev, active: false, error: errorMessage(err), message: errorMessage(err), steps: prev.steps.map(step => step.status === "running" ? { ...step, status: "error" } : step) } : prev);
+      toastError(err);
+      setUpdatingWhatsapp("");
+    }
+  };
+
+  const rollbackWhatsappUpdate = async () => {
+    if (!window.confirm("Desfazer a ultima atualizacao do provedor WhatsApp? O backend sera reiniciado apos o rollback.")) return;
+
+    try {
+      setUpdatingWhatsapp("rollback");
+      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("rollback"));
+      setStatusMessage("Restaurando versao anterior do provedor WhatsApp...");
+      const { data } = await api.post("/whatsapp-updates/rollback");
+      setWhatsappStatus(prev => ({ ...(prev || {}), maintenance: data.maintenance || prev?.maintenance }));
+      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("rollback"));
+      setStatusMessage(data.message || "Rollback iniciado.");
+    } catch (err) {
+      setStatusMessage(errorMessage(err));
+      setLocalWhatsappMaintenance(prev => prev ? { ...prev, active: false, error: errorMessage(err), message: errorMessage(err), steps: prev.steps.map(step => step.status === "running" ? { ...step, status: "error" } : step) } : prev);
+      toastError(err);
+      setUpdatingWhatsapp("");
+    }
   };
 
   const handleChange = event => {
@@ -313,6 +433,80 @@ const Integrations = () => {
 
   const entityLocationRules = parseEntityLocationRules(settings.glpiEntityLocationRules);
   const hasDefaultGlpiEntity = Boolean(settings.glpiAutoEntityId);
+  const whatsappMaintenance = whatsappStatus?.maintenance?.steps?.length
+    ? whatsappStatus.maintenance
+    : localWhatsappMaintenance;
+  const showWhatsappProgress = !!updatingWhatsapp || !!whatsappMaintenance?.active || !!whatsappMaintenance?.steps?.length;
+  const whatsappProgressPercent = Math.max(0, Math.min(100, Number(whatsappMaintenance?.percent || 0)));
+  const whatsappMaintenanceFinished = !!whatsappMaintenance?.steps?.length && !whatsappMaintenance?.active && whatsappProgressPercent >= 100;
+
+  useEffect(() => {
+    if (!updatingWhatsapp || !whatsappMaintenance?.steps?.length || whatsappMaintenance.active) return;
+
+    if (whatsappMaintenance.error) {
+      setUpdatingWhatsapp("");
+      setStatusMessage(whatsappMaintenance.error);
+      return;
+    }
+
+    if (whatsappProgressPercent >= 100) {
+      setUpdatingWhatsapp("");
+      setStatusMessage(whatsappMaintenance.message || "Processo concluido.");
+      setTimeout(() => checkWhatsappUpdates(true), 8000);
+    }
+  }, [updatingWhatsapp, whatsappMaintenance, whatsappProgressPercent]);
+
+  const maintenanceStepLabel = status => ({
+    pending: "Aguardando",
+    running: "Executando",
+    done: "Concluido",
+    error: "Erro"
+  }[status] || status);
+
+  const maintenanceStepClass = step => {
+    if (step.status === "running") return `${classes.progressStep} ${classes.progressStepRunning}`;
+    if (step.status === "done") return `${classes.progressStep} ${classes.progressStepDone}`;
+    if (step.status === "error") return `${classes.progressStep} ${classes.progressStepError}`;
+    return classes.progressStep;
+  };
+
+  const renderWhatsappProgress = () => {
+    if (!showWhatsappProgress) return null;
+
+    return (
+      <div className={classes.progressBox}>
+        <div className={classes.progressHeader}>
+          <Typography variant="subtitle2">
+            {whatsappMaintenance?.action === "rollback" ? "Rollback do WhatsApp" : "Atualizacao do WhatsApp"}
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {whatsappProgressPercent}%
+          </Typography>
+        </div>
+        <LinearProgress variant="determinate" value={whatsappProgressPercent} />
+        <Typography variant="body2" color="textSecondary" style={{ marginTop: 8 }}>
+          {whatsappMaintenance?.message || statusMessage || "Preparando manutencao..."}
+        </Typography>
+        {whatsappMaintenanceFinished && (
+          <Typography variant="body2" color="primary" style={{ marginTop: 6 }}>
+            Processo concluido. Se a tela ainda mostrar versao antiga, aguarde o reinicio e clique em Verificar atualizacao.
+          </Typography>
+        )}
+        {!!whatsappMaintenance?.steps?.length && (
+          <div className={classes.progressSteps}>
+            {whatsappMaintenance.steps.map(step => (
+              <div key={step.key} className={maintenanceStepClass(step)}>
+                <Typography variant="body2">{step.label}</Typography>
+                <Typography variant="caption" color="textSecondary">
+                  {maintenanceStepLabel(step.status)}
+                </Typography>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const getEntityParentId = entityId => {
     const entity = findByGlpiId(catalogs.entities, entityId);
@@ -540,7 +734,7 @@ const Integrations = () => {
                 <TextField select fullWidth margin="dense" variant="outlined" label="Modo GLPI" name="glpiAutomationMode" value={settings.glpiAutomationMode} onChange={handleChange}>
                   <MenuItem value="manual">Manual</MenuItem>
                   <MenuItem value="automatic">Automatico por formulario</MenuItem>
-                  <MenuItem value="hybrid">Manual e automatico</MenuItem>
+                  <MenuItem value="hybrid">Flexivel</MenuItem>
                 </TextField>
               </Grid>
               <Grid item xs={12} sm={4}>
@@ -765,6 +959,12 @@ const Integrations = () => {
                     <TextField fullWidth multiline rows={2} margin="dense" variant="outlined" label="Mensagem apos abrir chamado" name="glpiAutoSuccessMessage" value={settings.glpiAutoSuccessMessage} onChange={handleChange} helperText="Use {{glpiTicketNumber}} para informar o numero do chamado." />
                   </Grid>
                   <Grid item xs={12} sm={6}>
+                    <TextField select fullWidth margin="dense" variant="outlined" label="Mostrar resumo antes de abrir chamado" name="glpiRequireConfirmationBeforeCreate" value={settings.glpiRequireConfirmationBeforeCreate} onChange={handleChange} helperText="Quando ativo, o cliente confirma, cancela ou refaz antes do GLPI.">
+                      <MenuItem value="true">Sim</MenuItem>
+                      <MenuItem value="false">Nao</MenuItem>
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
                     <TextField select fullWidth margin="dense" variant="outlined" label="Finalizar atendimento automaticamente" name="glpiAutoCloseEnabled" value={settings.glpiAutoCloseEnabled} onChange={handleChange}>
                       <MenuItem value="false">Nao</MenuItem>
                       <MenuItem value="true">Sim</MenuItem>
@@ -866,11 +1066,20 @@ const Integrations = () => {
                         : "Clique em Verificar atualizacao para consultar a versao atual."}
                   </Typography>
                   <Typography variant="body2" color="textSecondary">
-                    Instalacao e desfazer atualizacao devem criar ponto de rollback por Docker antes de serem habilitados.
+                    {whatsappStatus?.installAutomationReady
+                      ? "Ao instalar, o sistema cria automaticamente um ponto de rollback Docker antes de atualizar."
+                      : "Automacao indisponivel: o backend precisa acessar o Docker para criar o ponto de rollback."}
                   </Typography>
+                  {whatsappStatus?.rollbackPoint?.createdAt && (
+                    <Typography variant="body2" color="textSecondary">
+                      Ultimo rollback: versao {whatsappStatus.rollbackPoint.previousVersion} em {new Date(whatsappStatus.rollbackPoint.createdAt).toLocaleString()}.
+                    </Typography>
+                  )}
                 </div>
               </Grid>
             </Grid>
+
+            {renderWhatsappProgress()}
 
             <div className={classes.actions}>
               <Button variant="outlined" color="primary" onClick={checkWhatsappUpdates} disabled={checkingWhatsapp}>
@@ -879,18 +1088,18 @@ const Integrations = () => {
               <Button
                 variant="outlined"
                 color="primary"
-                disabled={!whatsappStatus?.updateAvailable || !whatsappStatus?.installAutomationReady}
-                onClick={() => unavailableWhatsappAutomation("Instalar atualizacao")}
+                disabled={!whatsappStatus?.updateAvailable || !whatsappStatus?.installAutomationReady || !!updatingWhatsapp}
+                onClick={installWhatsappUpdate}
               >
-                Instalar atualizacao
+                {updatingWhatsapp === "install" ? "Instalando..." : "Instalar atualizacao"}
               </Button>
               <Button
                 variant="outlined"
                 color="secondary"
-                disabled={!whatsappStatus?.rollbackAutomationReady}
-                onClick={() => unavailableWhatsappAutomation("Desfazer ultima atualizacao")}
+                disabled={!whatsappStatus?.rollbackAutomationReady || !!updatingWhatsapp}
+                onClick={rollbackWhatsappUpdate}
               >
-                Desfazer ultima atualizacao
+                {updatingWhatsapp === "rollback" ? "Desfazendo..." : "Desfazer ultima atualizacao"}
               </Button>
             </div>
 

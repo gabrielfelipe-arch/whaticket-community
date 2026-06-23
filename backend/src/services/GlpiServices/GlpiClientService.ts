@@ -17,6 +17,7 @@ export type GlpiSettings = {
   autoLocationId: number | null;
   autoTitleTemplate: string;
   autoSuccessMessage: string;
+  requireConfirmationBeforeCreate: boolean;
   autoCloseEnabled: boolean;
   autoCloseMessage: string;
   autoCloseReasonId: number | null;
@@ -94,6 +95,7 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     autoLocationId,
     autoTitleTemplate,
     autoSuccessMessage,
+    requireConfirmationBeforeCreate,
     autoCloseEnabled,
     autoCloseMessage,
     autoCloseReasonId,
@@ -115,6 +117,7 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     getSettingValue("glpiAutoLocationId"),
     getSettingValue("glpiAutoTitleTemplate"),
     getSettingValue("glpiAutoSuccessMessage"),
+    getSettingValue("glpiRequireConfirmationBeforeCreate"),
     getSettingValue("glpiAutoCloseEnabled"),
     getSettingValue("glpiAutoCloseMessage"),
     getSettingValue("glpiAutoCloseReasonId"),
@@ -138,6 +141,7 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     autoLocationId: autoLocationId ? Number(autoLocationId) : null,
     autoTitleTemplate: autoTitleTemplate || "Solicitacao WhatsApp - {{contactName}}",
     autoSuccessMessage: autoSuccessMessage || "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
+    requireConfirmationBeforeCreate: requireConfirmationBeforeCreate !== "false",
     autoCloseEnabled: autoCloseEnabled === "true",
     autoCloseMessage: autoCloseMessage || "",
     autoCloseReasonId: autoCloseReasonId ? Number(autoCloseReasonId) : null,
