@@ -7,49 +7,40 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  DataType,
-  Default,
-  ForeignKey
+  ForeignKey,
+  BelongsTo
 } from "sequelize-typescript";
 import GlpiConfiguration from "./GlpiConfiguration";
+import Whatsapp from "./Whatsapp";
 
-@Table({ tableName: "GlpiEntities" })
-class GlpiEntity extends Model<GlpiEntity> {
+@Table({ tableName: "GlpiConfigurationWhatsapps" })
+class GlpiConfigurationWhatsapp extends Model<GlpiConfigurationWhatsapp> {
   @PrimaryKey
   @AutoIncrement
   @Column
   id: number;
 
   @AllowNull(false)
-  @Column
-  glpiId: number;
-
   @ForeignKey(() => GlpiConfiguration)
   @Column
   glpiConfigurationId: number;
 
   @AllowNull(false)
+  @ForeignKey(() => Whatsapp)
   @Column
-  name: string;
-
-  @Column
-  completeName: string;
-
-  @Default(true)
-  @Column
-  active: boolean;
-
-  @Column(DataType.TEXT)
-  rawData: string;
-
-  @Column
-  lastSyncAt: Date;
+  whatsappId: number;
 
   @CreatedAt
   createdAt: Date;
 
   @UpdatedAt
   updatedAt: Date;
+
+  @BelongsTo(() => GlpiConfiguration)
+  configuration: GlpiConfiguration;
+
+  @BelongsTo(() => Whatsapp)
+  whatsapp: Whatsapp;
 }
 
-export default GlpiEntity;
+export default GlpiConfigurationWhatsapp;

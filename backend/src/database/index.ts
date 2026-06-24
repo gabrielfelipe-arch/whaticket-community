@@ -48,6 +48,8 @@ import GlpiCategory from "../models/GlpiCategory";
 import GlpiLocation from "../models/GlpiLocation";
 import GlpiTicketLink from "../models/GlpiTicketLink";
 import GlpiLog from "../models/GlpiLog";
+import GlpiConfiguration from "../models/GlpiConfiguration";
+import GlpiConfigurationWhatsapp from "../models/GlpiConfigurationWhatsapp";
 
 
 // eslint-disable-next-line
@@ -105,7 +107,9 @@ const models = [
   GlpiCategory,
   GlpiLocation,
   GlpiTicketLink,
-  GlpiLog
+  GlpiLog,
+  GlpiConfiguration,
+  GlpiConfigurationWhatsapp
 ];
 
 sequelize.addModels(models);

@@ -6,6 +6,9 @@ const glpiRoutes = express.Router();
 
 glpiRoutes.get("/glpi/config", isAuth, GlpiController.config);
 glpiRoutes.put("/glpi/config", isAuth, GlpiController.updateConfig);
+glpiRoutes.get("/glpi/configurations", isAuth, GlpiController.listConfigurations);
+glpiRoutes.post("/glpi/configurations", isAuth, GlpiController.createConfiguration);
+glpiRoutes.delete("/glpi/configurations/:configurationId", isAuth, GlpiController.deleteConfiguration);
 glpiRoutes.post("/glpi/test-connection", isAuth, GlpiController.testConnection);
 glpiRoutes.post("/glpi/sync/entities", isAuth, GlpiController.syncEntities);
 glpiRoutes.post("/glpi/sync/categories", isAuth, GlpiController.syncCategories);

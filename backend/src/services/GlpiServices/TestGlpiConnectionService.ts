@@ -2,10 +2,10 @@ import axios from "axios";
 import { closeGlpiSession, glpiHeaders, initGlpiSession, normalizeGlpiError } from "./GlpiClientService";
 import CreateGlpiLogService from "./GlpiLogService";
 
-const TestGlpiConnectionService = async (userId?: number) => {
+const TestGlpiConnectionService = async (userId?: number, configurationId?: number | null) => {
   let session;
   try {
-    session = await initGlpiSession();
+    session = await initGlpiSession({ configurationId });
     const [profileResponse, entitiesResponse, categoriesResponse, locationsResponse] = await Promise.all([
       axios.get(`${session.settings.apiUrl}/getActiveProfile`, {
         headers: glpiHeaders(session),

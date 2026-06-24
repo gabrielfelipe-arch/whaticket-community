@@ -57,6 +57,13 @@ const TicketActionButtons = ({ ticket }) => {
 	const ticketOptionsMenuOpen = Boolean(anchorEl);
 	const { user } = useContext(AuthContext);
 	const latestGlpiLink = glpiStatus?.links?.[0];
+	const isLimitConfirmationError = err =>
+		err?.response?.status === 409 &&
+		String(err.response?.data?.error || "").startsWith("QUEUE_LIMIT_CONFIRM_REQUIRED|");
+	const getLimitConfirmationMessage = err =>
+		String(err.response?.data?.error || "")
+			.replace("QUEUE_LIMIT_CONFIRM_REQUIRED|", "") ||
+		"Voce ja atingiu o limite de atendimentos desta fila. Deseja aceitar mesmo assim?";
 
 	React.useEffect(() => {
 		if (!ticket?.id || ticket.status !== "open") {
@@ -102,6 +109,22 @@ const TicketActionButtons = ({ ticket }) => {
 				history.push("/tickets");
 			}
 		} catch (err) {
+			if (
+				status === "open" &&
+				userId &&
+				!extraData.forceAcceptOverLimit &&
+				isLimitConfirmationError(err)
+			) {
+				const confirmed = window.confirm(getLimitConfirmationMessage(err));
+				if (confirmed) {
+					return handleUpdateTicketStatus(e, status, userId, {
+						...extraData,
+						forceAcceptOverLimit: true,
+					});
+				}
+				setLoading(false);
+				return;
+			}
 			setLoading(false);
 			toastError(err);
 		}

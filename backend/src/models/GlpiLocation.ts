@@ -7,10 +7,11 @@ import {
   PrimaryKey,
   AutoIncrement,
   AllowNull,
-  Unique,
   DataType,
-  Default
+  Default,
+  ForeignKey
 } from "sequelize-typescript";
+import GlpiConfiguration from "./GlpiConfiguration";
 
 @Table({ tableName: "GlpiLocations" })
 class GlpiLocation extends Model<GlpiLocation> {
@@ -20,9 +21,12 @@ class GlpiLocation extends Model<GlpiLocation> {
   id: number;
 
   @AllowNull(false)
-  @Unique
   @Column
   glpiId: number;
+
+  @ForeignKey(() => GlpiConfiguration)
+  @Column
+  glpiConfigurationId: number;
 
   @AllowNull(false)
   @Column

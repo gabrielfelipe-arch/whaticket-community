@@ -4,11 +4,18 @@ import {
   Button,
   Checkbox,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormControlLabel,
   Grid,
+  IconButton,
   InputAdornment,
   LinearProgress,
   MenuItem,
   Paper,
+  Switch,
   Tab,
   Tabs,
   TextField,
@@ -17,6 +24,12 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import SearchIcon from "@material-ui/icons/Search";
+import SettingsApplicationsIcon from "@material-ui/icons/SettingsApplications";
+import VpnKeyIcon from "@material-ui/icons/VpnKey";
+import AssignmentIcon from "@material-ui/icons/Assignment";
+import ViewListIcon from "@material-ui/icons/ViewList";
+import MessageIcon from "@material-ui/icons/Message";
+import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import { toast } from "react-toastify";
 
 import api from "../../services/api";
@@ -32,6 +45,29 @@ const useStyles = makeStyles(theme => ({
   },
   pageHeader: {
     marginBottom: theme.spacing(2)
+  },
+  glpiHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: theme.spacing(2),
+    flexWrap: "wrap",
+    marginBottom: theme.spacing(2)
+  },
+  glpiHeaderSearch: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: theme.spacing(1),
+    minWidth: 320,
+    flex: "0 1 520px",
+    [theme.breakpoints.down("xs")]: {
+      minWidth: "100%",
+      flex: "1 1 100%"
+    }
+  },
+  glpiSearchField: {
+    flex: 1
   },
   tabs: {
     marginBottom: theme.spacing(2),
@@ -163,7 +199,61 @@ const useStyles = makeStyles(theme => ({
     display: "flex",
     alignItems: "flex-start",
     paddingTop: theme.spacing(0.5)
-  }
+  },
+  glpiSection: {
+    padding: 0,
+    marginTop: theme.spacing(2),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    borderLeft: `4px solid ${theme.palette.primary.main}`,
+    background: theme.palette.background.paper,
+    overflow: "hidden"
+  },
+  glpiSectionHeader: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1.25),
+    padding: theme.spacing(1.25, 1.75),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.type === "dark" ? "rgba(37, 99, 235, 0.12)" : "#eef4ff"
+  },
+  glpiSectionIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: theme.palette.primary.main,
+    background: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`
+  },
+  glpiSectionBody: {
+    padding: theme.spacing(1.75)
+  },
+  titleFieldHighlight: {
+    padding: theme.spacing(1.25),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.primary.light}`,
+    background: theme.palette.type === "dark" ? "rgba(37, 99, 235, 0.1)" : "#f3f7ff"
+  },
+  compactSwitches: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: theme.spacing(0.75, 2),
+    marginTop: theme.spacing(0.5)
+  },
+  selectedSummary: {
+    marginTop: theme.spacing(0.75),
+    color: theme.palette.text.secondary
+  },
+  emptyState: {
+    padding: theme.spacing(4),
+    borderRadius: 8,
+    border: `1px dashed ${theme.palette.divider}`,
+    background: theme.palette.type === "dark" ? theme.palette.background.default : "#f8fafc",
+    textAlign: "center"
+  },
 }));
 
 const defaultSettings = {
@@ -187,7 +277,9 @@ const defaultSettings = {
   glpiAutoCloseEnabled: "false",
   glpiAutoCloseMessage: "Atendimento finalizado automaticamente apos abertura do chamado #{{glpiTicketNumber}}.",
   glpiAutoCloseReasonId: "",
-  glpiTimeoutMs: "15000"
+  glpiTimeoutMs: "15000",
+  glpiConfigurationName: "GLPI Padrao",
+  whatsappIds: []
 };
 
 const countRows = data => {
@@ -268,6 +360,7 @@ const SearchTextField = params => (
   <TextField
     {...params}
     fullWidth
+    size="small"
     margin="dense"
     variant="outlined"
     InputProps={{
@@ -282,6 +375,22 @@ const SearchTextField = params => (
       )
     }}
   />
+);
+
+const GlpiSectionHeader = ({ classes, icon: Icon, title, description }) => (
+  <div className={classes.glpiSectionHeader}>
+    <div className={classes.glpiSectionIcon}>
+      {Icon ? <Icon fontSize="small" /> : null}
+    </div>
+    <div>
+      <Typography variant="subtitle1">{title}</Typography>
+      {description && (
+        <Typography variant="body2" color="textSecondary">
+          {description}
+        </Typography>
+      )}
+    </div>
+  </div>
 );
 
 const createLocalWhatsappMaintenance = action => ({
@@ -311,7 +420,11 @@ const Integrations = () => {
   const [settings, setSettings] = useState(defaultSettings);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [syncing, setSyncing] = useState("");
+  const [glpiConfigurations, setGlpiConfigurations] = useState([]);
+  const [selectedGlpiConfigurationId, setSelectedGlpiConfigurationId] = useState("");
+  const [newGlpiConfigOpen, setNewGlpiConfigOpen] = useState(false);
+  const [newGlpiConfigName, setNewGlpiConfigName] = useState("");
+  const [whatsapps, setWhatsapps] = useState([]);
   const [tab, setTab] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [whatsappStatus, setWhatsappStatus] = useState(null);
@@ -325,15 +438,38 @@ const Integrations = () => {
     closingReasons: []
   });
 
-  const loadSettings = async () => {
+  const loadSettings = async (preferredConfigurationId = selectedGlpiConfigurationId) => {
     try {
-      const [{ data }, categories, entities, locations, closingReasons] = await Promise.all([
-        api.get("/glpi/config"),
-        api.get("/glpi/categories").catch(() => ({ data: [] })),
-        api.get("/glpi/entities").catch(() => ({ data: [] })),
-        api.get("/glpi/locations").catch(() => ({ data: [] })),
+      const [configurationsResponse, whatsappsResponse, closingReasons] = await Promise.all([
+        api.get("/glpi/configurations").catch(() => ({ data: [] })),
+        api.get("/whatsapp/").catch(() => ({ data: [] })),
         api.get("/closing-reasons").catch(() => ({ data: [] }))
       ]);
+      const configurations = Array.isArray(configurationsResponse.data) ? configurationsResponse.data : [];
+      const configurationId = preferredConfigurationId || "";
+      setGlpiConfigurations(configurations);
+      setWhatsapps(Array.isArray(whatsappsResponse.data) ? whatsappsResponse.data : []);
+
+      if (!configurationId) {
+        setSelectedGlpiConfigurationId("");
+        setSettings(defaultSettings);
+        setCatalogs({
+          categories: [],
+          entities: [],
+          locations: [],
+          closingReasons: Array.isArray(closingReasons.data) ? closingReasons.data : []
+        });
+        return;
+      }
+
+      const params = configurationId ? { configurationId } : {};
+      const [{ data }, categories, entities, locations] = await Promise.all([
+        api.get("/glpi/config", { params }),
+        api.get("/glpi/categories", { params }).catch(() => ({ data: [] })),
+        api.get("/glpi/entities", { params }).catch(() => ({ data: [] })),
+        api.get("/glpi/locations", { params }).catch(() => ({ data: [] }))
+      ]);
+      setSelectedGlpiConfigurationId(data?.configurationId || configurationId || "");
       setSettings({ ...defaultSettings, ...(data || {}) });
       setCatalogs({
         categories: Array.isArray(categories.data) ? categories.data : [],
@@ -431,8 +567,35 @@ const Integrations = () => {
     setSettings(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleBooleanSetting = name => event => {
+    handleSettingValue(name, event.target.checked ? "true" : "false");
+  };
+
+  const handleGlpiEnabledChange = event => {
+    handleSettingValue("glpiEnabled", event.target.checked ? "enabled" : "disabled");
+  };
+
+  const createGlpiConfiguration = async () => {
+    const name = newGlpiConfigName.trim();
+    if (!name) {
+      toast.warning("Informe o nome da configuracao GLPI.");
+      return;
+    }
+    try {
+      const { data } = await api.post("/glpi/configurations", { name });
+      setNewGlpiConfigOpen(false);
+      setNewGlpiConfigName("");
+      setSelectedGlpiConfigurationId(data.id);
+      await loadSettings(data.id);
+      toast.success("Configuracao GLPI criada.");
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const entityLocationRules = parseEntityLocationRules(settings.glpiEntityLocationRules);
   const hasDefaultGlpiEntity = Boolean(settings.glpiAutoEntityId);
+  const hasDefaultGlpiLocation = Boolean(settings.glpiAutoLocationId);
   const whatsappMaintenance = whatsappStatus?.maintenance?.steps?.length
     ? whatsappStatus.maintenance
     : localWhatsappMaintenance;
@@ -529,16 +692,19 @@ const Integrations = () => {
   const defaultEntityLocations = hasDefaultGlpiEntity
     ? locationsByEntity(settings.glpiAutoEntityId)
     : catalogs.locations;
+  const selectedConfiguredLocations = settings.glpiAutoLocationId
+    ? filterByGlpiIds(defaultEntityLocations, settings.glpiAutoLocationId)
+    : filterByGlpiIds(defaultEntityLocations, settings.glpiAllowedFormLocationIds);
 
   const loadLocationsForEntity = async entityId => {
     if (!entityId) return [];
 
     try {
-      const { data } = await api.get("/glpi/locations", { params: { entityId } });
+      const { data } = await api.get("/glpi/locations", { params: { entityId, configurationId: selectedGlpiConfigurationId || undefined } });
       const rows = Array.isArray(data) ? data : [];
       const parentId = !rows.length ? getEntityParentId(entityId) : null;
       const parentRows = parentId
-        ? (await api.get("/glpi/locations", { params: { entityId: parentId } }).catch(() => ({ data: [] }))).data
+        ? (await api.get("/glpi/locations", { params: { entityId: parentId, configurationId: selectedGlpiConfigurationId || undefined } }).catch(() => ({ data: [] }))).data
         : [];
       const mergedRows = [...rows, ...(Array.isArray(parentRows) ? parentRows : [])];
 
@@ -619,19 +785,36 @@ const Integrations = () => {
   };
 
   const handleDefaultLocationChange = option => {
-    const locationId = option?.glpiId ? String(option.glpiId) : "";
-    const entityId = option?.entityId ? String(option.entityId) : "";
+    const selected = Array.isArray(option) ? option : option ? [option] : [];
+    const locationIds = selected.map(location => Number(location.glpiId)).filter(locationId => Number.isInteger(locationId) && locationId > 0);
+    const singleLocationId = locationIds.length === 1 ? String(locationIds[0]) : "";
+    const entityIds = Array.from(new Set(
+      selected.map(location => Number(location.entityId)).filter(entityId => Number.isInteger(entityId) && entityId > 0)
+    ));
+    const entityId = entityIds.length === 1 ? String(entityIds[0]) : "";
 
     setSettings(prev => ({
       ...prev,
-      glpiAutoLocationId: locationId,
-      glpiAutoEntityId: entityId || prev.glpiAutoEntityId
+      glpiAutoLocationId: singleLocationId,
+      glpiAutoEntityId: entityId || prev.glpiAutoEntityId,
+      glpiAllowedFormLocationIds: locationIds.length > 1 ? locationIds.join(",") : "",
+      glpiAllowedFormEntityIds: entityId ? "" : prev.glpiAllowedFormEntityIds
     }));
 
     if (entityId && entityId !== settings.glpiAutoEntityId) {
       loadLocationsForEntity(entityId);
       toast.info("Entidade padrao preenchida automaticamente pela localizacao selecionada.");
     }
+  };
+
+  const handleDefaultEntityChange = option => {
+    const entityId = option?.glpiId ? String(option.glpiId) : "";
+    setSettings(prev => ({
+      ...prev,
+      glpiAutoEntityId: entityId,
+      glpiAutoLocationId: "",
+      glpiAllowedFormEntityIds: entityId ? "" : prev.glpiAllowedFormEntityIds
+    }));
   };
 
   const saveSettings = async () => {
@@ -644,7 +827,11 @@ const Integrations = () => {
       }
 
       setSaving(true);
-      await api.put("/glpi/config", settings);
+      await api.put("/glpi/config", {
+        ...settings,
+        glpiAllowedFormEntityIds: "",
+        configurationId: selectedGlpiConfigurationId || settings.configurationId || undefined
+      });
       toast.success("Integracao GLPI salva com sucesso.");
       setStatusMessage("Configuracao salva. Se alterou tokens, rode o teste de conexao antes de sincronizar.");
       loadSettings();
@@ -659,18 +846,23 @@ const Integrations = () => {
   const testConnection = async () => {
     try {
       setTesting(true);
-      const { data } = await api.post("/glpi/test-connection");
-      const entitiesCount = countRows(data?.entities);
-      const categoriesCount = countRows(data?.categories);
-      const locationsCount = countRows(data?.locations);
+      const { data } = await api.post("/glpi/test-connection", {}, {
+        params: { configurationId: selectedGlpiConfigurationId || undefined }
+      });
+      const entitiesCount = data?.synced?.entities ?? countRows(data?.entities);
+      const categoriesCount = data?.synced?.categories ?? countRows(data?.categories);
+      const locationsCount = data?.synced?.locations ?? countRows(data?.locations);
       const details = [
         entitiesCount !== undefined ? `entidades: ${entitiesCount}` : null,
         categoriesCount !== undefined ? `categorias: ${categoriesCount}` : null,
         locationsCount !== undefined ? `localizacoes: ${locationsCount}` : null
       ].filter(Boolean).join(", ");
-      const message = details ? `Conexao GLPI validada (${details}).` : data?.message || "Conexao GLPI validada.";
+      const message = details ? `Conexao GLPI validada e catalogos sincronizados (${details}).` : data?.message || "Conexao GLPI validada.";
       toast.success(message);
       setStatusMessage(message);
+      if (selectedGlpiConfigurationId) {
+        await loadSettings(selectedGlpiConfigurationId);
+      }
     } catch (err) {
       setStatusMessage(errorMessage(err));
       toastError(err);
@@ -679,23 +871,20 @@ const Integrations = () => {
     }
   };
 
-  const sync = async type => {
+  const deleteGlpiConfiguration = async () => {
+    if (!selectedGlpiConfigurationId) return;
+    const selected = glpiConfigurations.find(item => Number(item.id) === Number(selectedGlpiConfigurationId));
+    const name = selected?.name || settings.glpiConfigurationName || "esta configuracao";
+    if (!window.confirm(`Excluir a configuracao GLPI "${name}"? Os catalogos sincronizados desta configuracao tambem serao removidos.`)) return;
+
     try {
-      setSyncing(type);
-      const { data } = await api.post(`/glpi/sync/${type}`);
-      const labels = {
-        entities: "entidades",
-        categories: "categorias",
-        locations: "localizacoes"
-      };
-      const message = `${data.count || 0} ${labels[type] || "registros"} sincronizadas.`;
-      toast.success(message);
-      setStatusMessage(message);
+      await api.delete(`/glpi/configurations/${selectedGlpiConfigurationId}`);
+      toast.success("Configuracao GLPI excluida.");
+      setSelectedGlpiConfigurationId("");
+      await loadSettings("");
     } catch (err) {
       setStatusMessage(errorMessage(err));
       toastError(err);
-    } finally {
-      setSyncing("");
     }
   };
 
@@ -716,62 +905,169 @@ const Integrations = () => {
       <Paper className={classes.contentPaper} variant="outlined">
         {tab === 0 && (
           <>
-            <Typography variant="h6" className={classes.sectionTitle}>
-              GLPI
-            </Typography>
-            <Typography variant="body2" color="textSecondary" className={classes.helper}>
-              Use a API legada v1 do GLPI para App-Token, User Token, initSession e criacao de tickets.
-            </Typography>
+            <div className={classes.glpiHeader}>
+              <div>
+                <Typography variant="h6" className={classes.sectionTitle}>
+                  GLPI
+                </Typography>
+                <Typography variant="body2" color="textSecondary">
+                  Busque uma configuracao existente ou crie uma nova para vincular conexoes WhatsApp.
+                </Typography>
+              </div>
+              <div className={classes.glpiHeaderSearch}>
+                <Autocomplete
+                  className={classes.glpiSearchField}
+                  options={glpiConfigurations}
+                  value={glpiConfigurations.find(item => Number(item.id) === Number(selectedGlpiConfigurationId)) || null}
+                  getOptionLabel={option => option?.name || ""}
+                  getOptionSelected={(option, value) => Number(option.id) === Number(value.id)}
+                  noOptionsText={glpiConfigurations.length ? "Nenhuma configuracao encontrada" : "Nenhuma configuracao cadastrada"}
+                  onChange={(event, option) => {
+                    const id = option?.id || "";
+                    setSelectedGlpiConfigurationId(id);
+                    if (id) {
+                      loadSettings(id);
+                    } else {
+                      loadSettings("");
+                    }
+                  }}
+                  renderInput={params => <SearchTextField {...params} label="" placeholder="Pesquisar configuracao GLPI" />}
+                />
+                <Button color="primary" variant="outlined" onClick={() => {
+                  setNewGlpiConfigName("");
+                  setNewGlpiConfigOpen(true);
+                }}>
+                  Novo
+                </Button>
+                {selectedGlpiConfigurationId && (
+                  <IconButton aria-label="Excluir configuracao GLPI" onClick={deleteGlpiConfiguration}>
+                    <DeleteOutlineIcon />
+                  </IconButton>
+                )}
+              </div>
+            </div>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <TextField select fullWidth margin="dense" variant="outlined" label="Integracao GLPI" name="glpiEnabled" value={settings.glpiEnabled} onChange={handleChange}>
-                  <MenuItem value="disabled">Desativada</MenuItem>
-                  <MenuItem value="enabled">Ativada</MenuItem>
-                </TextField>
+            {!selectedGlpiConfigurationId ? (
+              <div className={classes.emptyState}>
+                <Typography variant="subtitle1">Nenhuma configuracao GLPI selecionada.</Typography>
+                <Typography variant="body2" color="textSecondary" style={{ marginTop: 6 }}>
+                  Pesquise uma configuracao no canto superior direito ou clique em Novo para comecar.
+                </Typography>
+              </div>
+            ) : (
+            <>
+            <div className={classes.compactSwitches}>
+              <FormControlLabel
+                control={<Switch color="primary" checked={settings.glpiEnabled === "enabled"} onChange={handleGlpiEnabledChange} />}
+                label="GLPI ativo nesta configuracao"
+              />
+            </div>
+
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={SettingsApplicationsIcon}
+                title="Configuracao e conexoes"
+                description="Nome da configuracao e numeros WhatsApp vinculados a este GLPI."
+              />
+              <div className={classes.glpiSectionBody}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={5}>
+                  <TextField fullWidth size="small" margin="dense" variant="outlined" label="Nome da configuracao" name="glpiConfigurationName" value={settings.glpiConfigurationName || ""} onChange={handleChange} />
+                </Grid>
+                <Grid item xs={12} md={7}>
+                  <Autocomplete
+                    multiple
+                    disableCloseOnSelect
+                    options={whatsapps}
+                    value={(whatsapps || []).filter(item => (settings.whatsappIds || []).map(Number).includes(Number(item.id)))}
+                    getOptionLabel={option => option?.name || `Conexao ${option?.id || ""}`}
+                    getOptionSelected={(option, value) => Number(option.id) === Number(value.id)}
+                    noOptionsText="Nenhuma conexao encontrada"
+                    onChange={(event, value) => handleSettingValue("whatsappIds", value.map(item => item.id))}
+                    renderOption={(option, { selected }) => (
+                      <>
+                        <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
+                        {option.name || `Conexao ${option.id}`}
+                      </>
+                    )}
+                    renderInput={params => <SearchTextField {...params} label="Conexoes vinculadas" placeholder="Pesquisar conexao" helperText="Cada conexao pode usar somente uma configuracao GLPI." />}
+                  />
+                  <Typography variant="body2" className={classes.selectedSummary}>
+                    {(settings.whatsappIds || []).length} conexao(oes) vinculada(s) a esta configuracao.
+                  </Typography>
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField select fullWidth margin="dense" variant="outlined" label="Modo GLPI" name="glpiAutomationMode" value={settings.glpiAutomationMode} onChange={handleChange}>
-                  <MenuItem value="manual">Manual</MenuItem>
-                  <MenuItem value="automatic">Automatico por formulario</MenuItem>
-                  <MenuItem value="hybrid">Flexivel</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField select fullWidth margin="dense" variant="outlined" label="Modo da API" name="glpiApiMode" value={settings.glpiApiMode} onChange={handleChange}>
+              </div>
+            </div>
+
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={VpnKeyIcon}
+                title="Credenciais da API"
+                description="Autenticacao, URLs e tempo limite usados por esta configuracao."
+              />
+              <div className={classes.glpiSectionBody}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={3}>
+                <TextField select fullWidth size="small" margin="dense" variant="outlined" label="Modo da API" name="glpiApiMode" value={settings.glpiApiMode} onChange={handleChange}>
                   <MenuItem value="legacy">API legada v1</MenuItem>
                 </TextField>
+                </Grid>
+                <Grid item xs={12} sm={3}>
+                <TextField fullWidth size="small" type="number" margin="dense" variant="outlined" label="Timeout da API (ms)" name="glpiTimeoutMs" value={settings.glpiTimeoutMs} onChange={handleChange} />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                <TextField fullWidth size="small" margin="dense" variant="outlined" label="URL da API GLPI" name="glpiApiUrl" value={settings.glpiApiUrl} onChange={handleChange} placeholder="http://10.80.11.210/api.php/v1" />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                <TextField fullWidth size="small" margin="dense" variant="outlined" label="URL web do GLPI" name="glpiBaseWebUrl" value={settings.glpiBaseWebUrl} onChange={handleChange} placeholder="http://10.80.11.210" helperText="Usada no link Abrir no GLPI." />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                <TextField fullWidth size="small" type="password" margin="dense" variant="outlined" label="App-Token" name="glpiAppToken" value={settings.glpiAppToken} onChange={handleChange} helperText="Valor mascarado mantem o token salvo." />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                <TextField fullWidth size="small" type="password" margin="dense" variant="outlined" label="User Token tecnico" name="glpiUserToken" value={settings.glpiUserToken} onChange={handleChange} helperText="Valor mascarado mantem o token salvo." />
+                </Grid>
               </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField fullWidth type="number" margin="dense" variant="outlined" label="Timeout da API (ms)" name="glpiTimeoutMs" value={settings.glpiTimeoutMs} onChange={handleChange} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth margin="dense" variant="outlined" label="URL da API GLPI" name="glpiApiUrl" value={settings.glpiApiUrl} onChange={handleChange} placeholder="http://10.80.11.210/api.php/v1" />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth margin="dense" variant="outlined" label="URL web do GLPI" name="glpiBaseWebUrl" value={settings.glpiBaseWebUrl} onChange={handleChange} placeholder="http://10.80.11.210" helperText="Usada para montar o link Abrir no GLPI." />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="password" margin="dense" variant="outlined" label="App-Token" name="glpiAppToken" value={settings.glpiAppToken} onChange={handleChange} helperText="Se ja estiver salvo, deixe o valor mascarado para manter." />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField fullWidth type="password" margin="dense" variant="outlined" label="User Token do usuario tecnico" name="glpiUserToken" value={settings.glpiUserToken} onChange={handleChange} helperText="Se ja estiver salvo, deixe o valor mascarado para manter." />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField select fullWidth margin="dense" variant="outlined" label="Permitir multiplos chamados por atendimento" name="glpiAllowMultipleTickets" value={settings.glpiAllowMultipleTickets} onChange={handleChange}>
-                  <MenuItem value="false">Nao</MenuItem>
-                  <MenuItem value="true">Sim</MenuItem>
-                </TextField>
+              </div>
+            </div>
+
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={AssignmentIcon}
+                title="Abertura de chamados"
+                description="Modo de criacao, titulo padrao e campos principais do chamado."
+              />
+              <div className={classes.glpiSectionBody}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={4} md={3}>
+                  <TextField select fullWidth size="small" margin="dense" variant="outlined" label="Modo de abertura" name="glpiAutomationMode" value={settings.glpiAutomationMode} onChange={handleChange}>
+                    <MenuItem value="manual">Manual</MenuItem>
+                    <MenuItem value="automatic">Automatico por formulario</MenuItem>
+                    <MenuItem value="hybrid">Flexivel</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={8} md={5}>
+                  <div className={classes.compactSwitches}>
+                    <FormControlLabel
+                      control={<Switch color="primary" checked={settings.glpiAllowMultipleTickets === "true"} onChange={handleBooleanSetting("glpiAllowMultipleTickets")} />}
+                      label="Permitir multiplos chamados por atendimento"
+                    />
+                  </div>
+                </Grid>
               </Grid>
               {["automatic", "hybrid"].includes(settings.glpiAutomationMode) && (
                 <>
+                  <Grid container spacing={2}>
                   <Grid item xs={12}>
-                    <Typography variant="subtitle1">Abertura automatica por formulario</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      O formulario coleta entidade/localizacao e respostas livres. A categoria e o titulo ficam padronizados aqui.
-                    </Typography>
+                    <div className={classes.titleFieldHighlight}>
+                      <TextField fullWidth size="small" margin="dense" variant="outlined" label="Titulo padrao do chamado" name="glpiAutoTitleTemplate" value={settings.glpiAutoTitleTemplate} onChange={handleChange} helperText="Variaveis: {{contactName}}, {{contactNumber}}, {{ticketId}}, {{formName}}, {{entityName}}, {{locationName}}" />
+                    </div>
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} md={4}>
                     <Autocomplete
                       options={catalogs.categories}
                       value={findByGlpiId(catalogs.categories, settings.glpiAutoCategoryId)}
@@ -782,198 +1078,201 @@ const Integrations = () => {
                       renderInput={params => <SearchTextField {...params} required label="Categoria padrao do chamado" placeholder="Pesquisar categoria" />}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} md={4}>
                     <Autocomplete
                       options={catalogs.entities}
                       value={findByGlpiId(catalogs.entities, settings.glpiAutoEntityId)}
                       getOptionLabel={entityOptionLabel}
                       getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                       noOptionsText="Nenhuma entidade encontrada"
-                      onChange={(event, option) => handleSettingValue("glpiAutoEntityId", option?.glpiId ? String(option.glpiId) : "")}
+                      onChange={(event, option) => handleDefaultEntityChange(option)}
                       renderInput={params => <SearchTextField {...params} label="Entidade padrao, se o formulario nao perguntar" placeholder="Pesquisar entidade" />}
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6}>
+                  <Grid item xs={12} md={4}>
                     <Autocomplete
+                      multiple
+                      disableCloseOnSelect
                       options={defaultEntityLocations}
-                      value={findByGlpiId(defaultEntityLocations, settings.glpiAutoLocationId)}
+                      value={selectedConfiguredLocations}
                       getOptionLabel={optionLabel}
                       getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                       noOptionsText={hasDefaultGlpiEntity ? "Nenhuma localizacao desta entidade" : "Nenhuma localizacao encontrada"}
                       onChange={(event, option) => handleDefaultLocationChange(option)}
-                      renderInput={params => <SearchTextField {...params} label="Localizacao padrao, opcional" placeholder="Pesquisar localizacao" helperText={hasDefaultGlpiEntity ? "Mostra somente localizacoes da entidade padrao." : "Ao escolher uma localizacao, a entidade padrao dela sera preenchida automaticamente."} />}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField fullWidth margin="dense" variant="outlined" label="Titulo padrao do chamado" name="glpiAutoTitleTemplate" value={settings.glpiAutoTitleTemplate} onChange={handleChange} helperText="Variaveis: {{contactName}}, {{contactNumber}}, {{ticketId}}, {{formName}}, {{entityName}}, {{locationName}}" />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Autocomplete
-                      multiple
-                      disableCloseOnSelect
-                      options={catalogs.entities}
-                      value={filterByGlpiIds(catalogs.entities, settings.glpiAllowedFormEntityIds)}
-                      getOptionLabel={entityOptionLabel}
-                      getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                      noOptionsText="Nenhuma entidade encontrada"
-                      onChange={(event, value) => handleSettingValue("glpiAllowedFormEntityIds", serializeIdList(value))}
-                      renderOption={(option, { selected }) => (
-                        <>
-                          <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
-                          {entityOptionLabel(option)}
-                        </>
-                      )}
-                      renderInput={params => <SearchTextField {...params} label="Entidades exibidas no formulario" placeholder="Pesquisar entidade" helperText="Se vazio, todas as entidades sincronizadas aparecem." />}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Autocomplete
-                      multiple
-                      disableCloseOnSelect
-                      options={catalogs.locations}
-                      value={filterByGlpiIds(catalogs.locations, settings.glpiAllowedFormLocationIds)}
-                      getOptionLabel={optionLabel}
-                      getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                      noOptionsText="Nenhuma localizacao encontrada"
-                      onChange={(event, value) => handleSettingValue("glpiAllowedFormLocationIds", serializeIdList(value))}
                       renderOption={(option, { selected }) => (
                         <>
                           <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
                           {optionLabel(option)}
                         </>
                       )}
-                      renderInput={params => <SearchTextField {...params} label="Filtro global de localizacoes" placeholder="Pesquisar localizacao" helperText="Usado apenas quando a entidade nao tiver uma regra especifica." />}
+                      renderInput={params => <SearchTextField {...params} label="Localizacoes do formulario" placeholder="Pesquisar localizacao" helperText="Uma localizacao vira padrao. Mais de uma aparece como opcao para o cliente." />}
                     />
                   </Grid>
-                  <Grid item xs={12}>
-                    <div className={classes.automaticSection}>
-                      <div className={classes.ruleHeader}>
-                        <div>
-                          <Typography variant="subtitle1">Regras de localizacao por entidade</Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            Defina quais localizacoes aparecem para cada entidade. Use esta area quando o formulario puder trabalhar com mais de uma entidade.
-                          </Typography>
-                        </div>
-                        <Button color="primary" variant="outlined" onClick={addEntityLocationRule} disabled={hasDefaultGlpiEntity}>
-                          Adicionar regra
-                        </Button>
-                      </div>
-                      {hasDefaultGlpiEntity && (
-                        <div className={classes.warningNotice}>
-                          <Typography variant="body2">
-                            Regras por entidade desabilitadas porque existe uma Entidade padrao selecionada.
-                          </Typography>
-                          <Typography variant="body2" color="textSecondary">
-                            Com entidade padrao, o chamado sempre usa essa entidade fixa. Para configurar regras por unidade, limpe o campo Entidade padrao acima.
-                          </Typography>
-                        </div>
-                      )}
-                      {!entityLocationRules.length && !hasDefaultGlpiEntity && (
-                        <Typography variant="body2" color="textSecondary">
-                          Sem regra especifica: o formulario usa o filtro global de localizacoes; se ele estiver vazio, mostra todas as localizacoes da entidade selecionada.
-                        </Typography>
-                      )}
-                      {entityLocationRules.map((rule, index) => {
-                        const entityLocations = locationsByEntity(rule.entityId);
-                        const selectedAllowedLocations = entityLocations.filter(location =>
-                          (rule.allowedLocationIds || []).includes(Number(location.glpiId))
-                        );
-                        const defaultLocationOptions = rule.allowedLocationIds?.length
-                          ? selectedAllowedLocations
-                          : entityLocations;
+                  </Grid>
+                </>
+              )}
+              </div>
+            </div>
 
-                        return (
-                          <div className={classes.ruleRow} key={`${rule.entityId || "new"}-${index}`}>
-                            <Grid container spacing={2} alignItems="flex-start">
-                              <Grid item xs={12} md={3} className={classes.ruleField}>
-                                <Autocomplete
-                                  options={catalogs.entities}
-                                  value={findByGlpiId(catalogs.entities, rule.entityId)}
-                                  getOptionLabel={entityOptionLabel}
-                                  getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                                  noOptionsText="Nenhuma entidade encontrada"
-                                  disabled={hasDefaultGlpiEntity}
-                                  onChange={(event, option) => {
-                                    const entityId = option?.glpiId ? Number(option.glpiId) : "";
-                                    updateEntityLocationRule(index, {
-                                      entityId,
-                                      allowedLocationIds: [],
-                                      defaultLocationId: ""
-                                    });
-                                    loadLocationsForEntity(entityId);
-                                  }}
-                                  renderInput={params => <SearchTextField {...params} label="Entidade" placeholder="Pesquisar entidade" />}
-                                />
-                              </Grid>
-                              <Grid item xs={12} md={5} className={classes.ruleField}>
-                                <Autocomplete
-                                  multiple
-                                  disableCloseOnSelect
-                                  options={entityLocations}
-                                  value={selectedAllowedLocations}
-                                  getOptionLabel={optionLabel}
-                                  getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                                  noOptionsText={rule.entityId ? "Nenhuma localizacao desta entidade" : "Selecione uma entidade primeiro"}
-                                  disabled={hasDefaultGlpiEntity}
-                                  onChange={(event, value) => updateEntityLocationRule(index, {
-                                    allowedLocationIds: value.map(location => Number(location.glpiId)),
-                                    defaultLocationId: value.some(location => Number(location.glpiId) === Number(rule.defaultLocationId))
-                                      ? rule.defaultLocationId
-                                      : ""
-                                  })}
-                                  renderOption={(option, { selected }) => (
-                                    <>
-                                      <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
-                                      {optionLabel(option)}
-                                    </>
-                                  )}
-                                  renderInput={params => <SearchTextField {...params} label="Localizacoes exibidas" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas desta entidade." />}
-                                />
-                              </Grid>
-                              <Grid item xs={12} md={3} className={classes.ruleField}>
-                                <Autocomplete
-                                  options={defaultLocationOptions}
-                                  value={findByGlpiId(defaultLocationOptions, rule.defaultLocationId)}
-                                  getOptionLabel={optionLabel}
-                                  getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                                  noOptionsText="Nenhuma localizacao disponivel"
-                                  disabled={hasDefaultGlpiEntity}
-                                  onChange={(event, option) => updateEntityLocationRule(index, {
-                                    defaultLocationId: option?.glpiId ? Number(option.glpiId) : ""
-                                  })}
-                                  renderInput={params => <SearchTextField {...params} label="Localizacao padrao" placeholder="Pesquisar localizacao" />}
-                                />
-                              </Grid>
-                              <Grid item xs={12} md={1} className={classes.ruleAction}>
-                                <Button fullWidth color="secondary" variant="outlined" onClick={() => removeEntityLocationRule(index)}>
-                                  Remover
-                                </Button>
-                              </Grid>
-                            </Grid>
+            {["automatic", "hybrid"].includes(settings.glpiAutomationMode) && (
+            <>
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={ViewListIcon}
+                title="Catalogo do formulario"
+                description="Use as regras quando este GLPI atende multiplas unidades e o cliente precisa escolher a unidade/localizacao."
+              />
+              <div className={classes.glpiSectionBody}>
+                <Grid container spacing={2}>
+                  {!hasDefaultGlpiEntity && !hasDefaultGlpiLocation && (
+                    <Grid item xs={12}>
+                      <div className={classes.automaticSection}>
+                        <div className={classes.ruleHeader}>
+                          <div>
+                            <Typography variant="subtitle1">Regras de localizacao por entidade</Typography>
+                            <Typography variant="body2" color="textSecondary">
+                              Configure aqui quando o GLPI tiver multiplas unidades. Cada entidade pode exibir um conjunto proprio de localizacoes.
+                            </Typography>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <Button color="primary" variant="outlined" onClick={addEntityLocationRule}>
+                            Adicionar regra
+                          </Button>
+                        </div>
+                        {!entityLocationRules.length && (
+                          <Typography variant="body2" color="textSecondary">
+                            Sem regra especifica: o formulario mostra as localizacoes da entidade selecionada.
+                          </Typography>
+                        )}
+                        {entityLocationRules.map((rule, index) => {
+                          const entityLocations = locationsByEntity(rule.entityId);
+                          const selectedAllowedLocations = entityLocations.filter(location =>
+                            (rule.allowedLocationIds || []).includes(Number(location.glpiId))
+                          );
+                          const defaultLocationOptions = rule.allowedLocationIds?.length
+                            ? selectedAllowedLocations
+                            : entityLocations;
+
+                          return (
+                            <div className={classes.ruleRow} key={`${rule.entityId || "new"}-${index}`}>
+                              <Grid container spacing={2} alignItems="flex-start">
+                                <Grid item xs={12} md={3} className={classes.ruleField}>
+                                  <Autocomplete
+                                    options={catalogs.entities}
+                                    value={findByGlpiId(catalogs.entities, rule.entityId)}
+                                    getOptionLabel={entityOptionLabel}
+                                    getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                                    noOptionsText="Nenhuma entidade encontrada"
+                                    onChange={(event, option) => {
+                                      const entityId = option?.glpiId ? Number(option.glpiId) : "";
+                                      updateEntityLocationRule(index, {
+                                        entityId,
+                                        allowedLocationIds: [],
+                                        defaultLocationId: ""
+                                      });
+                                      loadLocationsForEntity(entityId);
+                                    }}
+                                    renderInput={params => <SearchTextField {...params} label="Entidade" placeholder="Pesquisar entidade" />}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={5} className={classes.ruleField}>
+                                  <Autocomplete
+                                    multiple
+                                    disableCloseOnSelect
+                                    options={entityLocations}
+                                    value={selectedAllowedLocations}
+                                    getOptionLabel={optionLabel}
+                                    getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                                    noOptionsText={rule.entityId ? "Nenhuma localizacao desta entidade" : "Selecione uma entidade primeiro"}
+                                    onChange={(event, value) => updateEntityLocationRule(index, {
+                                      allowedLocationIds: value.map(location => Number(location.glpiId)),
+                                      defaultLocationId: value.some(location => Number(location.glpiId) === Number(rule.defaultLocationId))
+                                        ? rule.defaultLocationId
+                                        : ""
+                                    })}
+                                    renderOption={(option, { selected }) => (
+                                      <>
+                                        <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
+                                        {optionLabel(option)}
+                                      </>
+                                    )}
+                                    renderInput={params => <SearchTextField {...params} label="Localizacoes exibidas" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas desta entidade." />}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={3} className={classes.ruleField}>
+                                  <Autocomplete
+                                    options={defaultLocationOptions}
+                                    value={findByGlpiId(defaultLocationOptions, rule.defaultLocationId)}
+                                    getOptionLabel={optionLabel}
+                                    getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
+                                    noOptionsText="Nenhuma localizacao disponivel"
+                                    onChange={(event, option) => updateEntityLocationRule(index, {
+                                      defaultLocationId: option?.glpiId ? Number(option.glpiId) : ""
+                                    })}
+                                    renderInput={params => <SearchTextField {...params} label="Localizacao padrao" placeholder="Pesquisar localizacao" />}
+                                  />
+                                </Grid>
+                                <Grid item xs={12} md={1} className={classes.ruleAction}>
+                                  <Button fullWidth color="secondary" variant="outlined" onClick={() => removeEntityLocationRule(index)}>
+                                    Remover
+                                  </Button>
+                                </Grid>
+                              </Grid>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Grid>
+                  )}
+                  {(hasDefaultGlpiEntity || hasDefaultGlpiLocation) && (
+                    <Grid item xs={12}>
+                      <div className={classes.warningNotice}>
+                        <Typography variant="body2">
+                          Regras por entidade ocultas porque existe um destino padrao selecionado.
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {hasDefaultGlpiLocation
+                            ? "Com localizacao padrao, o chamado sempre usa essa localizacao e nao precisa listar localizacoes para o cliente."
+                            : "Com entidade padrao, o formulario usa uma unica entidade. Para configurar regras por unidade, limpe a entidade padrao acima."}
+                        </Typography>
+                      </div>
+                    </Grid>
+                  )}
+                </Grid>
+              </div>
+            </div>
+
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={MessageIcon}
+                title="Mensagens e encerramento"
+                description="Resumo para o cliente, mensagem de sucesso e encerramento automatico."
+              />
+              <div className={classes.glpiSectionBody}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <TextField fullWidth size="small" multiline rows={2} margin="dense" variant="outlined" label="Mensagem apos abrir chamado" name="glpiAutoSuccessMessage" value={settings.glpiAutoSuccessMessage} onChange={handleChange} helperText="Use {{glpiTicketNumber}} para informar o numero do chamado." />
                   </Grid>
                   <Grid item xs={12}>
-                    <TextField fullWidth multiline rows={2} margin="dense" variant="outlined" label="Mensagem apos abrir chamado" name="glpiAutoSuccessMessage" value={settings.glpiAutoSuccessMessage} onChange={handleChange} helperText="Use {{glpiTicketNumber}} para informar o numero do chamado." />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField select fullWidth margin="dense" variant="outlined" label="Mostrar resumo antes de abrir chamado" name="glpiRequireConfirmationBeforeCreate" value={settings.glpiRequireConfirmationBeforeCreate} onChange={handleChange} helperText="Quando ativo, o cliente confirma, cancela ou refaz antes do GLPI.">
-                      <MenuItem value="true">Sim</MenuItem>
-                      <MenuItem value="false">Nao</MenuItem>
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <TextField select fullWidth margin="dense" variant="outlined" label="Finalizar atendimento automaticamente" name="glpiAutoCloseEnabled" value={settings.glpiAutoCloseEnabled} onChange={handleChange}>
-                      <MenuItem value="false">Nao</MenuItem>
-                      <MenuItem value="true">Sim</MenuItem>
-                    </TextField>
+                    <div className={classes.compactSwitches}>
+                      <FormControlLabel
+                        control={<Switch color="primary" checked={settings.glpiRequireConfirmationBeforeCreate !== "false"} onChange={handleBooleanSetting("glpiRequireConfirmationBeforeCreate")} />}
+                        label="Mostrar resumo antes de abrir chamado"
+                      />
+                      <FormControlLabel
+                        control={<Switch color="primary" checked={settings.glpiAutoCloseEnabled === "true"} onChange={handleBooleanSetting("glpiAutoCloseEnabled")} />}
+                        label="Finalizar atendimento automaticamente"
+                      />
+                    </div>
+                    <Typography variant="body2" color="textSecondary">
+                      O resumo permite confirmar, cancelar ou refazer antes de criar o chamado.
+                    </Typography>
                   </Grid>
                   {settings.glpiAutoCloseEnabled === "true" && (
                     <>
                       <Grid item xs={12} sm={6}>
-                        <TextField select fullWidth required margin="dense" variant="outlined" label="Motivo de encerramento" name="glpiAutoCloseReasonId" value={settings.glpiAutoCloseReasonId} onChange={handleChange}>
+                        <TextField select fullWidth size="small" required margin="dense" variant="outlined" label="Motivo de encerramento" name="glpiAutoCloseReasonId" value={settings.glpiAutoCloseReasonId} onChange={handleChange}>
                           <MenuItem value="">Selecione</MenuItem>
                           {catalogs.closingReasons.map(reason => (
                             <MenuItem key={reason.id} value={String(reason.id)}>
@@ -983,26 +1282,19 @@ const Integrations = () => {
                         </TextField>
                       </Grid>
                       <Grid item xs={12}>
-                        <TextField fullWidth multiline rows={2} margin="dense" variant="outlined" label="Mensagem de encerramento automatico" name="glpiAutoCloseMessage" value={settings.glpiAutoCloseMessage} onChange={handleChange} />
+                        <TextField fullWidth size="small" multiline rows={2} margin="dense" variant="outlined" label="Mensagem de encerramento automatico" name="glpiAutoCloseMessage" value={settings.glpiAutoCloseMessage} onChange={handleChange} />
                       </Grid>
                     </>
                   )}
-                </>
-              )}
-            </Grid>
+                </Grid>
+              </div>
+            </div>
+            </>
+            )}
 
             <div className={classes.actions}>
               <Button variant="outlined" color="primary" onClick={testConnection} disabled={testing}>
-                {testing ? "Testando..." : "Testar conexao"}
-              </Button>
-              <Button variant="outlined" color="primary" onClick={() => sync("entities")} disabled={!!syncing}>
-                {syncing === "entities" ? "Sincronizando..." : "Sincronizar entidades"}
-              </Button>
-              <Button variant="outlined" color="primary" onClick={() => sync("categories")} disabled={!!syncing}>
-                {syncing === "categories" ? "Sincronizando..." : "Sincronizar categorias"}
-              </Button>
-              <Button variant="outlined" color="primary" onClick={() => sync("locations")} disabled={!!syncing}>
-                {syncing === "locations" ? "Sincronizando..." : "Sincronizar localizacoes"}
+                {testing ? "Testando e sincronizando..." : "Testar e sincronizar"}
               </Button>
               <Button color="primary" variant="contained" onClick={saveSettings} disabled={saving}>
                 {saving ? "Salvando..." : "Salvar integracao"}
@@ -1014,6 +1306,38 @@ const Integrations = () => {
                 {statusMessage}
               </Typography>
             )}
+            </>
+            )}
+            <Dialog
+              open={newGlpiConfigOpen}
+              onClose={() => setNewGlpiConfigOpen(false)}
+              maxWidth="xs"
+              fullWidth
+            >
+              <DialogTitle>Nova configuracao GLPI</DialogTitle>
+              <DialogContent>
+                <TextField
+                  autoFocus
+                  fullWidth
+                  margin="dense"
+                  variant="outlined"
+                  label="Nome da configuracao"
+                  value={newGlpiConfigName}
+                  onChange={event => setNewGlpiConfigName(event.target.value)}
+                  onKeyDown={event => {
+                    if (event.key === "Enter") createGlpiConfiguration();
+                  }}
+                />
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setNewGlpiConfigOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button color="primary" variant="contained" onClick={createGlpiConfiguration}>
+                  Criar
+                </Button>
+              </DialogActions>
+            </Dialog>
           </>
         )}
         {tab === 1 && (

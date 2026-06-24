@@ -63,10 +63,10 @@ const fetchCatalogRows = async (session: GlpiSession, type: SyncType): Promise<a
   return Array.from(rowsById.values());
 };
 
-const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
+const SyncGlpiCatalogService = async (type: SyncType, userId?: number, configurationId?: number | null) => {
   let session;
   try {
-    session = await initGlpiSession();
+    session = await initGlpiSession({ configurationId });
     const rows = await fetchCatalogRows(session, type);
     const syncedAt = new Date();
 
@@ -78,6 +78,7 @@ const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
           : GlpiLocation;
       const values = {
         glpiId: Number(row.id),
+        glpiConfigurationId: configurationId || null,
         name: row.name || getName(row),
         completeName: getName(row),
         ...(type === "locations" ? { entityId: getEntityId(row) } : {}),
@@ -85,7 +86,9 @@ const SyncGlpiCatalogService = async (type: SyncType, userId?: number) => {
         rawData: JSON.stringify(row),
         lastSyncAt: syncedAt
       };
-      const existing = await model.findOne({ where: { glpiId: values.glpiId } });
+      const existing = await model.findOne({
+        where: { glpiId: values.glpiId, glpiConfigurationId: configurationId || null } as any
+      });
       if (existing) {
         await existing.update(values);
       } else {

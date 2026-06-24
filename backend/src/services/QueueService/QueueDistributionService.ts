@@ -256,11 +256,13 @@ export const distributeTicketIfNeeded = async (
 export const validateManualTicketAcceptance = async ({
   ticketId,
   userId,
-  requesterProfile
+  requesterProfile,
+  forceAcceptOverLimit = false
 }: {
   ticketId: number | string;
   userId: number;
   requesterProfile: string;
+  forceAcceptOverLimit?: boolean;
 }): Promise<void> => {
   const ticket = await ticketWithDistributionIncludes(ticketId);
   const queue = ticket.queue;
@@ -276,7 +278,7 @@ export const validateManualTicketAcceptance = async ({
       userId,
       action: "manual_accept_blocked_status",
       distributionMode: queue.distributionMode,
-      attendantStatus: user.operationalStatus,
+      attendantStatus: user?.operationalStatus,
       reason: "Atendente não está Online."
     });
     throw new AppError("Você precisa estar Online para aceitar novos atendimentos.", 400);
@@ -296,6 +298,39 @@ export const validateManualTicketAcceptance = async ({
     queue.overflowAction !== "allow_overflow" &&
     requesterProfile !== "admin"
   ) {
+    if (queue.overflowAction === "warn_allow" && !forceAcceptOverLimit) {
+      await createLog({
+        ticketId: ticket.id,
+        queueId: queue.id,
+        userId,
+        action: "manual_accept_warn_limit",
+        distributionMode: queue.distributionMode,
+        attendantStatus: user.operationalStatus,
+        userActiveTickets: activeCount,
+        reason: "Limite maximo de atendimentos ativos atingido; aguardando confirmacao do atendente.",
+        metadata: { limit }
+      });
+      throw new AppError(
+        `QUEUE_LIMIT_CONFIRM_REQUIRED|Voce ja possui ${activeCount} atendimento(s) em andamento nesta fila. O limite configurado e ${limit}. Deseja aceitar mesmo assim?`,
+        409
+      );
+    }
+
+    if (queue.overflowAction === "warn_allow" && forceAcceptOverLimit) {
+      await createLog({
+        ticketId: ticket.id,
+        queueId: queue.id,
+        userId,
+        action: "manual_accept_allowed_over_limit",
+        distributionMode: queue.distributionMode,
+        attendantStatus: user.operationalStatus,
+        userActiveTickets: activeCount,
+        reason: "Atendente confirmou aceite acima do limite configurado.",
+        metadata: { limit }
+      });
+      return;
+    }
+
     await createLog({
       ticketId: ticket.id,
       queueId: queue.id,
@@ -313,6 +348,7 @@ export const validateManualTicketAcceptance = async ({
   }
 
   if (
+    false &&
     queue.blockIfUserHasStalledTicket &&
     queue.stalledTicketAction === "block" &&
     requesterProfile !== "admin" &&
@@ -324,7 +360,7 @@ export const validateManualTicketAcceptance = async ({
       userId,
       action: "manual_accept_blocked_stalled_ticket",
       distributionMode: queue.distributionMode,
-      attendantStatus: user.operationalStatus,
+      attendantStatus: user?.operationalStatus,
       userActiveTickets: activeCount,
       reason: "Atendente possui atendimento parado."
     });

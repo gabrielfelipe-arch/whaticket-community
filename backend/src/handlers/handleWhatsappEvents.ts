@@ -44,7 +44,12 @@ import ExecuteAiToolService, { AiToolName } from "../services/AiServices/AiToolS
 import uploadConfig from "../config/upload";
 import RenderMessageVariables from "../helpers/RenderMessageVariables";
 import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
-import { getGlpiSettings } from "../services/GlpiServices/GlpiClientService";
+import {
+  getGlpiConfigurationByWhatsapp,
+  getGlpiSettings,
+  getGlpiSettingsByConfigurationId,
+  getGlpiSettingsByWhatsapp
+} from "../services/GlpiServices/GlpiClientService";
 
 import { whatsappProvider } from "../providers/WhatsApp/whatsappProvider";
 import { MessageType, MessageAck } from "../providers/WhatsApp/types";
@@ -1331,6 +1336,18 @@ const getGlpiEntityLocationRule = (
   return settings.entityLocationRules.find(rule => Number(rule.entityId) === Number(entityId)) || null;
 };
 
+const getGlpiConfigurationIdForResponse = async (
+  response?: QualificationFormResponse | null,
+  ticket?: Ticket | null
+): Promise<number | null> => {
+  const whatsappId = response?.whatsappId || ticket?.whatsappId || null;
+  const configuration = await getGlpiConfigurationByWhatsapp(whatsappId);
+  return configuration?.id || null;
+};
+
+const getGlpiCatalogScope = (configurationId?: number | null): Record<string, number> =>
+  configurationId ? { glpiConfigurationId: configurationId } : {};
+
 const parseJsonObject = (value?: string | null): Record<string, unknown> => {
   try {
     return value ? JSON.parse(value) : {};
@@ -1339,9 +1356,14 @@ const parseJsonObject = (value?: string | null): Record<string, unknown> => {
   }
 };
 
-const getParentGlpiEntityId = async (entityId?: number | null): Promise<number | null> => {
+const getParentGlpiEntityId = async (
+  entityId?: number | null,
+  configurationId?: number | null
+): Promise<number | null> => {
   if (!entityId) return null;
-  const entity = await GlpiEntity.findOne({ where: { glpiId: entityId } });
+  const entity = await GlpiEntity.findOne({
+    where: { glpiId: entityId, ...getGlpiCatalogScope(configurationId) }
+  });
   const rawData = parseJsonObject(entity?.rawData);
   const parentId = Number(
     rawData.entities_id ??
@@ -1355,16 +1377,25 @@ const getQualificationGlpiOptions = async (
   question: QualificationFormQuestion,
   response?: QualificationFormResponse | null
 ): Promise<QualificationOption[]> => {
-  const settings = await getGlpiSettings();
+  const configurationId = await getGlpiConfigurationIdForResponse(response);
+  const settings = configurationId
+    ? await getGlpiSettingsByConfigurationId(configurationId)
+    : await getGlpiSettings();
+  const catalogScope = getGlpiCatalogScope(configurationId);
 
   if (question.type === "glpi_entity") {
     const ruleEntityIds = settings.entityLocationRules
       .map(rule => Number(rule.entityId))
       .filter(id => Number.isInteger(id) && id > 0);
-    const allowedEntityIds = ruleEntityIds.length ? ruleEntityIds : settings.allowedFormEntityIds;
+    const allowedEntityIds = settings.autoEntityId
+      ? [settings.autoEntityId]
+      : ruleEntityIds.length
+        ? ruleEntityIds
+        : settings.allowedFormEntityIds;
     const rows = await GlpiEntity.findAll({
       where: {
         active: true,
+        ...catalogScope,
         ...(allowedEntityIds.length ? { glpiId: { [Op.in]: allowedEntityIds } } : {})
       },
       order: [["completeName", "ASC"], ["name", "ASC"]],
@@ -1398,13 +1429,16 @@ const getQualificationGlpiOptions = async (
     }
 
     const entityRule = getGlpiEntityLocationRule(settings, entityId);
-    const allowedLocationIds = entityRule
+    const allowedLocationIds = settings.autoLocationId
+      ? [settings.autoLocationId]
+      : entityRule
       ? entityRule.allowedLocationIds
       : settings.allowedFormLocationIds;
 
     let rows = await GlpiLocation.findAll({
       where: {
         active: true,
+        ...catalogScope,
         ...(entityId ? { entityId } : {}),
         ...(allowedLocationIds.length ? { glpiId: { [Op.in]: allowedLocationIds } } : {})
       },
@@ -1413,11 +1447,12 @@ const getQualificationGlpiOptions = async (
     });
 
     if (entityId && !rows.length) {
-      const parentEntityId = await getParentGlpiEntityId(entityId);
+      const parentEntityId = await getParentGlpiEntityId(entityId, configurationId);
       if (parentEntityId) {
         rows = await GlpiLocation.findAll({
           where: {
             active: true,
+            ...catalogScope,
             entityId: parentEntityId,
             ...(allowedLocationIds.length ? { glpiId: { [Op.in]: allowedLocationIds } } : {})
           },
@@ -1478,17 +1513,20 @@ const fillDefaultGlpiLocationIfNeeded = async (
     include: [{ model: QualificationFormQuestion, as: "question" }],
     order: [["id", "ASC"]]
   });
+  const configurationId = await getGlpiConfigurationIdForResponse(response);
+  const settings = configurationId
+    ? await getGlpiSettingsByConfigurationId(configurationId)
+    : await getGlpiSettings();
   const entityAnswer = answers.find(answer => answer.question?.glpiField === "entity");
-  const entityId = Number(entityAnswer?.question?.glpiField === "entity" ? entityAnswer.value : 0);
+  const entityId = Number(entityAnswer?.question?.glpiField === "entity" ? entityAnswer.value : settings.autoEntityId || 0);
   if (!entityId) return false;
 
-  const settings = await getGlpiSettings();
   const entityRule = getGlpiEntityLocationRule(settings, entityId);
-  const defaultLocationId = Number(entityRule?.defaultLocationId || 0);
+  const defaultLocationId = Number(entityRule?.defaultLocationId || settings.autoLocationId || 0);
   if (!defaultLocationId) return false;
 
   const location = await GlpiLocation.findOne({
-    where: { glpiId: defaultLocationId, active: true }
+    where: { glpiId: defaultLocationId, active: true, ...getGlpiCatalogScope(configurationId) }
   });
   if (!location) return false;
 
@@ -1869,7 +1907,10 @@ const getQualificationGlpiCreationContext = async (
   ticket: Ticket,
   contactPayload?: ContactPayload
 ) => {
-  const settings = await getGlpiSettings();
+  const configurationId = await getGlpiConfigurationIdForResponse(response, ticket);
+  const settings = configurationId
+    ? await getGlpiSettingsByConfigurationId(configurationId)
+    : await getGlpiSettingsByWhatsapp(ticket.whatsappId);
   if (!settings.enabled || !["automatic", "hybrid"].includes(settings.automationMode)) return null;
   if (!["open", "pending"].includes(ticket.status)) return null;
 
@@ -1900,10 +1941,10 @@ const getQualificationGlpiCreationContext = async (
 
   const form = await QualificationForm.findByPk(response.formId);
   const entity = entityId && !entityAnswer?.optionLabel
-    ? await GlpiEntity.findOne({ where: { glpiId: entityId, active: true } })
+    ? await GlpiEntity.findOne({ where: { glpiId: entityId, active: true, ...getGlpiCatalogScope(configurationId) } })
     : null;
   const location = locationId && !locationAnswer?.optionLabel
-    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true } })
+    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true, ...getGlpiCatalogScope(configurationId) } })
     : null;
   const entityName = entityAnswer?.optionLabel || entity?.name || entity?.completeName || "";
   const shouldShowLocationInSummary = !!locationAnswer;
@@ -1923,6 +1964,7 @@ const getQualificationGlpiCreationContext = async (
 
   return {
     settings,
+    configurationId,
     answers,
     entityAnswer,
     locationAnswer,
@@ -1988,7 +2030,10 @@ const sendGlpiConfirmationIfNeeded = async (
   const selectedOption = response.uraOptionId ? await UraOption.findByPk(response.uraOptionId) : null;
   const flow = ticket.uraFlowId ? await UraFlow.findByPk(ticket.uraFlowId) : null;
   const autoCloseConfig = getUraAiAutoCloseConfig(flow, selectedOption);
-  const settings = await getGlpiSettings();
+  const configurationId = await getGlpiConfigurationIdForResponse(response, ticket);
+  const settings = configurationId
+    ? await getGlpiSettingsByConfigurationId(configurationId)
+    : await getGlpiSettingsByWhatsapp(ticket.whatsappId);
   if (!settings.requireConfirmationBeforeCreate) return false;
 
   await response.update({
@@ -2023,6 +2068,7 @@ const tryCreateAutomaticGlpiFromQualification = async (
     entityId,
     categoryId,
     locationId,
+    configurationId,
     templateValues
   } = context;
 
@@ -2068,7 +2114,8 @@ const tryCreateAutomaticGlpiFromQualification = async (
       selectedMessageIds: [],
       forceCreate: true,
       useGlobalToken: true,
-      allowPendingTicket: true
+      allowPendingTicket: true,
+      configurationId
     });
 
     const successValues = {

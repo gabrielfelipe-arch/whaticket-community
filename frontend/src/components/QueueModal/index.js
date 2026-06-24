@@ -73,7 +73,16 @@ const distributionModes = [
 ];
 
 const modesWithActiveLimit = ["manual_limit", "manual_balanced", "auto_least_load", "round_robin", "least_load_round_robin"];
-const modesWithManualAcceptanceRules = ["manual_limit", "manual_balanced"];
+const modesWithManualLimitBehavior = ["manual_limit", "manual_balanced"];
+const manualLimitActions = [
+	{ value: "keep_waiting", label: "Bloquear e avisar" },
+	{ value: "warn_allow", label: "Avisar e permitir" },
+	{ value: "allow_overflow", label: "Permitir sem aviso" },
+];
+const automaticLimitActions = [
+	{ value: "keep_waiting", label: "Manter aguardando" },
+	{ value: "allow_overflow", label: "Permitir exceder limite" },
+];
 
 const defaultBusinessHoursRule = () => ({
 	days: [1, 2, 3, 4, 5],
@@ -239,7 +248,10 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		try {
 			const { businessHoursRules, ...formValues } = values;
 			const usesActiveLimit = modesWithActiveLimit.includes(values.distributionMode);
-			const usesManualAcceptanceRules = modesWithManualAcceptanceRules.includes(values.distributionMode);
+			const usesManualLimitBehavior = modesWithManualLimitBehavior.includes(values.distributionMode);
+			const overflowAction = usesActiveLimit
+				? values.overflowAction || "keep_waiting"
+				: "keep_waiting";
 			const queueData = {
 				...formValues,
 				aiSettingId: values.useAI && values.aiSettingId ? values.aiSettingId : null,
@@ -248,10 +260,12 @@ const QueueModal = ({ open, onClose, queueId }) => {
 				businessHours: values.businessHoursMode === "custom" ? serializeBusinessHours(businessHoursRules) : "",
 				maxActiveTicketsPerUser: usesActiveLimit ? values.maxActiveTicketsPerUser || "" : "",
 				balanceAction: values.distributionMode === "manual_balanced" && values.balanceAction === "block" ? "block" : "ignore",
-				overflowAction: usesActiveLimit ? values.overflowAction : "keep_waiting",
-				blockIfUserHasStalledTicket: usesManualAcceptanceRules ? values.blockIfUserHasStalledTicket : false,
-				stalledTicketMinutes: usesManualAcceptanceRules && values.blockIfUserHasStalledTicket ? values.stalledTicketMinutes : "",
-				stalledTicketAction: usesManualAcceptanceRules && values.blockIfUserHasStalledTicket ? "block" : "ignore",
+				overflowAction: usesManualLimitBehavior || ["keep_waiting", "allow_overflow"].includes(overflowAction)
+					? overflowAction
+					: "keep_waiting",
+				blockIfUserHasStalledTicket: false,
+				stalledTicketMinutes: "",
+				stalledTicketAction: "ignore",
 				queuePositionMessage: values.sendQueuePositionMessage ? values.queuePositionMessage : "",
 			};
 			const payload = new FormData();
@@ -564,27 +578,42 @@ const QueueModal = ({ open, onClose, queueId }) => {
 												as={TextField}
 												fullWidth
 												type="number"
-												label="Limite por atendente"
+												label="Maximo de conversas em andamento"
 												name="maxActiveTicketsPerUser"
 												variant="outlined"
 												margin="dense"
-												helperText="Maximo de atendimentos ativos por atendente nesta fila. Vazio nao limita."
+												helperText="Quantidade maxima de atendimentos abertos por atendente nesta fila. Vazio nao limita."
 											/>
 										</Grid>
 										<Grid item xs={12} sm={6}>
-											<Field
-												as={TextField}
+											<TextField
 												select
 												fullWidth
 												label="Ao atingir o limite"
 												name="overflowAction"
+												value={
+													modesWithManualLimitBehavior.includes(values.distributionMode)
+														? values.overflowAction || "keep_waiting"
+														: ["keep_waiting", "allow_overflow"].includes(values.overflowAction)
+															? values.overflowAction
+															: "keep_waiting"
+												}
+												onChange={event => setFieldValue("overflowAction", event.target.value)}
 												variant="outlined"
 												margin="dense"
-												helperText="Usado quando todos os atendentes disponiveis ja estao no limite."
+												helperText={modesWithManualLimitBehavior.includes(values.distributionMode)
+													? "Comportamento quando o atendente tenta aceitar acima do limite."
+													: "Comportamento quando todos os atendentes disponiveis ja estao no limite."}
 											>
-												<MenuItem value="keep_waiting">Manter aguardando</MenuItem>
-												<MenuItem value="allow_overflow">Permitir exceder limite</MenuItem>
-											</Field>
+												{(modesWithManualLimitBehavior.includes(values.distributionMode)
+													? manualLimitActions
+													: automaticLimitActions
+												).map(action => (
+													<MenuItem key={action.value} value={action.value}>
+														{action.label}
+													</MenuItem>
+												))}
+											</TextField>
 										</Grid>
 									</Grid>
 								)}
@@ -601,43 +630,6 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										<MenuItem value="block">Bloquear aceite</MenuItem>
 										<MenuItem value="ignore">Ignorar regra</MenuItem>
 									</Field>
-								)}
-								{modesWithManualAcceptanceRules.includes(values.distributionMode) && (
-									<>
-										<Typography variant="subtitle2" style={{ marginTop: 12 }}>
-											Bloqueio no aceite manual
-										</Typography>
-										<Typography variant="caption" color="textSecondary">
-											Aplicado quando o atendente tenta aceitar um novo atendimento. Se ele ja tiver conversa desta fila sem resposta pelo tempo definido, o aceite sera bloqueado.
-										</Typography>
-										<FormControlLabel
-											control={
-												<Field
-													as={Switch}
-													color="primary"
-													name="blockIfUserHasStalledTicket"
-													checked={values.blockIfUserHasStalledTicket}
-												/>
-											}
-											label="Bloquear aceite com atendimento sem resposta"
-										/>
-										{values.blockIfUserHasStalledTicket && (
-											<Grid container spacing={1}>
-												<Grid item xs={12}>
-													<Field
-														as={TextField}
-														fullWidth
-														type="number"
-														label="Tempo sem resposta"
-														name="stalledTicketMinutes"
-														variant="outlined"
-														margin="dense"
-														helperText="Depois desse tempo, a conversa conta como pendente para novo aceite."
-													/>
-												</Grid>
-											</Grid>
-										)}
-									</>
 								)}
 								<FormControlLabel
 									control={

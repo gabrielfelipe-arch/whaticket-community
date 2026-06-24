@@ -9,12 +9,12 @@ import {
   AllowNull,
   DataType,
   Default,
-  ForeignKey
+  HasMany
 } from "sequelize-typescript";
-import GlpiConfiguration from "./GlpiConfiguration";
+import GlpiConfigurationWhatsapp from "./GlpiConfigurationWhatsapp";
 
-@Table({ tableName: "GlpiEntities" })
-class GlpiEntity extends Model<GlpiEntity> {
+@Table({ tableName: "GlpiConfigurations" })
+class GlpiConfiguration extends Model<GlpiConfiguration> {
   @PrimaryKey
   @AutoIncrement
   @Column
@@ -22,34 +22,25 @@ class GlpiEntity extends Model<GlpiEntity> {
 
   @AllowNull(false)
   @Column
-  glpiId: number;
-
-  @ForeignKey(() => GlpiConfiguration)
-  @Column
-  glpiConfigurationId: number;
-
-  @AllowNull(false)
-  @Column
   name: string;
-
-  @Column
-  completeName: string;
 
   @Default(true)
   @Column
   active: boolean;
 
+  @AllowNull(false)
+  @Default("{}")
   @Column(DataType.TEXT)
-  rawData: string;
-
-  @Column
-  lastSyncAt: Date;
+  settings: string;
 
   @CreatedAt
   createdAt: Date;
 
   @UpdatedAt
   updatedAt: Date;
+
+  @HasMany(() => GlpiConfigurationWhatsapp)
+  whatsappLinks: GlpiConfigurationWhatsapp[];
 }
 
-export default GlpiEntity;
+export default GlpiConfiguration;

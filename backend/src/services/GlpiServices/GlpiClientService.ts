@@ -1,5 +1,7 @@
 import axios, { AxiosError } from "axios";
 import Setting from "../../models/Setting";
+import GlpiConfiguration from "../../models/GlpiConfiguration";
+import GlpiConfigurationWhatsapp from "../../models/GlpiConfigurationWhatsapp";
 import AppError from "../../errors/AppError";
 import { isMaskedSecret, maskSecret } from "../../helpers/MaskSecret";
 
@@ -40,6 +42,32 @@ type Session = {
 
 type InitSessionOptions = {
   userToken?: string;
+  configurationId?: number | null;
+  whatsappId?: number | null;
+};
+
+const defaultSettingValues: Record<string, string> = {
+  glpiEnabled: "disabled",
+  glpiApiUrl: "",
+  glpiBaseWebUrl: "",
+  glpiAppToken: "",
+  glpiUserToken: "",
+  glpiAllowMultipleTickets: "false",
+  glpiAutoCreateEnabled: "false",
+  glpiAutomationMode: "manual",
+  glpiAutoCategoryId: "",
+  glpiAutoEntityId: "",
+  glpiAutoLocationId: "",
+  glpiAutoTitleTemplate: "Solicitacao WhatsApp - {{contactName}}",
+  glpiAutoSuccessMessage: "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
+  glpiRequireConfirmationBeforeCreate: "true",
+  glpiAutoCloseEnabled: "false",
+  glpiAutoCloseMessage: "",
+  glpiAutoCloseReasonId: "",
+  glpiAllowedFormEntityIds: "",
+  glpiAllowedFormLocationIds: "",
+  glpiEntityLocationRules: "[]",
+  glpiTimeoutMs: "15000"
 };
 
 const getSettingValue = async (key: string): Promise<string> => {
@@ -78,6 +106,86 @@ const parseEntityLocationRules = (value: string): GlpiEntityLocationRule[] => {
   } catch (error) {
     return [];
   }
+};
+
+const buildGlpiSettings = (values: Record<string, string>): GlpiSettings => {
+  const data = { ...defaultSettingValues, ...values };
+  const enabled = String(data.glpiEnabled || "").trim();
+  const apiUrl = String(data.glpiApiUrl || "").trim();
+  const baseWebUrl = String(data.glpiBaseWebUrl || "").trim();
+  const appToken = String(data.glpiAppToken || "").trim();
+  const userToken = String(data.glpiUserToken || "").trim();
+  const allowMultipleTickets = String(data.glpiAllowMultipleTickets || "").trim();
+  const autoCreateEnabled = String(data.glpiAutoCreateEnabled || "").trim();
+  const automationMode = String(data.glpiAutomationMode || "").trim();
+  const autoCategoryId = String(data.glpiAutoCategoryId || "").trim();
+  const autoEntityId = String(data.glpiAutoEntityId || "").trim();
+  const autoLocationId = String(data.glpiAutoLocationId || "").trim();
+  const autoTitleTemplate = String(data.glpiAutoTitleTemplate || "").trim();
+  const autoSuccessMessage = String(data.glpiAutoSuccessMessage || "").trim();
+  const requireConfirmationBeforeCreate = String(data.glpiRequireConfirmationBeforeCreate || "").trim();
+  const autoCloseEnabled = String(data.glpiAutoCloseEnabled || "").trim();
+  const autoCloseMessage = String(data.glpiAutoCloseMessage || "").trim();
+  const autoCloseReasonId = String(data.glpiAutoCloseReasonId || "").trim();
+  const allowedFormEntityIds = String(data.glpiAllowedFormEntityIds || "").trim();
+  const allowedFormLocationIds = String(data.glpiAllowedFormLocationIds || "").trim();
+  const entityLocationRules = String(data.glpiEntityLocationRules || "").trim();
+  const timeoutMs = String(data.glpiTimeoutMs || "").trim();
+
+  return {
+    enabled: enabled === "enabled",
+    apiUrl: apiUrl.replace(/\/$/, ""),
+    baseWebUrl: (baseWebUrl || apiUrl).replace(/\/api\.php\/v1\/?$/i, "").replace(/\/apirest\.php\/?$/i, "").replace(/\/$/, ""),
+    appToken,
+    userToken,
+    allowMultipleTickets: allowMultipleTickets === "true",
+    autoCreateEnabled: autoCreateEnabled === "true",
+    automationMode: automationMode || "manual",
+    autoCategoryId: autoCategoryId ? Number(autoCategoryId) : null,
+    autoEntityId: autoEntityId ? Number(autoEntityId) : null,
+    autoLocationId: autoLocationId ? Number(autoLocationId) : null,
+    autoTitleTemplate: autoTitleTemplate || defaultSettingValues.glpiAutoTitleTemplate,
+    autoSuccessMessage: autoSuccessMessage || defaultSettingValues.glpiAutoSuccessMessage,
+    requireConfirmationBeforeCreate: requireConfirmationBeforeCreate !== "false",
+    autoCloseEnabled: autoCloseEnabled === "true",
+    autoCloseMessage: autoCloseMessage || "",
+    autoCloseReasonId: autoCloseReasonId ? Number(autoCloseReasonId) : null,
+    allowedFormEntityIds: parseNumberList(allowedFormEntityIds),
+    allowedFormLocationIds: parseNumberList(allowedFormLocationIds),
+    entityLocationRules: parseEntityLocationRules(entityLocationRules),
+    timeoutMs: Math.max(Number(timeoutMs || 15000), 1000)
+  };
+};
+
+const parseConfigurationSettings = (configuration?: GlpiConfiguration | null): Record<string, string> => {
+  try {
+    return configuration?.settings ? JSON.parse(configuration.settings) : {};
+  } catch (error) {
+    return {};
+  }
+};
+
+export const getGlpiConfiguration = async (configurationId?: number | null): Promise<GlpiConfiguration | null> => {
+  if (configurationId) return GlpiConfiguration.findByPk(configurationId);
+  return GlpiConfiguration.findOne({ where: { active: true }, order: [["id", "ASC"]] });
+};
+
+export const getGlpiConfigurationByWhatsapp = async (whatsappId?: number | null): Promise<GlpiConfiguration | null> => {
+  if (!whatsappId) return null;
+  const link = await GlpiConfigurationWhatsapp.findOne({ where: { whatsappId } });
+  if (!link) return null;
+  return GlpiConfiguration.findOne({ where: { id: link.glpiConfigurationId, active: true } });
+};
+
+export const getGlpiSettingsByConfigurationId = async (configurationId?: number | null): Promise<GlpiSettings> => {
+  const configuration = await getGlpiConfiguration(configurationId);
+  return buildGlpiSettings(parseConfigurationSettings(configuration));
+};
+
+export const getGlpiSettingsByWhatsapp = async (whatsappId?: number | null): Promise<GlpiSettings> => {
+  const configuration = await getGlpiConfigurationByWhatsapp(whatsappId);
+  if (!configuration) return buildGlpiSettings({ glpiEnabled: "disabled" });
+  return buildGlpiSettings(parseConfigurationSettings(configuration));
 };
 
 export const getGlpiSettings = async (): Promise<GlpiSettings> => {
@@ -127,29 +235,29 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     getSettingValue("glpiTimeoutMs")
   ]);
 
-  return {
-    enabled: enabled === "enabled",
-    apiUrl: apiUrl.replace(/\/$/, ""),
-    baseWebUrl: (baseWebUrl || apiUrl).replace(/\/api\.php\/v1\/?$/i, "").replace(/\/apirest\.php\/?$/i, "").replace(/\/$/, ""),
-    appToken,
-    userToken,
-    allowMultipleTickets: allowMultipleTickets === "true",
-    autoCreateEnabled: autoCreateEnabled === "true",
-    automationMode: automationMode || "manual",
-    autoCategoryId: autoCategoryId ? Number(autoCategoryId) : null,
-    autoEntityId: autoEntityId ? Number(autoEntityId) : null,
-    autoLocationId: autoLocationId ? Number(autoLocationId) : null,
-    autoTitleTemplate: autoTitleTemplate || "Solicitacao WhatsApp - {{contactName}}",
-    autoSuccessMessage: autoSuccessMessage || "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
-    requireConfirmationBeforeCreate: requireConfirmationBeforeCreate !== "false",
-    autoCloseEnabled: autoCloseEnabled === "true",
-    autoCloseMessage: autoCloseMessage || "",
-    autoCloseReasonId: autoCloseReasonId ? Number(autoCloseReasonId) : null,
-    allowedFormEntityIds: parseNumberList(allowedFormEntityIds),
-    allowedFormLocationIds: parseNumberList(allowedFormLocationIds),
-    entityLocationRules: parseEntityLocationRules(entityLocationRules),
-    timeoutMs: Math.max(Number(timeoutMs || 15000), 1000)
-  };
+  return buildGlpiSettings({
+    glpiEnabled: enabled,
+    glpiApiUrl: apiUrl,
+    glpiBaseWebUrl: baseWebUrl,
+    glpiAppToken: appToken,
+    glpiUserToken: userToken,
+    glpiAllowMultipleTickets: allowMultipleTickets,
+    glpiAutoCreateEnabled: autoCreateEnabled,
+    glpiAutomationMode: automationMode,
+    glpiAutoCategoryId: autoCategoryId,
+    glpiAutoEntityId: autoEntityId,
+    glpiAutoLocationId: autoLocationId,
+    glpiAutoTitleTemplate: autoTitleTemplate,
+    glpiAutoSuccessMessage: autoSuccessMessage,
+    glpiRequireConfirmationBeforeCreate: requireConfirmationBeforeCreate,
+    glpiAutoCloseEnabled: autoCloseEnabled,
+    glpiAutoCloseMessage: autoCloseMessage,
+    glpiAutoCloseReasonId: autoCloseReasonId,
+    glpiAllowedFormEntityIds: allowedFormEntityIds,
+    glpiAllowedFormLocationIds: allowedFormLocationIds,
+    glpiEntityLocationRules: entityLocationRules,
+    glpiTimeoutMs: timeoutMs
+  });
 };
 
 export { isMaskedSecret, maskSecret };
@@ -181,7 +289,11 @@ export const validateGlpiReady = (settings: GlpiSettings, userToken?: string): v
 };
 
 export const initGlpiSession = async (options: InitSessionOptions = {}): Promise<Session> => {
-  const settings = await getGlpiSettings();
+  const settings = options.whatsappId
+    ? await getGlpiSettingsByWhatsapp(options.whatsappId)
+    : options.configurationId
+      ? await getGlpiSettingsByConfigurationId(options.configurationId)
+      : await getGlpiSettings();
   const effectiveUserToken = String(options.userToken || settings.userToken || "").trim();
   validateGlpiReady(settings, effectiveUserToken);
 

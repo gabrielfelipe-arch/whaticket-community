@@ -8,7 +8,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Queue from "../../models/Queue";
 import User from "../../models/User";
-import { buildGlpiTicketUrl, closeGlpiSession, getGlpiSettings, glpiHeaders, initGlpiSession, normalizeGlpiError } from "./GlpiClientService";
+import { buildGlpiTicketUrl, closeGlpiSession, getGlpiConfigurationByWhatsapp, getGlpiSettings, getGlpiSettingsByConfigurationId, glpiHeaders, initGlpiSession, normalizeGlpiError } from "./GlpiClientService";
 import CreateGlpiLogService from "./GlpiLogService";
 
 type Request = {
@@ -24,6 +24,7 @@ type Request = {
   forceCreate?: boolean;
   useGlobalToken?: boolean;
   allowPendingTicket?: boolean;
+  configurationId?: number | null;
 };
 
 const buildMessageExcerpt = async (messageIds: string[]): Promise<string[]> => {
@@ -55,12 +56,9 @@ const CreateGlpiTicketService = async ({
   selectedMessageIds = [],
   forceCreate = false,
   useGlobalToken = false,
-  allowPendingTicket = false
+  allowPendingTicket = false,
+  configurationId = null
 }: Request): Promise<GlpiTicketLink> => {
-  const settings = await getGlpiSettings();
-  if (!settings.enabled) throw new AppError("Integracao GLPI desativada.", 400);
-  if (!settings.apiUrl) throw new AppError("Informe a URL da API GLPI.", 400);
-
   const glpiUser = userId ? await User.findByPk(userId, {
     attributes: ["id", "name", "glpiEnabled", "glpiUserToken"]
   }) : null;
@@ -81,6 +79,15 @@ const CreateGlpiTicketService = async ({
   });
 
   if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
+  const linkedConfiguration = configurationId
+    ? null
+    : await getGlpiConfigurationByWhatsapp(ticket.whatsappId);
+  const effectiveConfigurationId = configurationId || linkedConfiguration?.id || null;
+  const settings = effectiveConfigurationId
+    ? await getGlpiSettingsByConfigurationId(effectiveConfigurationId)
+    : await getGlpiSettings();
+  if (!settings.enabled) throw new AppError("Integracao GLPI desativada para esta conexao.", 400);
+  if (!settings.apiUrl) throw new AppError("Informe a URL da API GLPI.", 400);
   if (ticket.status !== "open" && !(allowPendingTicket && ticket.status === "pending")) {
     throw new AppError("O chamado GLPI so pode ser aberto em atendimento aberto.", 400);
   }
@@ -95,10 +102,11 @@ const CreateGlpiTicketService = async ({
     throw new AppError("Este atendimento ja possui chamado GLPI vinculado.", 400);
   }
 
-  const entity = await GlpiEntity.findOne({ where: { glpiId: entityId, active: true } });
-  const category = await GlpiCategory.findOne({ where: { glpiId: categoryId, active: true } });
+  const catalogScope: Record<string, number> = effectiveConfigurationId ? { glpiConfigurationId: effectiveConfigurationId } : {};
+  const entity = await GlpiEntity.findOne({ where: { glpiId: entityId, active: true, ...catalogScope } });
+  const category = await GlpiCategory.findOne({ where: { glpiId: categoryId, active: true, ...catalogScope } });
   const location = locationId
-    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true } })
+    ? await GlpiLocation.findOne({ where: { glpiId: locationId, active: true, ...catalogScope } })
     : null;
   if (!entity) throw new AppError("Escolha uma entidade GLPI sincronizada.", 400);
   if (!category) throw new AppError("Escolha uma categoria GLPI sincronizada.", 400);
@@ -122,7 +130,10 @@ const CreateGlpiTicketService = async ({
 
   let session;
   try {
-    session = await initGlpiSession(useGlobalToken ? {} : { userToken: glpiUser?.glpiUserToken });
+    session = await initGlpiSession({
+      ...(useGlobalToken ? {} : { userToken: glpiUser?.glpiUserToken }),
+      configurationId: effectiveConfigurationId
+    });
 
     const input: Record<string, any> = {
       name: title.trim(),

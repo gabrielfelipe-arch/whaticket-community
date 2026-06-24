@@ -43,6 +43,7 @@ interface TicketData {
   sendFarewellMessage?: boolean;
   sendSatisfactionSurvey?: boolean;
   assumeAi?: boolean;
+  forceAcceptOverLimit?: boolean;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -125,7 +126,8 @@ export const update = async (
     await validateManualTicketAcceptance({
       ticketId,
       userId: Number(ticketData.userId),
-      requesterProfile: req.user.profile
+      requesterProfile: req.user.profile,
+      forceAcceptOverLimit: ticketData.forceAcceptOverLimit === true
     });
   }
 

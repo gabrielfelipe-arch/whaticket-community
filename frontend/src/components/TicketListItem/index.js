@@ -163,6 +163,13 @@ const TicketListItem = ({ ticket }) => {
 	const { ticketId } = useParams();
 	const isMounted = useRef(true);
 	const { user } = useContext(AuthContext);
+	const isLimitConfirmationError = err =>
+		err?.response?.status === 409 &&
+		String(err.response?.data?.error || "").startsWith("QUEUE_LIMIT_CONFIRM_REQUIRED|");
+	const getLimitConfirmationMessage = err =>
+		String(err.response?.data?.error || "")
+			.replace("QUEUE_LIMIT_CONFIRM_REQUIRED|", "") ||
+		"Voce ja atingiu o limite de atendimentos desta fila. Deseja aceitar mesmo assim?";
 
 	useEffect(() => {
 		return () => {
@@ -170,7 +177,7 @@ const TicketListItem = ({ ticket }) => {
 		};
 	}, []);
 
-	const handleAcepptTicket = async id => {
+	const handleAcepptTicket = async (id, forceAcceptOverLimit = false) => {
 		setLoading(true);
 		try {
 			const preferredQueue = user?.queues?.find(queue => queue.glpiEnabled)
@@ -183,13 +190,23 @@ const TicketListItem = ({ ticket }) => {
 			await api.put(`/tickets/${id}`, {
 				status: "open",
 				userId: user?.id,
+				...(forceAcceptOverLimit ? { forceAcceptOverLimit: true } : {}),
 				...(ticket.aiActive
 					? { assumeAi: true, queueId: humanQueue?.id || preferredQueue?.id || null }
 					: { queueId: ticket.queueId && !ticket.queue?.useAI ? ticket.queueId : preferredQueue?.id || null }),
 			});
 		} catch (err) {
+			if (!forceAcceptOverLimit && isLimitConfirmationError(err)) {
+				const confirmed = window.confirm(getLimitConfirmationMessage(err));
+				if (confirmed) {
+					return handleAcepptTicket(id, true);
+				}
+				setLoading(false);
+				return;
+			}
 			setLoading(false);
 			toastError(err);
+			return;
 		}
 		if (isMounted.current) {
 			setLoading(false);
