@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { Op, fn, col, where as sequelizeWhere } from "sequelize";
+import XLSX from "xlsx";
 import Ticket from "../models/Ticket";
 import Message from "../models/Message";
 import Contact from "../models/Contact";
@@ -27,6 +28,25 @@ const requireAdmin = (req: Request) => {
 const dateFilter = (start: Date, end: Date) => ({
   [Op.between]: [start, end]
 });
+
+const formatDateTime = (value?: Date | string | null): string => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
+
+const statusLabels: Record<string, string> = {
+  open: "Em atendimento",
+  pending: "Aguardando",
+  closed: "Encerrado"
+};
 
 const groupRows = async (column: string, alias: string, start: Date, end: Date) => {
   const rows = await Ticket.findAll({
@@ -157,9 +177,15 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
   });
 };
 
-const csvEscape = (value: any): string => {
-  const text = String(value ?? "").replace(/\r?\n/g, " ").replace(/"/g, '""');
-  return `"${text}"`;
+const sendXlsx = (res: Response, filename: string, sheetName: string, rows: any[][]): Response => {
+  const workbook = XLSX.utils.book_new();
+  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+  return res.send(buffer);
 };
 
 export const exportTickets = async (req: Request, res: Response): Promise<Response> => {
@@ -188,28 +214,70 @@ export const exportTickets = async (req: Request, res: Response): Promise<Respon
     "Categoria",
     "Motivo",
     "Criado em",
-    "Atualizado em",
-    "Ultima mensagem"
+    "Atualizado em"
   ];
   const rows = tickets.map(ticket => [
     ticket.id,
-    ticket.status,
+    statusLabels[ticket.status] || ticket.status,
     ticket.contact?.name,
     ticket.contact?.number,
     ticket.queue?.name,
     ticket.user?.name,
     ticket.category?.name,
     ticket.closingReason?.name,
-    ticket.createdAt,
-    ticket.updatedAt,
-    ticket.lastMessage
+    formatDateTime(ticket.createdAt),
+    formatDateTime(ticket.updatedAt)
   ]);
 
-  const csv = [header, ...rows].map(row => row.map(csvEscape).join(";")).join("\n");
+  return sendXlsx(res, "relatorio-atendimentos.xlsx", "Atendimentos", [header, ...rows]);
+};
 
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", "attachment; filename=relatorio-atendimentos.csv");
-  return res.send(`\uFEFF${csv}`);
+export const exportSatisfaction = async (req: Request, res: Response): Promise<Response> => {
+  requireAdmin(req);
+
+  const { start, end } = parseDateRange(req);
+  const rows = await SatisfactionSurveyResponse.findAll({
+    where: { createdAt: dateFilter(start, end) } as any,
+    include: [
+      { model: Contact, as: "contact", attributes: ["name", "number"] },
+      { model: Queue, as: "queue", attributes: ["name"] },
+      { model: User, as: "user", attributes: ["name"] },
+      { model: TicketCategory, as: "category", attributes: ["name"] },
+      { model: ClosingReason, as: "closingReason", attributes: ["name"] }
+    ],
+    order: [["createdAt", "DESC"]]
+  });
+
+  const header = [
+    "ID",
+    "Data e hora",
+    "Contato",
+    "Telefone",
+    "Fila",
+    "Atendente",
+    "Categoria",
+    "Motivo",
+    "Nota",
+    "Resposta",
+    "Tipo do comentario",
+    "Comentario"
+  ];
+  const csvRows = rows.map(row => [
+    row.id,
+    formatDateTime(row.createdAt),
+    row.contact?.name,
+    row.contact?.number,
+    row.queue?.name,
+    row.user?.name,
+    row.category?.name,
+    row.closingReason?.name,
+    row.rating,
+    row.rawAnswer,
+    row.feedbackType,
+    row.feedbackText
+  ]);
+
+  return sendXlsx(res, "relatorio-pesquisa-satisfacao.xlsx", "Satisfacao", [header, ...csvRows]);
 };
 
 export const conversationHistory = async (req: Request, res: Response): Promise<Response> => {
@@ -218,6 +286,21 @@ export const conversationHistory = async (req: Request, res: Response): Promise<
   const { start, end } = parseDateRange(req);
   const { searchParam = "" } = req.query as { searchParam?: string };
   const sanitizedSearch = `%${searchParam.toLowerCase().trim()}%`;
+  const searchableWhere = searchParam
+    ? {
+        [Op.or]: [
+          sequelizeWhere(fn("LOWER", col("contact.name")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("contact.number")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("queue.name")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("user.name")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("category.name")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("closingReason.name")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("Ticket.status")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("LOWER", col("Ticket.lastMessage")), "LIKE", sanitizedSearch),
+          sequelizeWhere(fn("CONCAT", col("Ticket.id"), ""), "LIKE", `%${searchParam.trim().replace(/^#/, "")}%`)
+        ]
+      }
+    : {};
 
   const tickets = await Ticket.findAll({
     attributes: [
@@ -234,23 +317,22 @@ export const conversationHistory = async (req: Request, res: Response): Promise<
     ],
     where: {
       status: "closed",
-      createdAt: dateFilter(start, end)
+      createdAt: dateFilter(start, end),
+      ...searchableWhere
     },
     include: [
       {
         model: Contact,
         as: "contact",
         attributes: ["id", "name", "number"],
-        where: searchParam
-          ? sequelizeWhere(fn("LOWER", col("contact.name")), "LIKE", sanitizedSearch)
-          : undefined,
-        required: !!searchParam
+        required: false
       },
-      { model: Queue, as: "queue", attributes: ["name"] },
-      { model: User, as: "user", attributes: ["name"] },
-      { model: TicketCategory, as: "category", attributes: ["name"] },
-      { model: ClosingReason, as: "closingReason", attributes: ["name"] },
+      { model: Queue, as: "queue", attributes: ["name"], required: false },
+      { model: User, as: "user", attributes: ["name"], required: false },
+      { model: TicketCategory, as: "category", attributes: ["name"], required: false },
+      { model: ClosingReason, as: "closingReason", attributes: ["name"], required: false },
     ],
+    subQuery: false,
     order: [["updatedAt", "DESC"]],
     limit: 100
   });

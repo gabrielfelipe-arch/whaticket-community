@@ -267,7 +267,7 @@ const initialCampaign = {
   audience: "contacts",
   recipientType: "contacts",
   scheduledAt: "",
-  intervalPattern: "30",
+  intervalPattern: "60:50:55:52:51:53:61",
   pauseAfter: 20,
   pauseMinutes: 5,
   whatsappId: "",
@@ -296,7 +296,7 @@ const initialSchedule = {
   maxRuns: "",
   respectBusinessHours: false,
   missedRunPolicy: "skip",
-  intervalPattern: "30",
+  intervalPattern: "60:50:55:52:51:53:61",
   pauseAfter: 20,
   pauseMinutes: 5,
   whatsappId: ""
@@ -986,8 +986,8 @@ const CampaignsSchedules = () => {
         source: "schedule",
         sendType: schedule.sendType || "scheduled",
         raw: schedule,
-        name: schedule.contact?.name || schedule.message?.slice(0, 42) || `Agendamento #${schedule.id}`,
-        typeLabel: schedule.sendType === "campaign" ? "Campanha" : "Mensagem agendada",
+        name: schedule.contact?.name || schedule.message?.slice(0, 42) || `Mensagem programada #${schedule.id}`,
+        typeLabel: schedule.sendType === "campaign" ? "Campanha" : "Mensagem programada",
         recurrenceLabel: getScheduleRecurrenceLabel(schedule),
         status: schedule.status,
         statusLabel: getScheduleStatusLabel(schedule.status),
@@ -1072,7 +1072,7 @@ const CampaignsSchedules = () => {
       maxRuns: schedule.maxRuns || "",
       respectBusinessHours: !!schedule.respectBusinessHours,
       missedRunPolicy: schedule.missedRunPolicy || "skip",
-      intervalPattern: schedule.intervalPattern || String(schedule.intervalSeconds || 30),
+      intervalPattern: schedule.intervalPattern || String(schedule.intervalSeconds || 60),
       pauseAfter: schedule.pauseAfter || 20,
       pauseMinutes: Math.max(1, Math.round((schedule.pauseSeconds || 300) / 60)),
       whatsappId: schedule.whatsappId || ""
@@ -1113,10 +1113,10 @@ const CampaignsSchedules = () => {
 
       if (editingScheduleId) {
         await api.put(`/scheduled-messages/${editingScheduleId}`, payload, { headers: { "Content-Type": "multipart/form-data" } });
-        toast.success("Agendamento atualizado.");
+        toast.success("Mensagem programada atualizada.");
       } else {
         await api.post("/scheduled-messages", payload, { headers: { "Content-Type": "multipart/form-data" } });
-        toast.success(sendType === "campaign" ? "Campanha agendada." : "Mensagem agendada.");
+        toast.success(sendType === "campaign" ? "Campanha agendada." : "Mensagem programada.");
       }
 
       closeScheduleModal();
@@ -1147,7 +1147,7 @@ const CampaignsSchedules = () => {
   const duplicateSchedule = async schedule => {
     try {
       await api.post(`/scheduled-messages/${schedule.id}/duplicate`);
-      toast.success("Agendamento clonado. Revise antes de ativar.");
+      toast.success("Mensagem programada clonada. Revise antes de ativar.");
       loadData();
     } catch (err) {
       toastError(err);
@@ -1276,7 +1276,7 @@ const CampaignsSchedules = () => {
     <Container maxWidth={false} className={classes.root}>
       <div className={classes.header}>
         <div>
-          <Typography variant="h6">Agendamentos</Typography>
+          <Typography variant="h6">Mensagens programadas</Typography>
           <Typography variant="body2" className={classes.helper}>
             Centralize mensagens agendadas, campanhas por etiqueta e envios recorrentes em uma unica area.
           </Typography>
@@ -1317,7 +1317,7 @@ const CampaignsSchedules = () => {
           <Grid item xs={12} sm={4}>
             <TextField select fullWidth margin="dense" variant="outlined" label="Tipo" value={filterType} onChange={event => setFilterType(event.target.value)}>
               <MenuItem value="all">Todos</MenuItem>
-              <MenuItem value="schedule">Mensagem agendada</MenuItem>
+              <MenuItem value="schedule">Mensagem programada</MenuItem>
               <MenuItem value="campaign">Campanha</MenuItem>
             </TextField>
           </Grid>
@@ -1399,7 +1399,7 @@ const CampaignsSchedules = () => {
         </div>
       </Paper>
 
-      <Dialog open={scheduleModalOpen} onClose={closeScheduleModal} maxWidth="md" fullWidth>
+      <Dialog open={scheduleModalOpen} onClose={closeScheduleModal} maxWidth="lg" fullWidth>
         <DialogTitle>{editingScheduleId ? "Editar agendamento" : "Novo envio"}</DialogTitle>
         <DialogContent>
           <div className={classes.wizardSteps}>
@@ -1436,7 +1436,7 @@ const CampaignsSchedules = () => {
                         value={sendType}
                         onChange={event => setSendType(event.target.value)}
                       >
-                        <MenuItem value="scheduled">Mensagem agendada</MenuItem>
+                        <MenuItem value="scheduled">Mensagem programada</MenuItem>
                         <MenuItem value="campaign">Campanha</MenuItem>
                       </TextField>
                     </Grid>
@@ -1520,7 +1520,7 @@ const CampaignsSchedules = () => {
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12}>
-                  <TextField fullWidth required margin="dense" variant="outlined" label="Intervalos entre mensagens em segundos" name="intervalPattern" value={scheduleForm.intervalPattern} onChange={handleScheduleChange} placeholder="30 ou 20:35:50" />
+                  <TextField fullWidth required margin="dense" variant="outlined" label="Intervalos entre mensagens em segundos" name="intervalPattern" value={scheduleForm.intervalPattern} onChange={handleScheduleChange} placeholder="60:50:55:52:51:53:61" helperText="Recomendado usar intervalos acima de 50 segundos para reduzir bloqueios e instabilidade no envio." />
                   <Typography variant="caption" color="textSecondary">
                     Use um tempo fixo, como 30, ou varios tempos separados por dois-pontos, como 20:35:50.
                   </Typography>
@@ -1560,7 +1560,7 @@ const CampaignsSchedules = () => {
                       <Typography variant="subtitle2">Dias da semana</Typography>
                       <Grid container spacing={1}>
                         {weekdayOptions.map(day => (
-                          <Grid item xs={6} sm={3} md={2} key={day.value}>
+                          <Grid item xs={6} sm={3} md key={day.value}>
                             <FormControlLabel
                               control={
                                 <Checkbox
@@ -1637,7 +1637,7 @@ const CampaignsSchedules = () => {
               <div className={classes.summaryList}>
                 <div className={classes.summaryItem}>
                   <Typography variant="caption" color="textSecondary">Tipo</Typography>
-                  <Typography variant="body2">{sendType === "campaign" ? "Campanha" : "Mensagem agendada"}</Typography>
+                  <Typography variant="body2">{sendType === "campaign" ? "Campanha" : "Mensagem programada"}</Typography>
                 </div>
                 <div className={classes.summaryItem}>
                   <Typography variant="caption" color="textSecondary">Destinatarios</Typography>
@@ -1677,11 +1677,11 @@ const CampaignsSchedules = () => {
                   value={sendType}
                   onChange={event => setSendType(event.target.value)}
                 >
-                  <MenuItem value="scheduled">Mensagem agendada</MenuItem>
+                  <MenuItem value="scheduled">Mensagem programada</MenuItem>
                   <MenuItem value="campaign">Campanha</MenuItem>
                 </TextField>
                 <Typography variant="caption" color="textSecondary">
-                  Escolha se este envio sera uma mensagem simples agendada ou uma campanha com destinatarios em massa.
+                  Escolha se este envio sera uma mensagem simples programada ou uma campanha com destinatarios em massa.
                 </Typography>
               </Grid>
             )}
@@ -1728,7 +1728,7 @@ const CampaignsSchedules = () => {
               />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de agendamento" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>
+              <TextField select fullWidth margin="dense" variant="outlined" label="Tipo de programação" name="recurrenceType" value={scheduleForm.recurrenceType} onChange={handleScheduleChange}>
                 <MenuItem value="once">Executar uma vez</MenuItem>
                 <MenuItem value="weekly">Dias e horarios especificos</MenuItem>
                 <MenuItem value="interval">Repetir por intervalo</MenuItem>
@@ -1745,7 +1745,7 @@ const CampaignsSchedules = () => {
                   <Typography variant="subtitle2">Dias da semana</Typography>
                   <Grid container spacing={1}>
                     {weekdayOptions.map(day => (
-                      <Grid item xs={6} sm={3} md={2} key={day.value}>
+                      <Grid item xs={6} sm={3} md key={day.value}>
                         <FormControlLabel
                           control={
                             <Checkbox
@@ -1828,7 +1828,7 @@ const CampaignsSchedules = () => {
               <TextField fullWidth type="number" margin="dense" variant="outlined" label="Tempo de pausa (min.)" name="pauseMinutes" value={scheduleForm.pauseMinutes} onChange={handleScheduleChange} />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth required margin="dense" variant="outlined" label="Sequencia de intervalos em segundos" name="intervalPattern" value={scheduleForm.intervalPattern} onChange={handleScheduleChange} placeholder="10:2:95:12:34" />
+              <TextField fullWidth required margin="dense" variant="outlined" label="Sequencia de intervalos em segundos" name="intervalPattern" value={scheduleForm.intervalPattern} onChange={handleScheduleChange} placeholder="60:50:55:52:51:53:61" helperText="Recomendado usar intervalos acima de 50 segundos." />
             </Grid>
             <Grid item xs={12}>
               <TextField select fullWidth margin="dense" variant="outlined" label="Conexão WhatsApp" name="whatsappId" value={scheduleForm.whatsappId} onChange={handleScheduleChange}>
@@ -1865,7 +1865,7 @@ const CampaignsSchedules = () => {
             </Button>
           ) : (
             <Button color="primary" variant="contained" onClick={saveSchedule}>
-            {editingScheduleId ? "Salvar" : "Agendar"}
+            {editingScheduleId ? "Salvar" : "Programar"}
             </Button>
           )}
         </DialogActions>

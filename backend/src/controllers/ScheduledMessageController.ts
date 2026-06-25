@@ -279,7 +279,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     maxRuns,
     respectBusinessHours,
     missedRunPolicy,
-    intervalPattern = "30",
+    intervalPattern = "60:50:55:52:51:53:61",
     pauseAfter = 20,
     pauseSeconds = 300,
     pauseMinutes
@@ -364,8 +364,8 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
       runCount: 0,
       respectBusinessHours: respectBusinessHours === true || respectBusinessHours === "true",
       missedRunPolicy: missedRunPolicy || "skip",
-      intervalSeconds: Number(parseInt(String(intervalPattern).split(":")[0], 10) || 30),
-      intervalPattern: intervalPattern || "30",
+      intervalSeconds: Number(parseInt(String(intervalPattern).split(":")[0], 10) || 60),
+      intervalPattern: intervalPattern || "60:50:55:52:51:53:61",
       pauseAfter: Number(pauseAfter || 20),
       pauseSeconds: getPauseSeconds({ pauseSeconds, pauseMinutes }) || 300,
       status: "scheduled"
@@ -429,8 +429,8 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   if (whatsappId !== undefined) allowedData.whatsappId = whatsappId || null;
   if (intervalPattern !== undefined) {
     validateIntervalPattern(intervalPattern);
-    allowedData.intervalPattern = intervalPattern || "30";
-    allowedData.intervalSeconds = Number(parseInt(String(intervalPattern).split(":")[0], 10) || 30);
+    allowedData.intervalPattern = intervalPattern || "60:50:55:52:51:53:61";
+    allowedData.intervalSeconds = Number(parseInt(String(intervalPattern).split(":")[0], 10) || 60);
   }
   if (pauseAfter !== undefined) allowedData.pauseAfter = Number(pauseAfter || 20);
   if (pauseSeconds !== undefined || pauseMinutes !== undefined) {

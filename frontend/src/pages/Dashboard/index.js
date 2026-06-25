@@ -228,10 +228,29 @@ const Dashboard = () => {
         params,
         responseType: "blob"
       });
-      const url = window.URL.createObjectURL(new Blob([data], { type: "text/csv;charset=utf-8" }));
+      const url = window.URL.createObjectURL(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `relatorio-atendimentos-${startDate}-${endDate}.csv`);
+      link.setAttribute("download", `relatorio-atendimentos-${startDate}-${endDate}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  const exportSatisfaction = async () => {
+    try {
+      const { data } = await api.get("/reports/satisfaction/export", {
+        params,
+        responseType: "blob"
+      });
+      const url = window.URL.createObjectURL(new Blob([data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `relatorio-pesquisa-satisfacao-${startDate}-${endDate}.xlsx`);
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -566,6 +585,9 @@ const Dashboard = () => {
                   color="primary"
                   label={`Média ${satisfaction.summary.average || 0}`}
                 />
+                <Button size="small" color="primary" variant="outlined" startIcon={<GetAppIcon />} onClick={exportSatisfaction}>
+                  Excel
+                </Button>
               </div>
               <Typography variant="body2" color="textSecondary">
                 {satisfaction.summary.total || 0} resposta(s) no período.
@@ -621,7 +643,7 @@ const Dashboard = () => {
                   fullWidth
                   variant="outlined"
                   margin="dense"
-                  placeholder="Buscar contato"
+                  placeholder="Buscar por contato, telefone, fila, atendente, categoria, motivo, status, protocolo ou mensagem"
                   value={historySearch}
                   onChange={event => setHistorySearch(event.target.value)}
                   InputProps={{ startAdornment: <SearchIcon color="action" /> }}

@@ -9,6 +9,7 @@ import { StartAiAutoClose } from "./services/AiServices/AiAutoCloseService";
 import { StartUraAutoClose } from "./services/UraServices/UraAutoCloseService";
 import { StartUserInactivityMonitor } from "./services/UserServices/UserInactivityMonitorService";
 import { StartGlpiSolvedTicketsMonitor } from "./services/GlpiServices/MonitorGlpiSolvedTicketsService";
+import { StartAuditLogRetention } from "./services/AuditLogServices/AuditLogRetentionService";
 
 const server = app.listen(process.env.PORT, () => {
   logger.info(`Server started on port: ${process.env.PORT}`);
@@ -22,6 +23,7 @@ StartAiAutoClose();
 StartUraAutoClose();
 StartUserInactivityMonitor();
 StartGlpiSolvedTicketsMonitor();
+StartAuditLogRetention();
 gracefulShutdown(server);
 
 process.on("uncaughtException", err => {

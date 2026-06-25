@@ -19,7 +19,13 @@ import { toast } from "react-toastify";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
-const messageLine = message => message.body || "";
+const messageLine = message => {
+  if (message.body) return message.body;
+  const mediaType = String(message.mediaType || "");
+  if (mediaType === "image" || mediaType.startsWith("image/")) return "[Imagem]";
+  if (message.mediaType) return `[${message.mediaType}]`;
+  return "";
+};
 const messageAuthorLabel = message => {
   if (message.fromMe) return "Atendente";
   const name = message.contact?.name || "Contato";

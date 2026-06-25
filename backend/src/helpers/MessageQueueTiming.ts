@@ -20,7 +20,7 @@ export const getNextIntervalSeconds = ({
     return intervals[sentCount % intervals.length];
   }
 
-  return Number(fallbackSeconds || 30);
+  return Number(fallbackSeconds || 60);
 };
 
 export const getPauseSeconds = ({

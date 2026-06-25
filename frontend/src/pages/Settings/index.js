@@ -867,9 +867,7 @@ const resources = [
 					{ value: "gerarResumoParaAtendente", label: "Gerar resumo para atendente" },
 					{ value: "calcularOrcamento", label: "Calcular orcamento" },
 					{ value: "transferirParaFila", label: "Transferir para fila" },
-					{ value: "encerrarAtendimento", label: "Encerrar atendimento" },
-					{ value: "consultarAgenda", label: "Consultar agenda" },
-					{ value: "criarAgendamento", label: "Criar agendamento" }
+					{ value: "encerrarAtendimento", label: "Encerrar atendimento" }
 				],
 				helperText: "O backend so executa ferramentas marcadas aqui. A IA pode pedir, mas nao executa livremente."
 			},
@@ -879,14 +877,6 @@ const resources = [
 				type: "multiRelation",
 				relation: "queues",
 				helperText: "Limita quais filas este agente pode usar quando pedir a ferramenta transferirParaFila."
-			},
-			{
-				name: "calendarConnectionId",
-				label: "Conexao de agenda",
-				type: "relation",
-				relation: "aiCalendarConnections",
-				nullable: true,
-				helperText: "Obrigatoria para consultarAgenda e criarAgendamento."
 			},
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
@@ -928,7 +918,6 @@ const groupedSettingsTabs = [
 	{ label: "Categorias", type: "resource", resource: getResourceByEndpoint("/ticket-categories") },
 	{ label: "Motivos de encerramento", type: "resource", resource: getResourceByEndpoint("/closing-reasons") },
 	{ label: "Pesquisa de satisfacao", type: "resource", resource: getResourceByEndpoint("/satisfaction-surveys") },
-	{ label: "Mensagens rapidas", type: "resource", resource: getResourceByEndpoint("/quickAnswers") },
 	{ label: "Etiquetas", type: "resource", resource: getResourceByEndpoint("/tags") },
 	{
 		label: "URA",
@@ -941,14 +930,6 @@ const groupedSettingsTabs = [
 		children: [
 			{ label: "Agentes / IA", resource: getResourceByEndpoint("/ai-settings") },
 			{ label: "Base de conhecimento", resource: getResourceByEndpoint("/knowledge-base") },
-			{ label: "Agenda", resource: getResourceByEndpoint("/ai-calendar-connections") }
-		]
-	},
-	{
-		label: "Auditoria IA",
-		type: "group",
-		groupKey: "aiAudit",
-		children: [
 			{ label: "Memoria curta", resource: getResourceByEndpoint("/ai-ticket-contexts") },
 			{ label: "Leads da IA", resource: getResourceByEndpoint("/ai-leads") },
 			{ label: "Execucoes de ferramentas", resource: getResourceByEndpoint("/ai-tool-executions") }
@@ -4659,7 +4640,7 @@ const ResourcePanel = ({ resource, classes }) => {
 						<div className={classes.auditSummary}>
 							<div>
 								<Typography variant="subtitle2">
-									{row.userName || "Sistema"} {String(action.label).toLowerCase()} {resourceName} "{objectName}"
+									{row.displayMessage || `${row.userName || "Sistema"} ${String(action.label).toLowerCase()} ${resourceName} "${objectName}"`}
 								</Typography>
 								<Typography variant="caption" color="textSecondary">
 									{formatAuditDate(row.createdAt)} - {row.userProfile || "perfil nao informado"}
