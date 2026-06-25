@@ -29,17 +29,11 @@ const dateFilter = (start: Date, end: Date) => ({
   [Op.between]: [start, end]
 });
 
-const formatDateTime = (value?: Date | string | null): string => {
-  if (!value) return "";
+const toExcelDate = (value?: Date | string | null): Date | null => {
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
 };
 
 const statusLabels: Record<string, string> = {
@@ -177,11 +171,40 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
   });
 };
 
+const applyWorksheetFormats = (worksheet: XLSX.WorkSheet, rows: any[][]): void => {
+  const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
+  const header = rows[0] || [];
+  const dateColumnIndexes = header
+    .map((label, index) => ({ label: String(label || "").toLowerCase(), index }))
+    .filter(({ label }) =>
+      ["data", "hora", "criado em", "atualizado em", "abertura", "conclusao"].some(term =>
+        label.includes(term)
+      )
+    )
+    .map(({ index }) => index);
+
+  dateColumnIndexes.forEach(columnIndex => {
+    for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; rowIndex += 1) {
+      const address = XLSX.utils.encode_cell({ r: rowIndex, c: columnIndex });
+      const cell = worksheet[address];
+      if (!cell || !(rows[rowIndex]?.[columnIndex] instanceof Date)) continue;
+
+      cell.t = "d";
+      cell.z = "dd/mm/yyyy hh:mm";
+    }
+  });
+
+  worksheet["!cols"] = header.map((label, index) => ({
+    wch: dateColumnIndexes.includes(index) ? 18 : Math.max(String(label || "").length + 2, 12)
+  }));
+};
+
 const sendXlsx = (res: Response, filename: string, sheetName: string, rows: any[][]): Response => {
   const workbook = XLSX.utils.book_new();
-  const worksheet = XLSX.utils.aoa_to_sheet(rows);
+  const worksheet = XLSX.utils.aoa_to_sheet(rows, { cellDates: true });
+  applyWorksheetFormats(worksheet, rows);
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" });
+  const buffer = XLSX.write(workbook, { type: "buffer", bookType: "xlsx", cellDates: true });
 
   res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
   res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
@@ -225,8 +248,8 @@ export const exportTickets = async (req: Request, res: Response): Promise<Respon
     ticket.user?.name,
     ticket.category?.name,
     ticket.closingReason?.name,
-    formatDateTime(ticket.createdAt),
-    formatDateTime(ticket.updatedAt)
+    toExcelDate(ticket.createdAt),
+    toExcelDate(ticket.updatedAt)
   ]);
 
   return sendXlsx(res, "relatorio-atendimentos.xlsx", "Atendimentos", [header, ...rows]);
@@ -264,7 +287,7 @@ export const exportSatisfaction = async (req: Request, res: Response): Promise<R
   ];
   const csvRows = rows.map(row => [
     row.id,
-    formatDateTime(row.createdAt),
+    toExcelDate(row.createdAt),
     row.contact?.name,
     row.contact?.number,
     row.queue?.name,

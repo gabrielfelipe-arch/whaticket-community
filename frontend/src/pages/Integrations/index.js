@@ -282,6 +282,22 @@ const defaultSettings = {
   whatsappIds: []
 };
 
+const defaultWhatsappProviderSettings = {
+  provider: "wwebjs",
+  providerLabel: "WhatsApp Web.js",
+  labels: {
+    wwebjs: "WhatsApp Web.js",
+    whaileys: "Whaileys",
+    evolution: "Evolution API"
+  },
+  evolution: {
+    apiUrl: "",
+    apiKeyMasked: "",
+    hasApiKey: false,
+    webhookUrl: ""
+  }
+};
+
 const countRows = data => {
   if (Array.isArray(data)) return data.length;
   if (Array.isArray(data?.data)) return data.data.length;
@@ -393,26 +409,38 @@ const GlpiSectionHeader = ({ classes, icon: Icon, title, description }) => (
   </div>
 );
 
-const createLocalWhatsappMaintenance = action => ({
+const createLocalWhatsappMaintenance = (action, target = "whaileys") => ({
   active: true,
   action,
+  target,
   percent: 5,
-  currentStep: action === "rollback" ? "npm-rollback" : "rollback-image",
+  currentStep: action === "rollback" ? (target === "evolution" ? "restore-image" : "npm-rollback") : "rollback-image",
   message: action === "rollback"
-    ? "Iniciando rollback do provedor WhatsApp..."
-    : "Iniciando atualizacao do provedor WhatsApp...",
-  steps: action === "rollback"
-    ? [
-        { key: "npm-rollback", label: "Restaurar versao anterior do Whaileys", status: "running" },
-        { key: "commit-restored", label: "Salvar imagem Docker restaurada", status: "pending" },
-        { key: "restart", label: "Reiniciar backend", status: "pending" }
-      ]
-    : [
-        { key: "rollback-image", label: "Criar ponto de rollback Docker", status: "running" },
-        { key: "npm-install", label: "Instalar nova versao do Whaileys", status: "pending" },
-        { key: "commit-updated", label: "Salvar imagem Docker atualizada", status: "pending" },
-        { key: "restart", label: "Reiniciar backend", status: "pending" }
-      ]
+    ? "Iniciando rollback do motor WhatsApp..."
+    : "Iniciando atualizacao do motor WhatsApp...",
+  steps: target === "evolution"
+    ? (action === "rollback"
+        ? [
+            { key: "restore-image", label: "Restaurar imagem anterior da Evolution", status: "running" },
+            { key: "recreate", label: "Recriar servico Evolution", status: "pending" }
+          ]
+        : [
+            { key: "rollback-image", label: "Criar ponto de rollback da Evolution", status: "running" },
+            { key: "docker-pull", label: "Baixar imagem atualizada da Evolution", status: "pending" },
+            { key: "recreate", label: "Recriar servico Evolution", status: "pending" }
+          ])
+    : (action === "rollback"
+        ? [
+            { key: "npm-rollback", label: "Restaurar versao anterior do Whaileys", status: "running" },
+            { key: "commit-restored", label: "Salvar imagem Docker restaurada", status: "pending" },
+            { key: "restart", label: "Reiniciar backend", status: "pending" }
+          ]
+        : [
+            { key: "rollback-image", label: "Criar ponto de rollback Docker", status: "running" },
+            { key: "npm-install", label: "Instalar nova versao do Whaileys", status: "pending" },
+            { key: "commit-updated", label: "Salvar imagem Docker atualizada", status: "pending" },
+            { key: "restart", label: "Reiniciar backend", status: "pending" }
+          ])
 });
 
 const Integrations = () => {
@@ -428,6 +456,9 @@ const Integrations = () => {
   const [tab, setTab] = useState(0);
   const [statusMessage, setStatusMessage] = useState("");
   const [whatsappStatus, setWhatsappStatus] = useState(null);
+  const [whatsappProviderSettings, setWhatsappProviderSettings] = useState(defaultWhatsappProviderSettings);
+  const [testingEvolution, setTestingEvolution] = useState(false);
+  const [switchingProvider, setSwitchingProvider] = useState(false);
   const [checkingWhatsapp, setCheckingWhatsapp] = useState(false);
   const [updatingWhatsapp, setUpdatingWhatsapp] = useState("");
   const [localWhatsappMaintenance, setLocalWhatsappMaintenance] = useState(null);
@@ -505,6 +536,96 @@ const Integrations = () => {
     }
   };
 
+  const loadWhatsappProviderSettings = async () => {
+    try {
+      const { data } = await api.get("/whatsapp-provider");
+      setWhatsappProviderSettings(prev => ({
+        ...defaultWhatsappProviderSettings,
+        ...data,
+        evolution: {
+          ...defaultWhatsappProviderSettings.evolution,
+          ...(data.evolution || {}),
+        }
+      }));
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
+  useEffect(() => {
+    loadWhatsappProviderSettings();
+  }, []);
+
+  const handleWhatsappProviderValue = (path, value) => {
+    setWhatsappProviderSettings(prev => {
+      if (path.startsWith("evolution.")) {
+        const key = path.split(".")[1];
+        return {
+          ...prev,
+          evolution: {
+            ...prev.evolution,
+            [key]: value
+          }
+        };
+      }
+
+      return { ...prev, [path]: value };
+    });
+  };
+
+  const saveWhatsappProviderSettings = async () => {
+    const { data } = await api.put("/whatsapp-provider", {
+      provider: whatsappProviderSettings.provider
+    });
+    setWhatsappProviderSettings(prev => ({
+      ...prev,
+      ...data,
+      evolution: {
+        ...prev.evolution,
+        ...(data.evolution || {})
+      }
+    }));
+  };
+
+  const testEvolutionConnection = async () => {
+    try {
+      setTestingEvolution(true);
+      const { data } = await api.post("/whatsapp-provider/test-evolution");
+      toast.success(data?.message || "Evolution API respondeu corretamente.");
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setTestingEvolution(false);
+    }
+  };
+
+  const switchWhatsappProvider = async () => {
+    const label = whatsappProviderSettings.labels?.[whatsappProviderSettings.provider] || whatsappProviderSettings.provider;
+    if (!window.confirm(`Trocar o provedor global para ${label}? Todas as conexoes serao desconectadas e precisarao ser reconectadas.`)) return;
+
+    try {
+      setSwitchingProvider(true);
+      await saveWhatsappProviderSettings();
+      const { data } = await api.post("/whatsapp-provider/switch", {
+        provider: whatsappProviderSettings.provider
+      });
+      setWhatsappProviderSettings(prev => ({
+        ...prev,
+        ...data,
+        evolution: {
+          ...prev.evolution,
+          ...(data.evolution || {})
+        }
+      }));
+      toast.success(data?.message || "Provedor WhatsApp alterado.");
+      await checkWhatsappUpdates(true);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setSwitchingProvider(false);
+    }
+  };
+
   useEffect(() => {
     if (!updatingWhatsapp) return undefined;
 
@@ -525,11 +646,11 @@ const Integrations = () => {
   const installWhatsappUpdate = async () => {
     try {
       setUpdatingWhatsapp("install");
-      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("install"));
+      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("install", whatsappStatus?.updateProvider || "whaileys"));
       setStatusMessage("Criando ponto de rollback Docker e instalando atualizacao...");
       const { data } = await api.post("/whatsapp-updates/install");
       setWhatsappStatus(prev => ({ ...(prev || {}), maintenance: data.maintenance || prev?.maintenance }));
-      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("install"));
+      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("install", whatsappStatus?.updateProvider || "whaileys"));
       setStatusMessage(data.message || "Atualizacao iniciada.");
     } catch (err) {
       setStatusMessage(errorMessage(err));
@@ -544,11 +665,11 @@ const Integrations = () => {
 
     try {
       setUpdatingWhatsapp("rollback");
-      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("rollback"));
+      setLocalWhatsappMaintenance(createLocalWhatsappMaintenance("rollback", whatsappStatus?.updateProvider || "whaileys"));
       setStatusMessage("Restaurando versao anterior do provedor WhatsApp...");
       const { data } = await api.post("/whatsapp-updates/rollback");
       setWhatsappStatus(prev => ({ ...(prev || {}), maintenance: data.maintenance || prev?.maintenance }));
-      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("rollback"));
+      setLocalWhatsappMaintenance(data.maintenance || createLocalWhatsappMaintenance("rollback", whatsappStatus?.updateProvider || "whaileys"));
       setStatusMessage(data.message || "Rollback iniciado.");
     } catch (err) {
       setStatusMessage(errorMessage(err));
@@ -1346,85 +1467,155 @@ const Integrations = () => {
               WhatsApp
             </Typography>
             <Typography variant="body2" color="textSecondary" className={classes.helper}>
-              Acompanhe a versao do provedor Whaileys usado para conexao WhatsApp. A versao do WhatsApp Web pode ser buscada automaticamente, mas a biblioteca nao atualiza sozinha.
+              Escolha manualmente qual provedor global todas as conexoes WhatsApp devem usar. Ao trocar, reconecte os numeros.
             </Typography>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  variant="outlined"
-                  label="Provedor"
-                  value={whatsappStatus?.provider || "whaileys"}
-                  InputProps={{ readOnly: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  variant="outlined"
-                  label="Versao instalada"
-                  value={whatsappStatus?.installedVersion || "Nao verificada"}
-                  InputProps={{ readOnly: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  margin="dense"
-                  variant="outlined"
-                  label="Ultima versao disponivel"
-                  value={whatsappStatus?.latestVersion || "Nao verificada"}
-                  InputProps={{ readOnly: true }}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <div className={whatsappStatus?.updateAvailable ? classes.warningNotice : classes.statusMessage}>
-                  <Typography variant="body2">
-                    {whatsappStatus?.updateAvailable
-                      ? "Existe uma atualizacao disponivel para o provedor WhatsApp."
-                      : whatsappStatus
-                        ? "Nenhuma atualizacao detectada para o provedor WhatsApp."
-                        : "Clique em Verificar atualizacao para consultar a versao atual."}
-                  </Typography>
-                  <Typography variant="body2" color="textSecondary">
-                    {whatsappStatus?.installAutomationReady
-                      ? "Ao instalar, o sistema cria automaticamente um ponto de rollback Docker antes de atualizar."
-                      : "Automacao indisponivel: o backend precisa acessar o Docker para criar o ponto de rollback."}
-                  </Typography>
-                  {whatsappStatus?.rollbackPoint?.createdAt && (
-                    <Typography variant="body2" color="textSecondary">
-                      Ultimo rollback: versao {whatsappStatus.rollbackPoint.previousVersion} em {new Date(whatsappStatus.rollbackPoint.createdAt).toLocaleString()}.
-                    </Typography>
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={SettingsApplicationsIcon}
+                title="Provedor global"
+                description="A escolha vale para envio, recebimento, campanhas, URA, IA e abertura manual de chamados."
+              />
+              <div className={classes.glpiSectionBody}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      select
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Provedor em uso"
+                      value={whatsappProviderSettings.provider}
+                      onChange={event => handleWhatsappProviderValue("provider", event.target.value)}
+                    >
+                      {Object.entries(whatsappProviderSettings.labels || {}).map(([key, label]) => (
+                        <MenuItem key={key} value={key}>
+                          {label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={8}>
+                    <div className={classes.statusMessage}>
+                      <Typography variant="body2">
+                        Provedor ativo: {whatsappProviderSettings.providerLabel || whatsappProviderSettings.labels?.[whatsappProviderSettings.provider] || whatsappProviderSettings.provider}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                      A troca e manual. Depois de aplicar, todos os numeros ficam desconectados para novo pareamento no provedor selecionado.
+                      </Typography>
+                    </div>
+                  </Grid>
+                  {whatsappProviderSettings.provider === "evolution" && (
+                    <Grid item xs={12}>
+                      <div className={classes.statusMessage}>
+                        <Typography variant="body2">
+                          Evolution API sera usada como motor interno do sistema.
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          URL, chave e webhook ficam configurados no Docker/.env; o usuario so precisa aplicar a troca e reconectar os numeros.
+                        </Typography>
+                      </div>
+                    </Grid>
                   )}
+                </Grid>
+                <div className={classes.actions}>
+                  <Button variant="outlined" color="primary" onClick={testEvolutionConnection} disabled={testingEvolution}>
+                    {testingEvolution ? "Testando..." : "Testar Evolution"}
+                  </Button>
+                  <Button variant="contained" color="primary" onClick={switchWhatsappProvider} disabled={switchingProvider}>
+                    {switchingProvider ? "Aplicando..." : "Aplicar troca global"}
+                  </Button>
                 </div>
-              </Grid>
-            </Grid>
+              </div>
+            </div>
 
-            {renderWhatsappProgress()}
+            <div className={classes.glpiSection}>
+              <GlpiSectionHeader
+                classes={classes}
+                icon={VpnKeyIcon}
+                title="Atualizacao do motor selecionado"
+                description="Atualize ou desfaça a ultima atualizacao do provedor WhatsApp em uso."
+              />
+              <div className={classes.glpiSectionBody}>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Biblioteca"
+                      value={whatsappStatus?.updateProviderLabel || "Whaileys"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Versao instalada"
+                      value={whatsappStatus?.installedVersion || "Nao verificada"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      margin="dense"
+                      variant="outlined"
+                      label="Ultima versao disponivel"
+                      value={whatsappStatus?.latestVersion || "Nao verificada"}
+                      InputProps={{ readOnly: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <div className={whatsappStatus?.updateAvailable ? classes.warningNotice : classes.statusMessage}>
+                      <Typography variant="body2">
+                        {whatsappStatus?.updateAvailable
+                          ? `Existe uma atualizacao disponivel para ${whatsappStatus?.updateProviderLabel || "o provedor WhatsApp"}.`
+                          : whatsappStatus
+                            ? `Nenhuma atualizacao detectada para ${whatsappStatus?.updateProviderLabel || "o provedor WhatsApp"}.`
+                            : "Clique em Verificar atualizacao para consultar a versao atual."}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {whatsappStatus?.installAutomationReady
+                          ? "Ao instalar, o sistema cria automaticamente um ponto de rollback Docker antes de atualizar."
+                          : "Automacao indisponivel: o backend precisa acessar o Docker para criar o ponto de rollback."}
+                      </Typography>
+                      {whatsappStatus?.rollbackPoint?.createdAt && (
+                        <Typography variant="body2" color="textSecondary">
+                          Ultimo rollback: versao {whatsappStatus.rollbackPoint.previousVersion} em {new Date(whatsappStatus.rollbackPoint.createdAt).toLocaleString()}.
+                        </Typography>
+                      )}
+                    </div>
+                  </Grid>
+                </Grid>
 
-            <div className={classes.actions}>
-              <Button variant="outlined" color="primary" onClick={checkWhatsappUpdates} disabled={checkingWhatsapp}>
-                {checkingWhatsapp ? "Verificando..." : "Verificar atualizacao"}
-              </Button>
-              <Button
-                variant="outlined"
-                color="primary"
-                disabled={!whatsappStatus?.updateAvailable || !whatsappStatus?.installAutomationReady || !!updatingWhatsapp}
-                onClick={installWhatsappUpdate}
-              >
-                {updatingWhatsapp === "install" ? "Instalando..." : "Instalar atualizacao"}
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                disabled={!whatsappStatus?.rollbackAutomationReady || !!updatingWhatsapp}
-                onClick={rollbackWhatsappUpdate}
-              >
-                {updatingWhatsapp === "rollback" ? "Desfazendo..." : "Desfazer ultima atualizacao"}
-              </Button>
+                {renderWhatsappProgress()}
+
+                <div className={classes.actions}>
+                  <Button variant="outlined" color="primary" onClick={checkWhatsappUpdates} disabled={checkingWhatsapp}>
+                    {checkingWhatsapp ? "Verificando..." : "Verificar atualizacao"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="primary"
+                    disabled={!whatsappStatus?.updateAvailable || !whatsappStatus?.installAutomationReady || !!updatingWhatsapp}
+                    onClick={installWhatsappUpdate}
+                  >
+                    {updatingWhatsapp === "install" ? "Instalando..." : "Instalar atualizacao"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    disabled={!whatsappStatus?.rollbackAutomationReady || !!updatingWhatsapp}
+                    onClick={rollbackWhatsappUpdate}
+                  >
+                    {updatingWhatsapp === "rollback" ? "Desfazendo..." : "Desfazer ultima atualizacao"}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {statusMessage && (

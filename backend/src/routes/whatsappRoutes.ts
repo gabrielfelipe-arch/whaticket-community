@@ -5,6 +5,8 @@ import AppError from "../errors/AppError";
 
 import * as WhatsAppController from "../controllers/WhatsAppController";
 import * as WhatsAppUpdateController from "../controllers/WhatsAppUpdateController";
+import * as WhatsAppProviderController from "../controllers/WhatsAppProviderController";
+import * as EvolutionWebhookController from "../controllers/EvolutionWebhookController";
 
 const whatsappRoutes = express.Router();
 
@@ -21,6 +23,14 @@ whatsappRoutes.get("/whatsapp-updates/status", isAuth, isAdmin, WhatsAppUpdateCo
 whatsappRoutes.get("/whatsapp-updates/progress", isAuth, isAdmin, WhatsAppUpdateController.progress);
 whatsappRoutes.post("/whatsapp-updates/install", isAuth, isAdmin, WhatsAppUpdateController.install);
 whatsappRoutes.post("/whatsapp-updates/rollback", isAuth, isAdmin, WhatsAppUpdateController.rollback);
+
+whatsappRoutes.get("/whatsapp-provider", isAuth, isAdmin, WhatsAppProviderController.show);
+whatsappRoutes.put("/whatsapp-provider", isAuth, isAdmin, WhatsAppProviderController.update);
+whatsappRoutes.post("/whatsapp-provider/test-evolution", isAuth, isAdmin, WhatsAppProviderController.testEvolution);
+whatsappRoutes.post("/whatsapp-provider/switch", isAuth, isAdmin, WhatsAppProviderController.switchProvider);
+
+whatsappRoutes.post("/webhooks/evolution", EvolutionWebhookController.receive);
+whatsappRoutes.post("/webhooks/evolution/:instance", EvolutionWebhookController.receive);
 
 whatsappRoutes.post("/whatsapp/", isAuth, isAdmin, WhatsAppController.store);
 

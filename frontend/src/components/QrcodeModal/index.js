@@ -58,7 +58,11 @@ const QrcodeModal = ({ open, onClose, whatsAppId }) => {
 						{i18n.t("qrCode.message")}
 					</Typography>
 					{qrCode ? (
-						<QRCode value={qrCode} size={256} />
+						qrCode.startsWith("data:image") ? (
+							<img src={qrCode} alt="QR Code" width={256} height={256} />
+						) : (
+							<QRCode value={qrCode} size={256} />
+						)
 					) : (
 						<span>Waiting for QR Code</span>
 					)}

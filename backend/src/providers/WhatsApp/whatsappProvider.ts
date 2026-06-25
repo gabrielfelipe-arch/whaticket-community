@@ -8,6 +8,12 @@ import {
 } from "./types";
 import { WhatsappWebJsProvider } from "./Implementations/wwebjs";
 import { WhaileysProvider } from "./Implementations/whaileys";
+import { EvolutionProvider } from "./Implementations/evolution";
+import {
+  getWhatsAppProviderSettings,
+  normalizeWhatsAppProvider,
+  WhatsAppProviderKey
+} from "../../services/WhatsappProviderServices/WhatsappProviderSettingsService";
 
 export interface WhatsappProvider {
   init(whatsapp: Whatsapp): Promise<void>;
@@ -42,13 +48,72 @@ export interface WhatsappProvider {
   ): Promise<ProviderMessage[]>;
 }
 
-const provider = process.env.WHATSAPP_PROVIDER || "wwebjs";
-
-const providersMap: Record<string, WhatsappProvider> = {
+const providersMap: Record<WhatsAppProviderKey, WhatsappProvider> = {
   wwebjs: WhatsappWebJsProvider,
-  whaileys: WhaileysProvider
+  whaileys: WhaileysProvider,
+  evolution: EvolutionProvider
 };
 
-const whatsappProvider = providersMap[provider];
+const resolveProvider = async (): Promise<WhatsappProvider> => {
+  const settings = await getWhatsAppProviderSettings();
+  return providersMap[settings.provider] || providersMap.wwebjs;
+};
+
+export const getActiveWhatsAppProviderKey = async (): Promise<WhatsAppProviderKey> => {
+  const settings = await getWhatsAppProviderSettings();
+  return normalizeWhatsAppProvider(settings.provider);
+};
+
+const whatsappProvider: WhatsappProvider = {
+  init: async whatsapp => {
+    const provider = await resolveProvider();
+    return provider.init(whatsapp);
+  },
+  removeSession: whatsappId => {
+    Object.values(providersMap).forEach(provider => {
+      try {
+        provider.removeSession(whatsappId);
+      } catch {
+        /* ignore provider cleanup errors */
+      }
+    });
+  },
+  logout: async sessionId => {
+    const provider = await resolveProvider();
+    return provider.logout(sessionId);
+  },
+  sendMessage: async (sessionId, to, body, options) => {
+    const provider = await resolveProvider();
+    return provider.sendMessage(sessionId, to, body, options);
+  },
+  sendMedia: async (sessionId, to, media, options) => {
+    const provider = await resolveProvider();
+    return provider.sendMedia(sessionId, to, media, options);
+  },
+  deleteMessage: async (sessionId, chatId, messageId, fromMe) => {
+    const provider = await resolveProvider();
+    return provider.deleteMessage(sessionId, chatId, messageId, fromMe);
+  },
+  checkNumber: async (sessionId, number) => {
+    const provider = await resolveProvider();
+    return provider.checkNumber(sessionId, number);
+  },
+  getProfilePicUrl: async (sessionId, number) => {
+    const provider = await resolveProvider();
+    return provider.getProfilePicUrl(sessionId, number);
+  },
+  getContacts: async sessionId => {
+    const provider = await resolveProvider();
+    return provider.getContacts(sessionId);
+  },
+  sendSeen: async (sessionId, chatId) => {
+    const provider = await resolveProvider();
+    return provider.sendSeen(sessionId, chatId);
+  },
+  fetchChatMessages: async (sessionId, chatId, limit) => {
+    const provider = await resolveProvider();
+    return provider.fetchChatMessages(sessionId, chatId, limit);
+  }
+};
 
 export { whatsappProvider };
