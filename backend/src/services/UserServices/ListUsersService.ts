@@ -40,6 +40,7 @@ const ListUsersService = async ({
       "id",
       "email",
       "profile",
+      "specialPermissions",
       "active",
       "glpiEnabled",
       "attendanceGreeting",

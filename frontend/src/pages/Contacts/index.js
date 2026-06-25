@@ -117,6 +117,7 @@ const Contacts = () => {
   const fileInputRef = useRef(null);
 
   const { user } = useContext(AuthContext);
+  const canImportSpreadsheet = user?.profile === "admin" || user?.specialPermissions?.importContactsSpreadsheet === true;
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -383,22 +384,26 @@ const Contacts = () => {
               />
             </div>
           </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            style={{ display: "none" }}
-            onChange={handleSpreadsheetImport}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<CloudUploadIcon />}
-            disabled={importingSpreadsheet}
-            onClick={() => setSpreadsheetInfoOpen(true)}
-          >
-            {importingSpreadsheet ? "Importando..." : "Importar planilha"}
-          </Button>
+          {canImportSpreadsheet && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                style={{ display: "none" }}
+                onChange={handleSpreadsheetImport}
+              />
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<CloudUploadIcon />}
+                disabled={importingSpreadsheet}
+                onClick={() => setSpreadsheetInfoOpen(true)}
+              >
+                {importingSpreadsheet ? "Importando..." : "Importar planilha"}
+              </Button>
+            </>
+          )}
           <Button
             variant="contained"
             color="primary"

@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import AppError from "../errors/AppError";
 import authConfig from "../config/auth";
 import User from "../models/User";
+import { normalizeProfile } from "../helpers/ProfilePermissions";
 
 interface TokenPayload {
   id: string;
@@ -36,7 +37,7 @@ const isAuth = async (req: Request, res: Response, next: NextFunction): Promise<
 
     req.user = {
       id,
-      profile: user.profile || profile
+      profile: normalizeProfile(user.profile || profile)
     };
   } catch (err) {
     throw new AppError(

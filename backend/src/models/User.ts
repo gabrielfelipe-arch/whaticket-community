@@ -45,7 +45,7 @@ class User extends Model<User> {
   @Column
   tokenVersion: number;
 
-  @Default("admin")
+  @Default("user")
   @Column
   profile: string;
 
@@ -59,6 +59,9 @@ class User extends Model<User> {
 
   @Column(DataType.TEXT)
   glpiUserToken: string;
+
+  @Column(DataType.TEXT)
+  specialPermissions: string;
 
   @Column(DataType.TEXT)
   attendanceGreeting: string;

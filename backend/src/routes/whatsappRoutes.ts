@@ -2,6 +2,7 @@ import express from "express";
 import { Request, Response, NextFunction } from "express";
 import isAuth from "../middleware/isAuth";
 import AppError from "../errors/AppError";
+import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
 
 import * as WhatsAppController from "../controllers/WhatsAppController";
 import * as WhatsAppUpdateController from "../controllers/WhatsAppUpdateController";
@@ -12,6 +13,13 @@ const whatsappRoutes = express.Router();
 
 const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+  return next();
+};
+
+const isAdminOrSupervisor = (req: Request, res: Response, next: NextFunction) => {
+  if (!isAdminOrSupervisorProfile(req.user.profile)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
   return next();
@@ -34,7 +42,7 @@ whatsappRoutes.post("/webhooks/evolution/:instance", EvolutionWebhookController.
 
 whatsappRoutes.post("/whatsapp/", isAuth, isAdmin, WhatsAppController.store);
 
-whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, isAdmin, WhatsAppController.show);
+whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, isAdminOrSupervisor, WhatsAppController.show);
 
 whatsappRoutes.put("/whatsapp/:whatsappId", isAuth, isAdmin, WhatsAppController.update);
 

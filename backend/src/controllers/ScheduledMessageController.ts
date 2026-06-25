@@ -5,6 +5,7 @@ import ScheduledMessage from "../models/ScheduledMessage";
 import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
+import { isAdminProfile, requestUserHasSpecialPermission } from "../helpers/ProfilePermissions";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
@@ -14,6 +15,12 @@ const include = [
   { model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] },
   { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] }
 ];
+
+const canManageSchedule = async (req: Request, schedule: ScheduledMessage): Promise<boolean> => {
+  if (isAdminProfile(req.user.profile)) return true;
+  if (schedule.userId && Number(schedule.userId) === Number(req.user.id)) return true;
+  return requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
+};
 
 const parseNumberArray = (value: any): number[] => {
   if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
@@ -343,6 +350,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     filteredContacts.map((contact, index) => ({
       contactId: contact.id,
       whatsappId: whatsappId || null,
+      userId: Number(req.user.id),
       batchId,
       sendType: ["scheduled", "campaign"].includes(sendType) ? sendType : "scheduled",
       tagIds: selectedTagIds,
@@ -385,6 +393,8 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const schedule = await ScheduledMessage.findByPk(scheduleId);
 
   if (!schedule) throw new AppError("ERR_SCHEDULE_NOT_FOUND", 404);
+  if (!(await canManageSchedule(req, schedule))) throw new AppError("ERR_NO_PERMISSION", 403);
+
   if (["sent", "completed"].includes(schedule.status)) {
     throw new AppError("ERR_SCHEDULE_ALREADY_SENT", 400);
   }
@@ -558,10 +568,12 @@ export const duplicate = async (req: Request, res: Response): Promise<Response> 
   const schedule = await ScheduledMessage.findByPk(scheduleId);
 
   if (!schedule) throw new AppError("ERR_SCHEDULE_NOT_FOUND", 404);
+  if (!(await canManageSchedule(req, schedule))) throw new AppError("ERR_NO_PERMISSION", 403);
 
   const clone = await ScheduledMessage.create({
     contactId: schedule.contactId,
     whatsappId: schedule.whatsappId,
+    userId: Number(req.user.id),
     batchId: `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
     sendType: schedule.sendType || "scheduled",
     tagIds: schedule.tagIds || [],
@@ -601,6 +613,7 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
   const schedule = await ScheduledMessage.findByPk(scheduleId);
 
   if (!schedule) throw new AppError("ERR_SCHEDULE_NOT_FOUND", 404);
+  if (!(await canManageSchedule(req, schedule))) throw new AppError("ERR_NO_PERMISSION", 403);
   await schedule.destroy();
 
   return res.status(200).json({ message: "deleted" });

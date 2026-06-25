@@ -19,7 +19,8 @@ import {
 	InputAdornment,
 	IconButton,
 	FormControlLabel,
-	Switch
+	Switch,
+	Typography
   } from '@material-ui/core';
 
 import { Visibility, VisibilityOff } from '@material-ui/icons';
@@ -65,7 +66,30 @@ const useStyles = makeStyles(theme => ({
 		margin: theme.spacing(1),
 		minWidth: 120,
 	},
+	permissionsBox: {
+		marginTop: theme.spacing(1),
+		padding: theme.spacing(1.5),
+		border: "1px solid #d8dee9",
+		borderRadius: 8,
+		background: "#f8fafc",
+	},
+	permissionsGrid: {
+		display: "grid",
+		gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+		gap: theme.spacing(0.5, 1),
+		[theme.breakpoints.down("xs")]: {
+			gridTemplateColumns: "1fr",
+		},
+	},
 }));
+
+const specialPermissionOptions = [
+	{ key: "accessUra", label: "Acessar URA" },
+	{ key: "accessForms", label: "Acessar formularios" },
+	{ key: "accessAi", label: "Acessar IA" },
+	{ key: "importContactsSpreadsheet", label: "Importar contatos por planilha" },
+	{ key: "manageOtherCampaigns", label: "Editar/excluir campanhas de outros usuarios" },
+];
 
 const UserSchema = Yup.object().shape({
 	name: Yup.string()
@@ -88,10 +112,22 @@ const UserModal = ({ open, onClose, userId }) => {
 		glpiEnabled: false,
 		glpiUserToken: "",
 		attendanceGreeting: "",
-		operationalStatus: "offline",
+		specialPermissions: {
+			accessUra: false,
+			accessForms: false,
+			accessAi: false,
+			importContactsSpreadsheet: false,
+			manageOtherCampaigns: false,
+		},
 	};
 
 	const { user: loggedInUser } = useContext(AuthContext);
+	const canEditProfiles = ["admin", "supervisor"].includes(loggedInUser?.profile);
+	const profileOptions = [
+		...(loggedInUser?.profile === "admin" ? [{ value: "admin", label: "Admin" }] : []),
+		{ value: "supervisor", label: "Supervisor" },
+		{ value: "user", label: "User" }
+	];
 
 	const [user, setUser] = useState(initialState);
 	const [selectedQueueIds, setSelectedQueueIds] = useState([]);
@@ -143,7 +179,7 @@ const UserModal = ({ open, onClose, userId }) => {
 			<Dialog
 				open={open}
 				onClose={handleClose}
-				maxWidth="xs"
+				maxWidth="sm"
 				fullWidth
 				scroll="paper"
 			>
@@ -218,29 +254,28 @@ const UserModal = ({ open, onClose, userId }) => {
 										className={classes.formControl}
 										margin="dense"
 									>
-										<Can
-											role={loggedInUser.profile}
-											perform="user-modal:editProfile"
-											yes={() => (
-												<>
-													<InputLabel id="profile-selection-input-label">
-														{i18n.t("userModal.form.profile")}
-													</InputLabel>
+										{canEditProfiles && (
+											<>
+												<InputLabel id="profile-selection-input-label">
+													{i18n.t("userModal.form.profile")}
+												</InputLabel>
 
-													<Field
-														as={Select}
-														label={i18n.t("userModal.form.profile")}
-														name="profile"
-														labelId="profile-selection-label"
-														id="profile-selection"
-														required
-													>
-														<MenuItem value="admin">Admin</MenuItem>
-														<MenuItem value="user">User</MenuItem>
-													</Field>
-												</>
-											)}
-										/>
+												<Field
+													as={Select}
+													label={i18n.t("userModal.form.profile")}
+													name="profile"
+													labelId="profile-selection-label"
+													id="profile-selection"
+													required
+												>
+													{profileOptions.map(option => (
+														<MenuItem key={option.value} value={option.value}>
+															{option.label}
+														</MenuItem>
+													))}
+												</Field>
+											</>
+										)}
 									</FormControl>
 								</div>
 								<Can
@@ -326,23 +361,30 @@ const UserModal = ({ open, onClose, userId }) => {
 										</>
 									)}
 								/>
-								<Can
-									role={loggedInUser.profile}
-									perform="user-modal:editProfile"
-									yes={() => (
-										<FormControl variant="outlined" margin="dense" fullWidth>
-											<InputLabel>Status operacional</InputLabel>
-											<Field
-												as={Select}
-												label="Status operacional"
-												name="operationalStatus"
-											>
-												<MenuItem value="online">Online</MenuItem>
-												<MenuItem value="away">Ausente</MenuItem>
-											</Field>
-										</FormControl>
-									)}
-								/>
+								{loggedInUser.profile === "admin" && (
+									<div className={classes.permissionsBox}>
+										<Typography variant="subtitle2">Permissoes especiais</Typography>
+										<Typography variant="caption" color="textSecondary">
+											Use para liberar funcionalidades especificas sem transformar o usuario em administrador.
+										</Typography>
+										<div className={classes.permissionsGrid}>
+											{specialPermissionOptions.map(permission => (
+												<FormControlLabel
+													key={permission.key}
+													control={
+														<Field
+															as={Switch}
+															color="primary"
+															name={`specialPermissions.${permission.key}`}
+															checked={values.specialPermissions?.[permission.key] === true}
+														/>
+													}
+													label={permission.label}
+												/>
+											))}
+										</div>
+									</div>
+								)}
 							</DialogContent>
 							<DialogActions>
 								<Button

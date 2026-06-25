@@ -13,6 +13,7 @@ import CheckContactNumber from "../services/WbotServices/CheckNumber";
 import CheckIsValidContact from "../services/WbotServices/CheckIsValidContact";
 import GetProfilePicUrl from "../services/WbotServices/GetProfilePicUrl";
 import AppError from "../errors/AppError";
+import { requestUserHasSpecialPermission } from "../helpers/ProfilePermissions";
 import GetContactService from "../services/ContactServices/GetContactService";
 
 type IndexQuery = {
@@ -177,6 +178,10 @@ export const importSpreadsheet = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
+  if (!(await requestUserHasSpecialPermission(req.user.id, "importContactsSpreadsheet"))) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
   if (!req.file?.path) {
     throw new AppError("Arquivo da planilha nao enviado.", 400);
   }

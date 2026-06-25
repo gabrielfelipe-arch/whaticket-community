@@ -41,6 +41,8 @@ import {
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { useBranding } from "../../context/Branding";
+import { getBackendUrl } from "../../config";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -167,10 +169,25 @@ const escapeHtml = value =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+const formatPdfDate = value => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+};
+
 const Dashboard = () => {
   const classes = useStyles();
   const theme = useTheme();
   const { user } = useContext(AuthContext);
+  const branding = useBranding();
+  const canViewFullDashboard = ["admin", "supervisor"].includes(user?.profile);
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(today());
   const [dashboard, setDashboard] = useState(emptyDashboard);
@@ -188,7 +205,7 @@ const Dashboard = () => {
       try {
         const [{ data }, satisfactionResponse] = await Promise.all([
           api.get("/reports/dashboard", { params }),
-          user?.profile === "admin"
+          canViewFullDashboard
             ? api.get("/reports/satisfaction", { params })
             : Promise.resolve({ data: { summary: { total: 0, average: 0 }, responses: [] } })
         ]);
@@ -200,10 +217,10 @@ const Dashboard = () => {
     };
 
     loadDashboard();
-  }, [params, user?.profile]);
+  }, [canViewFullDashboard, params, user?.profile]);
 
   const loadHistory = async () => {
-    if (user?.profile !== "admin") return;
+    if (!canViewFullDashboard) return;
 
     setLoadingHistory(true);
     try {
@@ -220,7 +237,7 @@ const Dashboard = () => {
   useEffect(() => {
     loadHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, user?.profile]);
+  }, [canViewFullDashboard, params, user?.profile]);
 
   const exportTickets = async () => {
     try {
@@ -280,53 +297,213 @@ const Dashboard = () => {
       return;
     }
 
-    const rows = (selectedConversation.messages || []).map(message => `
+    const companyName = branding.companyFantasyName || branding.brandName || branding.companyLegalName || "Rocket Service";
+    const legalName = branding.companyLegalName && branding.companyLegalName !== companyName
+      ? branding.companyLegalName
+      : "";
+    const backendUrl = getBackendUrl() || "http://localhost:8085";
+    const logoUrl = branding.brandLogo ? `${backendUrl}${branding.brandLogo}` : "";
+    const issuedAt = formatPdfDate(new Date());
+    const footerParts = [
+      branding.companyAddress,
+      branding.companyPhone,
+      branding.companyEmail,
+      branding.companyWebsite
+    ].filter(Boolean);
+
+    const rows = (selectedConversation.messages || []).map(message => {
+      const origin = message.fromMe ? "Atendente / Sistema" : "Cliente";
+      const body = message.body || `[${message.mediaType || "midia"}]`;
+      return `
       <tr>
-        <td>${escapeHtml(new Date(message.createdAt).toLocaleString())}</td>
-        <td>${escapeHtml(message.fromMe ? "Atendente/Sistema" : "Contato")}</td>
-        <td>${escapeHtml(message.body || `[${message.mediaType || "midia"}]`).replace(/\n/g, "<br />")}</td>
+        <td>${escapeHtml(formatPdfDate(message.createdAt))}</td>
+        <td><span class="origin ${message.fromMe ? "origin-agent" : "origin-client"}">${escapeHtml(origin)}</span></td>
+        <td>${escapeHtml(body).replace(/\n/g, "<br />")}</td>
       </tr>
-    `).join("");
+    `;
+    }).join("");
 
     printWindow.document.write(`
       <!doctype html>
       <html>
         <head>
           <meta charset="utf-8" />
-          <title>Conversa #${escapeHtml(selectedConversation.id)}</title>
+          <title>Relatorio de Atendimento #${escapeHtml(selectedConversation.id)}</title>
           <style>
-            body { font-family: Arial, sans-serif; color: #0f172a; margin: 24px; }
-            h1 { font-size: 20px; margin: 0 0 12px; }
-            .meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; margin-bottom: 20px; font-size: 12px; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th, td { border: 1px solid #d8dee9; padding: 8px; text-align: left; vertical-align: top; }
-            th { background: #f1f5f9; }
-            td:nth-child(1) { width: 145px; }
-            td:nth-child(2) { width: 130px; }
+            @page { margin: 18mm 14mm 22mm; }
+            * { box-sizing: border-box; }
+            body {
+              font-family: Arial, Helvetica, sans-serif;
+              color: #0f172a;
+              margin: 0;
+              background: #ffffff;
+              font-size: 12px;
+            }
+            .document { padding: 0 0 18px; }
+            .header {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 24px;
+              padding-bottom: 16px;
+              border-bottom: 2px solid #1d4ed8;
+              margin-bottom: 18px;
+            }
+            .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+            .logoBox {
+              width: 86px;
+              height: 54px;
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              overflow: hidden;
+              background: #f8fafc;
+              color: #1d4ed8;
+              font-weight: 800;
+              font-size: 22px;
+            }
+            .logoBox img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+            .brandName { font-size: 17px; font-weight: 800; line-height: 1.2; }
+            .legalName { color: #475569; margin-top: 3px; }
+            .titleBlock { text-align: right; white-space: nowrap; }
+            .titleBlock h1 { font-size: 19px; margin: 0 0 6px; }
+            .titleBlock div { color: #475569; line-height: 1.5; }
+            .sectionTitle {
+              font-size: 13px;
+              font-weight: 800;
+              color: #1d4ed8;
+              text-transform: uppercase;
+              margin: 18px 0 10px;
+            }
+            .metaGrid {
+              display: grid;
+              grid-template-columns: repeat(4, minmax(0, 1fr));
+              gap: 8px;
+              margin-bottom: 14px;
+            }
+            .metaItem {
+              border: 1px solid #e2e8f0;
+              border-radius: 6px;
+              padding: 9px 10px;
+              min-height: 54px;
+              background: #f8fafc;
+            }
+            .metaLabel {
+              display: block;
+              color: #64748b;
+              font-size: 10px;
+              font-weight: 700;
+              text-transform: uppercase;
+              margin-bottom: 4px;
+            }
+            .metaValue { font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+            table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+            thead { display: table-header-group; }
+            tr { page-break-inside: avoid; }
+            th, td {
+              border: 1px solid #d8dee9;
+              padding: 8px;
+              text-align: left;
+              vertical-align: top;
+              line-height: 1.45;
+            }
+            th {
+              background: #eef4ff;
+              color: #1e3a8a;
+              font-size: 10.5px;
+              text-transform: uppercase;
+              letter-spacing: .02em;
+            }
+            td:nth-child(1) { width: 132px; color: #475569; }
+            td:nth-child(2) { width: 142px; }
+            .origin {
+              display: inline-block;
+              border-radius: 999px;
+              padding: 3px 7px;
+              font-size: 10px;
+              font-weight: 800;
+              white-space: nowrap;
+            }
+            .origin-agent { background: #dbeafe; color: #1d4ed8; }
+            .origin-client { background: #dcfce7; color: #166534; }
+            .footer {
+              position: fixed;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              border-top: 1px solid #cbd5e1;
+              padding-top: 7px;
+              display: flex;
+              justify-content: space-between;
+              gap: 16px;
+              color: #475569;
+              font-size: 10px;
+              line-height: 1.35;
+              background: #ffffff;
+            }
+            .footerCompany { max-width: 74%; }
+            .footerRight { text-align: right; white-space: nowrap; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
           </style>
         </head>
         <body>
-          <h1>Conversa concluida #${escapeHtml(selectedConversation.id)}</h1>
-          <div class="meta">
-            <div><strong>Contato:</strong> ${escapeHtml(selectedConversation.contact?.name || "Contato")}</div>
-            <div><strong>Telefone:</strong> ${escapeHtml(selectedConversation.contact?.number || "-")}</div>
-            <div><strong>Atendente:</strong> ${escapeHtml(selectedConversation.user?.name || "Sem atendente")}</div>
-            <div><strong>Fila:</strong> ${escapeHtml(selectedConversation.queue?.name || "Sem fila")}</div>
-            <div><strong>Categoria:</strong> ${escapeHtml(selectedConversation.category?.name || "Nao informada")}</div>
-            <div><strong>Motivo:</strong> ${escapeHtml(selectedConversation.closingReason?.name || "Nao informado")}</div>
-            <div><strong>Abertura:</strong> ${escapeHtml(new Date(selectedConversation.createdAt).toLocaleString())}</div>
-            <div><strong>Conclusao:</strong> ${escapeHtml(new Date(selectedConversation.updatedAt).toLocaleString())}</div>
+          <div class="document">
+            <header class="header">
+              <div class="brand">
+                <div class="logoBox">
+                  ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(companyName)}" />` : escapeHtml(companyName.charAt(0).toUpperCase())}
+                </div>
+                <div>
+                  <div class="brandName">${escapeHtml(companyName)}</div>
+                  ${legalName ? `<div class="legalName">${escapeHtml(legalName)}</div>` : ""}
+                </div>
+              </div>
+              <div class="titleBlock">
+                <h1>Relatorio de Atendimento</h1>
+                <div>Ticket #${escapeHtml(selectedConversation.id)}</div>
+                <div>Emitido em ${escapeHtml(issuedAt)}</div>
+              </div>
+            </header>
+
+            <div class="sectionTitle">Dados do atendimento</div>
+            <section class="metaGrid">
+              <div class="metaItem"><span class="metaLabel">Cliente</span><span class="metaValue">${escapeHtml(selectedConversation.contact?.name || "Contato")}</span></div>
+              <div class="metaItem"><span class="metaLabel">WhatsApp</span><span class="metaValue">${escapeHtml(selectedConversation.contact?.number || "-")}</span></div>
+              <div class="metaItem"><span class="metaLabel">Fila</span><span class="metaValue">${escapeHtml(selectedConversation.queue?.name || "Sem fila")}</span></div>
+              <div class="metaItem"><span class="metaLabel">Atendente</span><span class="metaValue">${escapeHtml(selectedConversation.user?.name || "Sem atendente")}</span></div>
+              <div class="metaItem"><span class="metaLabel">Categoria</span><span class="metaValue">${escapeHtml(selectedConversation.category?.name || "Nao informada")}</span></div>
+              <div class="metaItem"><span class="metaLabel">Motivo</span><span class="metaValue">${escapeHtml(selectedConversation.closingReason?.name || "Nao informado")}</span></div>
+              <div class="metaItem"><span class="metaLabel">Abertura</span><span class="metaValue">${escapeHtml(formatPdfDate(selectedConversation.createdAt))}</span></div>
+              <div class="metaItem"><span class="metaLabel">Conclusao</span><span class="metaValue">${escapeHtml(formatPdfDate(selectedConversation.updatedAt))}</span></div>
+            </section>
+
+            <div class="sectionTitle">Historico da conversa</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Data/hora</th>
+                  <th>Origem</th>
+                  <th>Mensagem</th>
+                </tr>
+              </thead>
+              <tbody>${rows || `<tr><td colspan="3">Nenhuma mensagem encontrada.</td></tr>`}</tbody>
+            </table>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Data/hora</th>
-                <th>Origem</th>
-                <th>Mensagem</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
+
+          <footer class="footer">
+            <div class="footerCompany">
+              <strong>${escapeHtml(companyName)}</strong>${branding.companyCnpj ? ` | CNPJ ${escapeHtml(branding.companyCnpj)}` : ""}
+              ${footerParts.length ? `<br />${escapeHtml(footerParts.join(" | "))}` : ""}
+            </div>
+            <div class="footerRight">
+              Gerado automaticamente<br />
+              pelo Rocket Service
+            </div>
+          </footer>
           <script>
             window.onload = function () {
               window.print();
@@ -410,7 +587,7 @@ const Dashboard = () => {
             onChange={event => setEndDate(event.target.value)}
             InputLabelProps={{ shrink: true }}
           />
-          {user?.profile === "admin" && (
+          {canViewFullDashboard && (
             <Button color="primary" variant="contained" startIcon={<GetAppIcon />} onClick={exportTickets}>
               Excel
             </Button>
@@ -497,7 +674,7 @@ const Dashboard = () => {
           </Paper>
         </Grid>
 
-        {user?.profile === "admin" && (
+        {canViewFullDashboard && (
           <Grid item xs={12}>
             <Paper className={classes.tablePanel}>
               <div className={classes.panelHeader}>
@@ -575,7 +752,7 @@ const Dashboard = () => {
           </Grid>
         )}
 
-        {user?.profile === "admin" && (
+        {canViewFullDashboard && (
           <Grid item xs={12}>
             <Paper className={classes.tablePanel}>
               <div className={classes.panelHeader}>
@@ -627,7 +804,7 @@ const Dashboard = () => {
           </Grid>
         )}
 
-        {user?.profile === "admin" && (
+        {canViewFullDashboard && (
           <Grid item xs={12}>
             <Paper className={classes.tablePanel}>
               <div className={`${classes.panelHeader} ${classes.noPrint}`}>

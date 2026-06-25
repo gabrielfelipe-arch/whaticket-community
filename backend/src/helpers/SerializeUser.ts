@@ -2,6 +2,7 @@ import Queue from "../models/Queue";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
 import { maskSecret } from "./MaskSecret";
+import { parseSpecialPermissions } from "./ProfilePermissions";
 
 interface SerializedUser {
   id: number;
@@ -11,6 +12,7 @@ interface SerializedUser {
   active: boolean;
   glpiEnabled: boolean;
   glpiUserToken: string;
+  specialPermissions: Record<string, boolean>;
   attendanceGreeting: string;
   operationalStatus: string;
   lastActivityAt: Date;
@@ -29,6 +31,7 @@ export const SerializeUser = (user: User): SerializedUser => {
     active: user.active,
     glpiEnabled: user.glpiEnabled,
     glpiUserToken: maskSecret(user.glpiUserToken),
+    specialPermissions: parseSpecialPermissions(user.specialPermissions),
     attendanceGreeting: user.attendanceGreeting,
     operationalStatus: user.operationalStatus,
     lastActivityAt: user.lastActivityAt,

@@ -2,9 +2,6 @@ import { useState, useEffect } from "react";
 import { useHistory } from "react-router-dom";
 import openSocket from "../../services/socket-io";
 
-import { toast } from "react-toastify";
-
-import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 
@@ -75,7 +72,6 @@ const useAuth = () => {
 					localStorage.removeItem("token");
 					api.defaults.headers.Authorization = undefined;
 					setIsAuth(false);
-					toastError(err);
 				}
 			}
 			setLoading(false);
@@ -105,7 +101,6 @@ const useAuth = () => {
 			api.defaults.headers.Authorization = `Bearer ${data.token}`;
 			setUser(data.user);
 			setIsAuth(true);
-			toast.success(i18n.t("auth.toasts.success"));
 			history.push("/tickets");
 			setLoading(false);
 		} catch (err) {

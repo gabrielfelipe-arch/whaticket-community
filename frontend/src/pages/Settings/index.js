@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useContext, useState, useEffect, useRef } from "react";
 import openSocket from "../../services/socket-io";
 
 import {
@@ -45,6 +45,7 @@ import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
 import TagCheckboxPicker from "../../components/TagCheckboxPicker";
 import { getBackendUrl } from "../../config";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const businessWeekdayOptions = [
 	{ value: 1, label: "Seg" },
@@ -144,6 +145,25 @@ const useStyles = makeStyles(theme => ({
 		border: `1px solid ${theme.palette.divider}`,
 		boxShadow: theme.custom?.cardShadow,
 		background: theme.palette.background.paper
+	},
+	businessHoursRuleCard: {
+		padding: theme.spacing(1.5),
+		border: "1px solid #E2E8F0",
+		borderRadius: 8
+	},
+	businessHoursWeekdays: {
+		display: "grid",
+		gridTemplateColumns: "repeat(7, minmax(68px, 1fr))",
+		gap: theme.spacing(0.5),
+		alignItems: "center",
+		[theme.breakpoints.down("sm")]: {
+			gridTemplateColumns: "repeat(2, minmax(0, 1fr))"
+		}
+	},
+	businessWeekdayOption: {
+		marginLeft: 0,
+		marginRight: 0,
+		whiteSpace: "nowrap"
 	},
 	settingOption: {
 		marginLeft: "auto"
@@ -948,6 +968,31 @@ const groupedSettingsTabs = [
 	{ label: "Logs de auditoria", type: "resource", resource: getResourceByEndpoint("/audit-logs") }
 ].filter(tab => ["general", "uraTree"].includes(tab.type) || tab.resource || tab.children?.every(child => child.resource || child.type));
 
+const supervisorSettingsEndpoints = [
+	"/ticket-categories",
+	"/closing-reasons",
+	"/satisfaction-surveys",
+	"/tags",
+	"/audit-logs"
+];
+
+const buildSpecialSettingsTabs = specialPermissions => groupedSettingsTabs.filter(item => {
+	if (specialPermissions?.accessUra && item.type === "uraTree") return true;
+	if (specialPermissions?.accessAi && item.type === "group" && item.groupKey === "ia") return true;
+	if (specialPermissions?.accessForms && item.type === "group" && item.groupKey === "forms") return true;
+	return false;
+});
+
+const uniqueSettingsTabs = tabs => {
+	const keys = new Set();
+	return tabs.filter(item => {
+		const key = item.groupKey || item.resource?.endpoint || item.type || item.label;
+		if (keys.has(key)) return false;
+		keys.add(key);
+		return true;
+	});
+};
+
 const defaultModelsByProvider = {
 	openai: "gpt-4o-mini",
 	gemini: "gemini-2.5-flash",
@@ -1209,7 +1254,7 @@ const relationConfigs = {
 	}
 };
 
-const CompanyBusinessHours = ({ modeValue, rulesValue, messageValue, onChangeSetting }) => {
+const CompanyBusinessHours = ({ modeValue, rulesValue, messageValue, onChangeSetting, classes }) => {
 	const [mode, setMode] = useState(modeValue || "always");
 	const [rules, setRules] = useState(parseBusinessHours(rulesValue));
 	const [message, setMessage] = useState(messageValue || "");
@@ -1245,31 +1290,34 @@ const CompanyBusinessHours = ({ modeValue, rulesValue, messageValue, onChangeSet
 					</Grid>
 					{rules.map((rule, index) => (
 						<Grid item xs={12} key={index}>
-							<div style={{ padding: 12, border: "1px solid #E2E8F0", borderRadius: 8 }}>
+							<div className={classes.businessHoursRuleCard}>
 								<Grid container spacing={1} alignItems="center">
 									<Grid item xs={12}>
-										{businessWeekdayOptions.map(day => (
-											<FormControlLabel
-												key={day.value}
-												control={
-													<Checkbox
-														color="primary"
-														checked={(rule.days || []).map(Number).includes(day.value)}
-														onChange={() => {
-															const nextRules = [...rules];
-															const currentDays = (nextRules[index].days || []).map(Number);
-															const exists = currentDays.includes(day.value);
-															nextRules[index] = {
-																...nextRules[index],
-																days: exists ? currentDays.filter(item => item !== day.value) : [...currentDays, day.value].sort()
-															};
-															setRules(nextRules);
-														}}
-													/>
-												}
-												label={day.label}
-											/>
-										))}
+										<div className={classes.businessHoursWeekdays}>
+											{businessWeekdayOptions.map(day => (
+												<FormControlLabel
+													key={day.value}
+													className={classes.businessWeekdayOption}
+													control={
+														<Checkbox
+															color="primary"
+															checked={(rule.days || []).map(Number).includes(day.value)}
+															onChange={() => {
+																const nextRules = [...rules];
+																const currentDays = (nextRules[index].days || []).map(Number);
+																const exists = currentDays.includes(day.value);
+																nextRules[index] = {
+																	...nextRules[index],
+																	days: exists ? currentDays.filter(item => item !== day.value) : [...currentDays, day.value].sort()
+																};
+																setRules(nextRules);
+															}}
+														/>
+													}
+													label={day.label}
+												/>
+											))}
+										</div>
 									</Grid>
 									<Grid item xs={12} sm={4}>
 										<TextField
@@ -4059,50 +4107,15 @@ const BrandLogoAdjustments = ({ getSettingValue, onChangeSetting }) => {
 };
 
 const GeneralSettings = ({
-	settings,
 	onChangeSetting,
 	getSettingValue,
 	onUploadLogo,
 	classes
 }) => (
-	<Container maxWidth="sm">
+	<Container maxWidth="md">
 		<Typography variant="body2" gutterBottom>
 			{i18n.t("settings.title")}
 		</Typography>
-		<Paper className={classes.generalPaper}>
-			<Typography variant="body1">
-				{i18n.t("settings.settings.userCreation.name")}
-			</Typography>
-			<Select
-				margin="dense"
-				variant="outlined"
-				native
-				id="userCreation-setting"
-				name="userCreation"
-				value={settings && settings.length > 0 ? getSettingValue("userCreation") : ""}
-				className={classes.settingOption}
-				onChange={onChangeSetting}
-			>
-				<option value="enabled">
-					{i18n.t("settings.settings.userCreation.options.enabled")}
-				</option>
-				<option value="disabled">
-					{i18n.t("settings.settings.userCreation.options.disabled")}
-				</option>
-			</Select>
-		</Paper>
-
-		<Paper className={classes.generalPaper}>
-			<TextField
-				id="api-token-setting"
-				InputProps={{ readOnly: true }}
-				label="Token Api"
-				margin="dense"
-				variant="outlined"
-				fullWidth
-				value={settings && settings.length > 0 ? getSettingValue("userApiToken") : ""}
-			/>
-		</Paper>
 
 		<Typography variant="subtitle1" gutterBottom>
 			Identidade do sistema
@@ -4195,6 +4208,7 @@ const GeneralSettings = ({
 				rulesValue={getSettingValue("companyBusinessHours")}
 				messageValue={getSettingValue("companyUnavailableMessage")}
 				onChangeSetting={onChangeSetting}
+				classes={classes}
 			/>
 		</Paper>
 
@@ -4972,12 +4986,26 @@ const ResourcePanel = ({ resource, classes }) => {
 
 const Settings = () => {
 	const classes = useStyles();
+	const { user } = useContext(AuthContext);
+	const isAdmin = user?.profile === "admin";
+	const isSupervisor = user?.profile === "supervisor";
+	const supervisorBaseTabs = groupedSettingsTabs.filter(item =>
+		item.type === "resource" && supervisorSettingsEndpoints.includes(item.resource?.endpoint)
+	);
+	const specialSettingsTabs = buildSpecialSettingsTabs(user?.specialPermissions);
+	const visibleSettingsTabs = isAdmin
+		? groupedSettingsTabs
+		: isSupervisor
+		? uniqueSettingsTabs([...supervisorBaseTabs, ...specialSettingsTabs])
+		: specialSettingsTabs;
 
 	const [settings, setSettings] = useState([]);
 	const [tab, setTab] = useState(0);
 	const [groupTabs, setGroupTabs] = useState({ ura: 0, ia: 0, aiAudit: 0, forms: 0 });
 
 	useEffect(() => {
+		if (!isAdmin) return;
+
 		const fetchSession = async () => {
 			try {
 				const { data } = await api.get("/settings");
@@ -4987,7 +5015,7 @@ const Settings = () => {
 			}
 		};
 		fetchSession();
-	}, []);
+	}, [isAdmin]);
 
 	useEffect(() => {
 		const socket = openSocket();
@@ -5057,7 +5085,7 @@ const Settings = () => {
 		return setting ? setting.value : "";
 	};
 
-	const activeTab = groupedSettingsTabs[tab] || groupedSettingsTabs[0];
+	const activeTab = visibleSettingsTabs[tab] || visibleSettingsTabs[0];
 	const activeGroupIndex = activeTab?.type === "group" ? groupTabs[activeTab.groupKey] || 0 : 0;
 	const activeGroupChild = activeTab?.type === "group" ? activeTab.children[activeGroupIndex] : null;
 	const activeResource = activeTab?.type === "resource" ? activeTab.resource : activeGroupChild?.resource;
@@ -5081,15 +5109,18 @@ const Settings = () => {
 				variant="scrollable"
 				scrollButtons="auto"
 			>
-				{groupedSettingsTabs.map(item => (
+				{visibleSettingsTabs.map(item => (
 					<Tab key={item.label} label={item.label} />
 				))}
 			</Tabs>
 
 			<Paper className={classes.contentPaper} variant="outlined">
-				{activeTab.type === "general" ? (
+				{!activeTab ? (
+					<Typography variant="body2" color="textSecondary">
+						Nenhuma permissao especial de configuracao foi habilitada para este usuario.
+					</Typography>
+				) : activeTab.type === "general" ? (
 					<GeneralSettings
-						settings={settings}
 						onChangeSetting={handleChangeSetting}
 						getSettingValue={getSettingValue}
 						onUploadLogo={handleUploadLogo}

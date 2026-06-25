@@ -2,6 +2,7 @@ import * as Yup from "yup";
 
 import AppError from "../../errors/AppError";
 import { isMaskedSecret } from "../../helpers/MaskSecret";
+import { normalizeProfile, serializeSpecialPermissions } from "../../helpers/ProfilePermissions";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import ShowUserService from "./ShowUserService";
 
@@ -13,10 +14,10 @@ interface UserData {
   queueIds?: number[];
   whatsappId?: number;
   attendanceGreeting?: string;
-  operationalStatus?: string;
   active?: boolean;
   glpiEnabled?: boolean;
   glpiUserToken?: string;
+  specialPermissions?: Record<string, boolean>;
 }
 
 interface Request {
@@ -52,10 +53,10 @@ const UpdateUserService = async ({
     queueIds = [],
     whatsappId,
     attendanceGreeting,
-    operationalStatus,
     active,
     glpiEnabled,
-    glpiUserToken
+    glpiUserToken,
+    specialPermissions
   } = userData;
 
   try {
@@ -67,13 +68,15 @@ const UpdateUserService = async ({
   const updateData: Record<string, unknown> = {
     email,
     password,
-    profile,
+    profile: profile !== undefined ? normalizeProfile(profile) : undefined,
     name,
     whatsappId: whatsappId ? whatsappId : null,
     attendanceGreeting,
-    operationalStatus,
     active,
-    glpiEnabled
+    glpiEnabled,
+    specialPermissions: specialPermissions !== undefined
+      ? serializeSpecialPermissions(specialPermissions)
+      : undefined
   };
 
   if (glpiEnabled === false) {

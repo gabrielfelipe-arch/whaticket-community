@@ -1,6 +1,7 @@
 import * as Yup from "yup";
 
 import AppError from "../../errors/AppError";
+import { normalizeProfile, serializeSpecialPermissions } from "../../helpers/ProfilePermissions";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import User from "../../models/User";
 
@@ -16,6 +17,7 @@ interface Request {
   active?: boolean;
   glpiEnabled?: boolean;
   glpiUserToken?: string;
+  specialPermissions?: Record<string, boolean>;
 }
 
 interface Response {
@@ -30,14 +32,17 @@ const CreateUserService = async ({
   password,
   name,
   queueIds = [],
-  profile = "admin",
+  profile = "user",
   whatsappId,
   attendanceGreeting,
   operationalStatus = "offline",
   active = true,
   glpiEnabled = false,
-  glpiUserToken
+  glpiUserToken,
+  specialPermissions
 }: Request): Promise<Response> => {
+  const normalizedProfile = normalizeProfile(profile);
+
   const schema = Yup.object().shape({
     name: Yup.string().required().min(2),
     email: Yup.string()
@@ -68,13 +73,14 @@ const CreateUserService = async ({
       email,
       password,
       name,
-      profile,
+      profile: normalizedProfile,
       whatsappId: whatsappId ? whatsappId : null,
       attendanceGreeting,
       operationalStatus,
       active,
       glpiEnabled,
-      glpiUserToken: glpiEnabled ? String(glpiUserToken || "").trim() || null : null
+      glpiUserToken: glpiEnabled ? String(glpiUserToken || "").trim() || null : null,
+      specialPermissions: serializeSpecialPermissions(specialPermissions)
     },
     { include: ["queues", "whatsapp"] }
   );

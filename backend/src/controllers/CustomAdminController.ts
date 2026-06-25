@@ -17,6 +17,12 @@ import AiLead from "../models/AiLead";
 import AiCalendarConnection from "../models/AiCalendarConnection";
 import AiToolExecution from "../models/AiToolExecution";
 import CreateAuditLogService from "../services/AuditLogServices/CreateAuditLogService";
+import {
+  canManageResourceBySpecialPermission,
+  canSupervisorManageConfigResource,
+  isAdminProfile,
+  isSupervisorProfile
+} from "../helpers/ProfilePermissions";
 import GenerateAiResponseService, { AiProviderError } from "../services/AiServices/GenerateAiResponseService";
 import {
   htmlToPlainText,
@@ -626,15 +632,19 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { resource } = req.params;
   const publicLookupResources = ["ticketCategories", "closingReasons", "satisfactionSurveys"];
+  const isAdmin = isAdminProfile(req.user.profile);
+  const isSupervisor = isSupervisorProfile(req.user.profile);
+  const supervisorCanManage = isSupervisor && canSupervisorManageConfigResource(resource);
+  const hasSpecialAccess = await canManageResourceBySpecialPermission(req.user.id, resource);
 
-  if (req.user.profile !== "admin" && !publicLookupResources.includes(resource)) {
+  if (!isAdmin && !supervisorCanManage && !hasSpecialAccess && !publicLookupResources.includes(resource)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
   const model = getModel(resource);
 
   const rows = await model.findAll({
-    where: req.user.profile !== "admin" && publicLookupResources.includes(resource)
+    where: !isAdmin && !supervisorCanManage && !hasSpecialAccess && publicLookupResources.includes(resource)
       ? { active: true }
       : undefined,
     order: [["id", "DESC"]]
@@ -644,11 +654,13 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  const { resource } = req.params;
+  if (!isAdminProfile(req.user.profile) && !(
+    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
+  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const { resource } = req.params;
   const model = getModel(resource);
   const data = await normalizeBody(resource, req.body);
   if (resource === "uraFlows") {
@@ -681,11 +693,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const update = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  const { resource, id } = req.params;
+  if (!isAdminProfile(req.user.profile) && !(
+    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
+  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const { resource, id } = req.params;
   const model = getModel(resource);
   const row = await model.findByPk(id);
 
@@ -725,7 +739,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
 };
 
 export const uploadQualificationMessageMedia = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  if (!isAdminProfile(req.user.profile) && !(await canManageResourceBySpecialPermission(req.user.id, "qualificationForms"))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
@@ -742,11 +756,13 @@ export const uploadQualificationMessageMedia = async (req: Request, res: Respons
 };
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  const { resource, id } = req.params;
+  if (!isAdminProfile(req.user.profile) && !(
+    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
+  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const { resource, id } = req.params;
   const model = getModel(resource);
   const row = await model.findByPk(id);
 
@@ -768,7 +784,7 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
 };
 
 export const testAiSetting = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  if (!isAdminProfile(req.user.profile) && !(await canManageResourceBySpecialPermission(req.user.id, "aiSettings"))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 

@@ -5,6 +5,7 @@ import CampaignContact from "../models/CampaignContact";
 import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
+import { isAdminProfile, requestUserHasSpecialPermission } from "../helpers/ProfilePermissions";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
@@ -14,6 +15,12 @@ const include = [
   { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] },
   { model: CampaignContact, as: "recipients", include: [{ model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] }] }
 ];
+
+const canManageCampaign = async (req: Request, campaign: Campaign): Promise<boolean> => {
+  if (isAdminProfile(req.user.profile)) return true;
+  if (campaign.userId && Number(campaign.userId) === Number(req.user.id)) return true;
+  return requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
+};
 
 const parseNumberArray = (value: any): number[] => {
   if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
@@ -190,6 +197,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     pauseAfter: Number(pauseAfter || 20),
     pauseSeconds: getPauseSeconds({ pauseSeconds, pauseMinutes }) || 300,
     whatsappId: whatsappId || null,
+    userId: Number(req.user.id),
     status: "scheduled"
   });
 
@@ -226,6 +234,8 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+  if (!(await canManageCampaign(req, campaign))) throw new AppError("ERR_NO_PERMISSION", 403);
+
   if (!["scheduled", "running", "paused", "canceled"].includes(status)) {
     throw new AppError("ERR_INVALID_CAMPAIGN_STATUS", 400);
   }
@@ -284,6 +294,7 @@ export const retryFailed = async (req: Request, res: Response): Promise<Response
   const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+  if (!(await canManageCampaign(req, campaign))) throw new AppError("ERR_NO_PERMISSION", 403);
 
   const failedRecipients = await CampaignContact.findAll({
     where: { campaignId: campaign.id, status: { [Op.in]: ["failed", "error"] } },
@@ -323,6 +334,7 @@ export const duplicate = async (req: Request, res: Response): Promise<Response> 
   });
 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+  if (!(await canManageCampaign(req, campaign))) throw new AppError("ERR_NO_PERMISSION", 403);
 
   const newCampaign = await Campaign.create({
     name: `${campaign.name} - reenvio`,
@@ -336,6 +348,7 @@ export const duplicate = async (req: Request, res: Response): Promise<Response> 
     pauseAfter: campaign.pauseAfter,
     pauseSeconds: campaign.pauseSeconds,
     whatsappId: campaign.whatsappId,
+    userId: Number(req.user.id),
     status: "scheduled"
   });
 
@@ -358,6 +371,7 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
   const campaign = await Campaign.findByPk(campaignId);
 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
+  if (!(await canManageCampaign(req, campaign))) throw new AppError("ERR_NO_PERMISSION", 403);
   await campaign.destroy();
 
   return res.status(200).json({ message: "deleted" });

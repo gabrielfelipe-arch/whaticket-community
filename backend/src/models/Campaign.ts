@@ -15,6 +15,7 @@ import {
 
 import Whatsapp from "./Whatsapp";
 import CampaignContact from "./CampaignContact";
+import User from "./User";
 
 @Table({ tableName: "Campaigns" })
 class Campaign extends Model<Campaign> {
@@ -67,6 +68,13 @@ class Campaign extends Model<Campaign> {
 
   @BelongsTo(() => Whatsapp)
   whatsapp: Whatsapp;
+
+  @ForeignKey(() => User)
+  @Column
+  userId: number;
+
+  @BelongsTo(() => User)
+  user: User;
 
   @HasMany(() => CampaignContact)
   recipients: CampaignContact[];

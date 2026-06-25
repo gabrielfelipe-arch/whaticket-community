@@ -171,7 +171,14 @@ export const publicIndex = async (
         "brandLogoPositionY",
         "brandLogoScale",
         "primaryColor",
-        "secondaryColor"
+        "secondaryColor",
+        "companyFantasyName",
+        "companyLegalName",
+        "companyCnpj",
+        "companyAddress",
+        "companyPhone",
+        "companyEmail",
+        "companyWebsite"
       ]
     }
   });

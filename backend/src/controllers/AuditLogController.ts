@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 
 import AppError from "../errors/AppError";
+import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
 import AuditLog from "../models/AuditLog";
 import { CleanupOldAuditLogs } from "../services/AuditLogServices/AuditLogRetentionService";
 
@@ -62,7 +63,7 @@ const buildDisplayMessage = (log: AuditLog): string => {
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  if (!isAdminOrSupervisorProfile(req.user.profile)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 

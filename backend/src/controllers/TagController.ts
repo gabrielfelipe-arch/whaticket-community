@@ -2,11 +2,12 @@ import { Request, Response } from "express";
 import { Op } from "sequelize";
 
 import AppError from "../errors/AppError";
+import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
 import Tag from "../models/Tag";
 import CreateAuditLogService from "../services/AuditLogServices/CreateAuditLogService";
 
 const requireAdmin = (req: Request): void => {
-  if (req.user.profile !== "admin") {
+  if (!isAdminOrSupervisorProfile(req.user.profile)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 };

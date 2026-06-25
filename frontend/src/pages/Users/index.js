@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useReducer } from "react";
+import React, { useContext, useState, useEffect, useReducer } from "react";
 import { toast } from "react-toastify";
 import openSocket from "../../services/socket-io";
 
@@ -30,6 +30,7 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const statusLabels = {
   online: "Online",
@@ -51,6 +52,12 @@ const accountStatusLabels = {
 const accountStatusColors = {
   active: "#22C55E",
   inactive: "#EF4444",
+};
+
+const profileLabels = {
+  admin: "Administrador",
+  supervisor: "Supervisor",
+  user: "Usuario",
 };
 
 const reducer = (state, action) => {
@@ -108,6 +115,8 @@ const useStyles = makeStyles((theme) => ({
 
 const Users = () => {
   const classes = useStyles();
+  const { user: loggedInUser } = useContext(AuthContext);
+  const isSupervisor = loggedInUser?.profile === "supervisor";
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -286,7 +295,7 @@ const Users = () => {
                 <TableRow key={user.id}>
                   <TableCell align="center">{user.name}</TableCell>
                   <TableCell align="center">{user.email}</TableCell>
-                  <TableCell align="center">{user.profile}</TableCell>
+                  <TableCell align="center">{profileLabels[user.profile] || user.profile}</TableCell>
                   <TableCell align="center">
                     <Chip
                       size="small"
@@ -311,22 +320,26 @@ const Users = () => {
                   </TableCell>
                   <TableCell align="center">{user.whatsapp?.name}</TableCell>
                   <TableCell align="center">
-                    <IconButton
-                      size="small"
-                      onClick={() => handleEditUser(user)}
-                    >
-                      <EditIcon />
-                    </IconButton>
+                    {!(isSupervisor && user.profile === "admin") && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleEditUser(user)}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    )}
 
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        setConfirmModalOpen(true);
-                        setDeletingUser(user);
-                      }}
-                    >
-                      <DeleteOutlineIcon />
-                    </IconButton>
+                    {!(isSupervisor && (user.profile === "admin" || Number(user.id) === Number(loggedInUser?.id))) && (
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          setConfirmModalOpen(true);
+                          setDeletingUser(user);
+                        }}
+                      >
+                        <DeleteOutlineIcon />
+                      </IconButton>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

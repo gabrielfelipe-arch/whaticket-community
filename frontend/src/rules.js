@@ -14,6 +14,17 @@ const rules = {
 			"contacts-page:deleteContact",
 		],
 	},
+
+	supervisor: {
+		static: [
+			"drawer-admin-items:view",
+			"tickets-manager:showall",
+			"user-modal:editProfile",
+			"user-modal:editQueues",
+			"ticket-options:deleteTicket",
+			"ticket-options:transferWhatsapp",
+		],
+	},
 };
 
 export default rules;

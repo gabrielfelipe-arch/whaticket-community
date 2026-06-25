@@ -8,7 +8,14 @@ export const BrandingContext = createContext({
   brandLogoPositionY: "50",
   brandLogoScale: "1",
   primaryColor: "#2576d2",
-  secondaryColor: "#f50057"
+  secondaryColor: "#f50057",
+  companyFantasyName: "",
+  companyLegalName: "",
+  companyCnpj: "",
+  companyAddress: "",
+  companyPhone: "",
+  companyEmail: "",
+  companyWebsite: ""
 });
 
 export const BrandingProvider = ({ value, children }) => (

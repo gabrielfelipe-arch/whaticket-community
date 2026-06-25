@@ -10,6 +10,7 @@ import TicketCategory from "../models/TicketCategory";
 import ClosingReason from "../models/ClosingReason";
 import SatisfactionSurveyResponse from "../models/SatisfactionSurveyResponse";
 import AppError from "../errors/AppError";
+import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
 
 const parseDateRange = (req: Request) => {
   const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
@@ -20,7 +21,7 @@ const parseDateRange = (req: Request) => {
 };
 
 const requireAdmin = (req: Request) => {
-  if (req.user.profile !== "admin") {
+  if (!isAdminOrSupervisorProfile(req.user.profile)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 };
@@ -157,7 +158,7 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
       order: [[ticketCreatedDate as any, "ASC"]],
       raw: true
     }),
-    req.user.profile === "admin" ? buildAttendantAudit() : Promise.resolve([])
+    isAdminOrSupervisorProfile(req.user.profile) ? buildAttendantAudit() : Promise.resolve([])
   ]);
 
   return res.json({

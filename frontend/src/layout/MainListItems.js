@@ -24,7 +24,6 @@ import ExpandMore from "@material-ui/icons/ExpandMore";
 import { i18n } from "../translate/i18n";
 import { WhatsAppsContext } from "../context/WhatsApp/WhatsAppsContext";
 import { AuthContext } from "../context/Auth/AuthContext";
-import { Can } from "../components/Can";
 import useTickets from "../hooks/useTickets";
 import openSocket from "../services/socket-io";
 
@@ -189,6 +188,14 @@ const MainListItems = (props) => {
   const { tickets: unreadTickets } = useTickets({ withUnreadMessages: "true" });
   const [unreadTicketIds, setUnreadTicketIds] = useState(new Set());
   const ticketsBadgeCount = unreadTicketIds.size;
+  const isAdmin = user?.profile === "admin";
+  const isSupervisor = user?.profile === "supervisor";
+  const hasSpecialSettingsAccess = Boolean(
+    user?.specialPermissions?.accessUra ||
+    user?.specialPermissions?.accessForms ||
+    user?.specialPermissions?.accessAi
+  );
+  const canSeeAdminSection = isAdmin || isSupervisor || hasSpecialSettingsAccess;
 
   useEffect(() => {
     setUnreadTicketIds(new Set(unreadTickets.map(ticket => Number(ticket.id))));
@@ -301,10 +308,7 @@ const MainListItems = (props) => {
         collapsed={!drawerOpen}
         collapsedClassName={classes.itemCollapsed}
       />
-      <Can
-        role={user.profile}
-        perform="drawer-admin-items:view"
-        yes={() => (
+      {canSeeAdminSection && (
           <>
             {drawerOpen && <Typography className={classes.groupLabel}>CONFIGURACOES</Typography>}
             <ListItem
@@ -328,37 +332,43 @@ const MainListItems = (props) => {
               unmountOnExit
               className={`${classes.submenu} ${!drawerOpen ? classes.submenuCollapsed : ""}`}
             >
-              <ListItemLink
-                to="/connections"
-                primary={i18n.t("mainDrawer.listItems.connections")}
-                icon={
-                  <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
-                    <SyncAltIcon />
-                  </Badge>
-                }
-                className={classes.item}
-                activeClassName={classes.activeItem}
-                collapsed={!drawerOpen}
-                collapsedClassName={classes.itemCollapsed}
-              />
-              <ListItemLink
-                to="/users"
-                primary={i18n.t("mainDrawer.listItems.users")}
-                icon={<PeopleAltOutlinedIcon />}
-                className={classes.item}
-                activeClassName={classes.activeItem}
-                collapsed={!drawerOpen}
-                collapsedClassName={classes.itemCollapsed}
-              />
-              <ListItemLink
-                to="/queues"
-                primary={i18n.t("mainDrawer.listItems.queues")}
-                icon={<AccountTreeOutlinedIcon />}
-                className={classes.item}
-                activeClassName={classes.activeItem}
-                collapsed={!drawerOpen}
-                collapsedClassName={classes.itemCollapsed}
-              />
+              {(isAdmin || isSupervisor) && (
+                <>
+                  <ListItemLink
+                    to="/connections"
+                    primary={i18n.t("mainDrawer.listItems.connections")}
+                    icon={
+                      <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
+                        <SyncAltIcon />
+                      </Badge>
+                    }
+                    className={classes.item}
+                    activeClassName={classes.activeItem}
+                    collapsed={!drawerOpen}
+                    collapsedClassName={classes.itemCollapsed}
+                  />
+                  <ListItemLink
+                    to="/users"
+                    primary={i18n.t("mainDrawer.listItems.users")}
+                    icon={<PeopleAltOutlinedIcon />}
+                    className={classes.item}
+                    activeClassName={classes.activeItem}
+                    collapsed={!drawerOpen}
+                    collapsedClassName={classes.itemCollapsed}
+                  />
+                </>
+              )}
+              {isAdmin && (
+                <ListItemLink
+                  to="/queues"
+                  primary={i18n.t("mainDrawer.listItems.queues")}
+                  icon={<AccountTreeOutlinedIcon />}
+                  className={classes.item}
+                  activeClassName={classes.activeItem}
+                  collapsed={!drawerOpen}
+                  collapsedClassName={classes.itemCollapsed}
+                />
+              )}
               <ListItemLink
                 to="/settings"
                 primary={i18n.t("mainDrawer.listItems.settings")}
@@ -368,19 +378,20 @@ const MainListItems = (props) => {
                 collapsed={!drawerOpen}
                 collapsedClassName={classes.itemCollapsed}
               />
-              <ListItemLink
-                to="/integrations"
-                primary="Integrações"
-                icon={<ExtensionIcon />}
-                className={classes.item}
-                activeClassName={classes.activeItem}
-                collapsed={!drawerOpen}
-                collapsedClassName={classes.itemCollapsed}
-              />
+              {isAdmin && (
+                <ListItemLink
+                  to="/integrations"
+                  primary="Integrações"
+                  icon={<ExtensionIcon />}
+                  className={classes.item}
+                  activeClassName={classes.activeItem}
+                  collapsed={!drawerOpen}
+                  collapsedClassName={classes.itemCollapsed}
+                />
+              )}
             </Collapse>
           </>
-        )}
-      />
+      )}
     </div>
   );
 };

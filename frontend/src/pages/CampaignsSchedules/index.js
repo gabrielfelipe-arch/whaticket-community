@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   Button,
   Container,
@@ -43,6 +43,7 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
 import TagCheckboxPicker from "../../components/TagCheckboxPicker";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -490,6 +491,11 @@ const ContactPicker = ({
 
 const CampaignsSchedules = () => {
   const classes = useStyles();
+  const { user } = useContext(AuthContext);
+  const canManageAutomationItem = item =>
+    user?.profile === "admin" ||
+    Number(item?.userId) === Number(user?.id) ||
+    user?.specialPermissions?.manageOtherCampaigns === true;
   const [tab, setTab] = useState(0);
   const [campaigns, setCampaigns] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -1194,25 +1200,26 @@ const CampaignsSchedules = () => {
   const renderAutomationActions = item => {
     if (item.source === "campaign") {
       const campaign = item.raw;
+      const canManage = canManageAutomationItem(campaign);
       return (
         <div className={classes.playerActions}>
-          {["scheduled", "paused"].includes(campaign.status) && renderIconAction({
+          {canManage && ["scheduled", "paused"].includes(campaign.status) && renderIconAction({
             title: campaign.status === "paused" ? "Retomar campanha" : "Iniciar agora",
             icon: <PlayArrowIcon />,
             color: "primary",
             onClick: () => updateCampaignStatus(campaign, "running")
           })}
-          {campaign.status === "running" && renderIconAction({
+          {canManage && campaign.status === "running" && renderIconAction({
             title: "Pausar campanha",
             icon: <PauseIcon />,
             onClick: () => updateCampaignStatus(campaign, "paused")
           })}
-          {["scheduled", "running", "paused"].includes(campaign.status) && renderIconAction({
+          {canManage && ["scheduled", "running", "paused"].includes(campaign.status) && renderIconAction({
             title: "Cancelar campanha",
             icon: <StopIcon />,
             onClick: () => updateCampaignStatus(campaign, "canceled")
           })}
-          {item.progress.failed > 0 && renderIconAction({
+          {canManage && item.progress.failed > 0 && renderIconAction({
             title: "Reenviar erros",
             icon: <ReplayIcon />,
             color: "secondary",
@@ -1233,25 +1240,26 @@ const CampaignsSchedules = () => {
     }
 
     const schedule = item.raw;
+    const canManage = canManageAutomationItem(schedule);
     return (
       <div className={classes.playerActions}>
-        {schedule.status === "paused" && renderIconAction({
+        {canManage && schedule.status === "paused" && renderIconAction({
           title: "Retomar agendamento",
           icon: <PlayArrowIcon />,
           color: "primary",
           onClick: () => updateScheduleStatus(schedule, "scheduled")
         })}
-        {["scheduled", "running"].includes(schedule.status) && renderIconAction({
+        {canManage && ["scheduled", "running"].includes(schedule.status) && renderIconAction({
           title: "Pausar agendamento",
           icon: <PauseIcon />,
           onClick: () => updateScheduleStatus(schedule, "paused")
         })}
-        {["scheduled", "running", "paused"].includes(schedule.status) && renderIconAction({
+        {canManage && ["scheduled", "running", "paused"].includes(schedule.status) && renderIconAction({
           title: "Cancelar agendamento",
           icon: <StopIcon />,
           onClick: () => updateScheduleStatus(schedule, "canceled")
         })}
-        {!["sent", "completed", "canceled"].includes(schedule.status) && renderIconAction({
+        {canManage && !["sent", "completed", "canceled"].includes(schedule.status) && renderIconAction({
           title: "Editar agendamento",
           icon: <EditIcon />,
           onClick: () => openEditScheduleModal(schedule)

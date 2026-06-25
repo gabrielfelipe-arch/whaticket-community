@@ -16,7 +16,14 @@ const brandingKeys = [
   "brandLogoFit",
   "brandLogoPositionX",
   "brandLogoPositionY",
-  "brandLogoScale"
+  "brandLogoScale",
+  "companyFantasyName",
+  "companyLegalName",
+  "companyCnpj",
+  "companyAddress",
+  "companyPhone",
+  "companyEmail",
+  "companyWebsite"
 ];
 
 const App = () => {
@@ -27,7 +34,14 @@ const App = () => {
     brandLogoFit: "contain",
     brandLogoPositionX: "50",
     brandLogoPositionY: "50",
-    brandLogoScale: "1"
+    brandLogoScale: "1",
+    companyFantasyName: "",
+    companyLegalName: "",
+    companyCnpj: "",
+    companyAddress: "",
+    companyPhone: "",
+    companyEmail: "",
+    companyWebsite: ""
   });
 
   const theme = createTheme(

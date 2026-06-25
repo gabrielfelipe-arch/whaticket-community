@@ -1,12 +1,13 @@
 import { sign } from "jsonwebtoken";
 import authConfig from "../config/auth";
 import User from "../models/User";
+import { normalizeProfile } from "./ProfilePermissions";
 
 export const createAccessToken = (user: User): string => {
   const { secret, expiresIn } = authConfig;
 
   return sign(
-    { usarname: user.name, profile: user.profile, id: user.id },
+    { usarname: user.name, profile: normalizeProfile(user.profile), id: user.id },
     secret,
     {
       expiresIn

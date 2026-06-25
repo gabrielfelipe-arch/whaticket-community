@@ -14,6 +14,7 @@ import {
 
 import Contact from "./Contact";
 import Whatsapp from "./Whatsapp";
+import User from "./User";
 
 @Table({ tableName: "ScheduledMessages" })
 class ScheduledMessage extends Model<ScheduledMessage> {
@@ -35,6 +36,13 @@ class ScheduledMessage extends Model<ScheduledMessage> {
 
   @BelongsTo(() => Whatsapp)
   whatsapp: Whatsapp;
+
+  @ForeignKey(() => User)
+  @Column
+  userId: number;
+
+  @BelongsTo(() => User)
+  user: User;
 
   @Column
   batchId: string;
