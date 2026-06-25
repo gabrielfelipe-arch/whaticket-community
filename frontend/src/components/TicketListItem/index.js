@@ -81,10 +81,35 @@ const useStyles = makeStyles(theme => ({
 		gap: theme.spacing(1),
 	},
 
+	ticketContentGrid: {
+		display: "grid",
+		gridTemplateColumns: "minmax(0, 1fr) 112px",
+		columnGap: theme.spacing(1),
+		rowGap: theme.spacing(0.35),
+		alignItems: "start",
+		width: "100%",
+	},
+
+	ticketName: {
+		minWidth: 0,
+		fontWeight: 500,
+	},
+
 	lastMessageTime: {
-		justifySelf: "flex-end",
+		justifySelf: "end",
 		fontSize: 12,
 		color: theme.palette.text.secondary,
+	},
+
+	statusArea: {
+		gridColumn: 2,
+		gridRow: 2,
+		justifySelf: "end",
+		display: "flex",
+		flexDirection: "column",
+		alignItems: "flex-end",
+		gap: 4,
+		minHeight: 24,
 	},
 
 	contactLastMessage: {
@@ -125,6 +150,7 @@ const useStyles = makeStyles(theme => ({
 		height: 22,
 		fontSize: 11,
 		fontWeight: 800,
+		maxWidth: 108,
 	},
 	closedChip: {
 		background: theme.custom?.status?.closed?.bg || "#E2E8F0",
@@ -139,17 +165,17 @@ const useStyles = makeStyles(theme => ({
 		color: theme.custom?.status?.open?.color || "#166534",
 	},
 	aiTag: {
-		marginLeft: 8,
 		height: 22,
 		fontSize: 11,
+		maxWidth: 108,
 		background: theme.custom?.status?.ai?.bg || "#E0F2FE",
 		color: theme.custom?.status?.ai?.color || "#0369A1",
 		fontWeight: 800,
 	},
 	triageTag: {
-		marginLeft: 8,
 		height: 22,
 		fontSize: 11,
+		maxWidth: 108,
 		background: theme.palette.type === "dark" ? "#312E81" : "#EDE9FE",
 		color: theme.palette.type === "dark" ? "#DDD6FE" : "#5B21B6",
 		fontWeight: 800,
@@ -247,30 +273,16 @@ const TicketListItem = ({ ticket }) => {
 				<ListItemText
 					disableTypography
 					primary={
-						<span className={classes.contactNameWrapper}>
+						<span className={classes.ticketContentGrid}>
 							<Typography
 								noWrap
+								className={classes.ticketName}
 								component="span"
 								variant="body2"
 								color="textPrimary"
 							>
 								{ticket.contact.name}
 							</Typography>
-							{ticket.uraActive && !ticket.queueId && !ticket.aiActive && (
-								<Chip size="small" className={classes.triageTag} label="Em triagem" />
-							)}
-							{ticket.aiActive && (
-								<Chip size="small" className={classes.aiTag} label="IA atendendo" />
-							)}
-							{ticket.status === "closed" && (
-								<Chip size="small" className={clsx(classes.statusChip, classes.closedChip)} label="Finalizado" />
-							)}
-							{ticket.status === "pending" && !ticket.aiActive && !ticket.uraActive && (
-								<Chip size="small" className={clsx(classes.statusChip, classes.pendingChip)} label="Aguardando" />
-							)}
-							{ticket.status === "open" && !ticket.aiActive && (
-								<Chip size="small" className={clsx(classes.statusChip, classes.openChip)} label="Em atendimento" />
-							)}
 							{ticket.lastMessage && (
 								<Typography
 									className={classes.lastMessageTime}
@@ -285,6 +297,23 @@ const TicketListItem = ({ ticket }) => {
 									)}
 								</Typography>
 							)}
+							<span className={classes.statusArea}>
+								{ticket.uraActive && !ticket.queueId && !ticket.aiActive && (
+									<Chip size="small" className={classes.triageTag} label="Em triagem" />
+								)}
+								{ticket.aiActive && (
+									<Chip size="small" className={classes.aiTag} label="IA atendendo" />
+								)}
+								{ticket.status === "closed" && (
+									<Chip size="small" className={clsx(classes.statusChip, classes.closedChip)} label="Finalizado" />
+								)}
+								{ticket.status === "pending" && !ticket.aiActive && !ticket.uraActive && (
+									<Chip size="small" className={clsx(classes.statusChip, classes.pendingChip)} label="Aguardando" />
+								)}
+								{ticket.status === "open" && !ticket.aiActive && (
+									<Chip size="small" className={clsx(classes.statusChip, classes.openChip)} label="Em atendimento" />
+								)}
+							</span>
 						</span>
 					}
 					secondary={

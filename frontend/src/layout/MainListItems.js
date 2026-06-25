@@ -90,6 +90,20 @@ const useStyles = makeStyles(theme => ({
       justifyContent: "center",
     },
   },
+  itemTwoLine: {
+    minHeight: 52,
+    "& .MuiListItemText-primary": {
+      whiteSpace: "normal !important",
+      overflow: "visible",
+      textOverflow: "clip",
+      lineHeight: 1.15,
+      fontSize: 14,
+    },
+  },
+  twoLineLabel: {
+    display: "block",
+    lineHeight: 1.15,
+  },
   activeItem: {
     background: "#12306A",
     color: "#FFFFFF",
@@ -280,9 +294,9 @@ const MainListItems = (props) => {
       />
       <ListItemLink
         to="/campaigns-schedules"
-        primary="Mensagens programadas"
+        primary={<span className={classes.twoLineLabel}>Mensagens<br />programadas</span>}
         icon={<EventNoteOutlinedIcon />}
-        className={classes.item}
+        className={`${classes.item} ${classes.itemTwoLine}`}
         activeClassName={classes.activeItem}
         collapsed={!drawerOpen}
         collapsedClassName={classes.itemCollapsed}
