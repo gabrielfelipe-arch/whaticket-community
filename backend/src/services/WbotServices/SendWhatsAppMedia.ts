@@ -60,8 +60,8 @@ const SendWhatsAppMedia = async ({
 
     const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
 
-    const hasBody = body
-      ? formatBody(body as string, ticket.contact)
+    const hasBody = String(body || "").trim()
+      ? formatBody(String(body).trim(), ticket.contact)
       : undefined;
 
     const preparedMedia = await convertAudioToOgg(media);
@@ -87,7 +87,15 @@ const SendWhatsAppMedia = async ({
       mediaOptions
     );
 
-    await ticket.update({ lastMessage: body || media.filename });
+    const fallbackLastMessage = preparedMedia.mimetype.startsWith("image/")
+      ? "Imagem"
+      : preparedMedia.mimetype.startsWith("video/")
+        ? "Video"
+        : preparedMedia.mimetype.startsWith("audio/")
+          ? "Audio"
+          : "Anexo";
+
+    await ticket.update({ lastMessage: hasBody || fallbackLastMessage });
 
     if (fs.existsSync(preparedMedia.path)) fs.unlinkSync(preparedMedia.path);
     if (preparedMedia.path !== media.path && fs.existsSync(media.path)) fs.unlinkSync(media.path);

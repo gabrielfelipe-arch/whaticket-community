@@ -24,6 +24,17 @@ interface QuickAnswerData {
   mediaName?: string | null;
 }
 
+const toBoolean = (value: unknown): boolean =>
+  value === true || value === "true" || value === "1" || value === 1;
+
+const normalizeQuickAnswerBody = (body: Record<string, any>): Partial<QuickAnswerData> => {
+  const data = { ...body };
+  if (Object.prototype.hasOwnProperty.call(data, "global")) {
+    data.global = toBoolean(data.global);
+  }
+  return data;
+};
+
 const mediaDataFromRequest = (req: Request) => {
   const file = req.file as Express.Multer.File | undefined;
   if (!file) return {};
@@ -50,9 +61,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const newQuickAnswer: QuickAnswerData = {
-    ...req.body,
+    ...normalizeQuickAnswerBody(req.body),
     ...mediaDataFromRequest(req)
-  };
+  } as QuickAnswerData;
 
   const QuickAnswerSchema = Yup.object().shape({
     shortcut: Yup.string().required(),
@@ -98,9 +109,9 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const quickAnswerData: QuickAnswerData = {
-    ...req.body,
+    ...normalizeQuickAnswerBody(req.body),
     ...mediaDataFromRequest(req)
-  };
+  } as QuickAnswerData;
 
   const schema = Yup.object().shape({
     shortcut: Yup.string(),

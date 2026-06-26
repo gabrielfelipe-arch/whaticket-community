@@ -14,6 +14,9 @@ interface Request {
   mediaName?: string | null;
 }
 
+const toBoolean = (value: unknown): boolean =>
+  value === true || value === "true" || value === "1" || value === 1;
+
 const CreateQuickAnswerService = async ({
   shortcut,
   message,
@@ -24,7 +27,7 @@ const CreateQuickAnswerService = async ({
   mediaType,
   mediaName
 }: Request): Promise<QuickAnswer> => {
-  const isGlobal = userProfile === "admin" ? global !== false : false;
+  const isGlobal = toBoolean(global);
   const nameExists = await QuickAnswer.findOne({
     where: {
       shortcut,

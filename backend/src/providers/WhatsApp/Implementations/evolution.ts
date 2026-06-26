@@ -301,7 +301,7 @@ const sendMedia = async (
 
   return {
     id: extractMessageId(response.data),
-    body: options?.caption || media.filename,
+    body: options?.caption || "",
     fromMe: true,
     hasMedia: true,
     type,

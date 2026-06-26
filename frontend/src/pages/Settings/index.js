@@ -165,6 +165,18 @@ const useStyles = makeStyles(theme => ({
 		marginRight: 0,
 		whiteSpace: "nowrap"
 	},
+	colorCell: {
+		display: "inline-flex",
+		alignItems: "center",
+		gap: theme.spacing(1)
+	},
+	colorSwatch: {
+		width: 20,
+		height: 20,
+		borderRadius: 4,
+		border: `1px solid ${theme.palette.divider}`,
+		boxShadow: "inset 0 0 0 1px rgba(255, 255, 255, 0.35)"
+	},
 	settingOption: {
 		marginLeft: "auto"
 	},
@@ -471,18 +483,6 @@ const resources = [
 			{ name: "active", label: "Ativo", type: "boolean" }
 		],
 		columns: ["id", "name", "scaleType", "sendMode", "active"]
-	},
-	{
-		label: "Mensagens rapidas",
-		endpoint: "/quickAnswers",
-		listKey: "quickAnswers",
-		title: "Mensagem rapida",
-		fields: [
-			{ name: "shortcut", label: "Atalho", required: true },
-			{ name: "message", label: "Mensagem", multiline: true, required: true },
-			{ name: "global", label: "Publica para todos", type: "boolean" }
-		],
-		columns: ["id", "shortcut", "message", "global"]
 	},
 	{
 		label: "Etiquetas",
@@ -1132,7 +1132,6 @@ const formatAuditDate = value => {
 const searchableResourceEndpoints = [
 	"/ticket-categories",
 	"/closing-reasons",
-	"/quickAnswers",
 	"/tags",
 	"/audit-logs"
 ];
@@ -4550,6 +4549,14 @@ const ResourcePanel = ({ resource, classes }) => {
 		const value = row[col];
 		const field = getField(resource, col);
 
+		if (field?.type === "color") {
+			const color = value || "#607d8b";
+			return (
+				<span className={classes.colorCell}>
+					<span className={classes.colorSwatch} style={{ backgroundColor: color }} />
+				</span>
+			);
+		}
 		if (typeof value === "boolean") return value ? "Sim" : "Nao";
 		if (value === null || value === undefined) return "";
 		if (field?.relation) {

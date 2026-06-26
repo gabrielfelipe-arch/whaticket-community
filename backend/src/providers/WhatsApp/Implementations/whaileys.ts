@@ -1375,7 +1375,7 @@ const sendMedia = async (
 
   return {
     id: sent.key.id,
-    body: options?.caption || media.filename,
+    body: options?.caption || "",
     fromMe: true,
     hasMedia: true,
     type,

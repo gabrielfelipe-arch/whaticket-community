@@ -18,6 +18,9 @@ interface Request {
   userProfile: string;
 }
 
+const toBoolean = (value: unknown): boolean =>
+  value === true || value === "true" || value === "1" || value === 1;
+
 const UpdateQuickAnswerService = async ({
   quickAnswerData,
   quickAnswerId,
@@ -37,11 +40,19 @@ const UpdateQuickAnswerService = async ({
 
   const canUpdate =
     userProfile === "admin" ||
-    (!quickAnswer.global && Number(quickAnswer.userId) === Number(userId));
+    Number(quickAnswer.userId) === Number(userId);
 
   if (!canUpdate) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
+
+  const requestedGlobal = global === undefined ? quickAnswer.global : toBoolean(global);
+  const nextGlobal =
+    userProfile === "admin"
+      ? requestedGlobal
+      : quickAnswer.global
+        ? true
+        : requestedGlobal;
 
   await quickAnswer.update({
     shortcut,
@@ -49,7 +60,7 @@ const UpdateQuickAnswerService = async ({
     mediaUrl,
     mediaType,
     mediaName,
-    global: userProfile === "admin" && global !== undefined ? global : quickAnswer.global
+    global: nextGlobal
   });
 
   await quickAnswer.reload({

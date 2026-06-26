@@ -109,6 +109,29 @@ const useStyles = makeStyles(theme => ({
     borderTop: `1px solid ${theme.palette.divider}`,
   },
 
+  mediaPreviewContent: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(0.75),
+    minWidth: 0,
+  },
+
+  mediaPreviewLabel: {
+    color: theme.palette.text.secondary,
+    fontSize: 13,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  },
+
+  mediaCaptionInput: {
+    padding: theme.spacing(0.75, 1.25),
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
+  },
+
   emojiBox: {
     position: "absolute",
     bottom: 63,
@@ -301,10 +324,15 @@ const MessageInput = ({ ticketStatus }) => {
     e.preventDefault();
 
     const formData = new FormData();
+    const caption = inputMessage.trim();
+    const signedCaption = caption && signMessage
+      ? `*${user?.name}:*\n${caption}`
+      : caption;
+
     formData.append("fromMe", true);
+    formData.append("body", signedCaption);
     medias.forEach(media => {
       formData.append("medias", media);
-      formData.append("body", inputMessage.trim() || media.name);
     });
 
     try {
@@ -434,7 +462,7 @@ const MessageInput = ({ ticketStatus }) => {
       const extension = getAudioExtension(blob.type);
       const filename = `${new Date().getTime()}.${extension}`;
       formData.append("medias", blob, filename);
-      formData.append("body", filename);
+      formData.append("body", "");
       formData.append("fromMe", true);
 
       await api.post(`/messages/${ticketId}`, formData);
@@ -516,10 +544,30 @@ const MessageInput = ({ ticketStatus }) => {
             <CircularProgress className={classes.circleLoading} />
           </div>
         ) : (
-          <span>
-            {medias[0]?.name}
-            {/* <img src={media.preview} alt=""></img> */}
-          </span>
+          <div className={classes.mediaPreviewContent}>
+            <span className={classes.mediaPreviewLabel}>
+              {medias.length > 1 ? `${medias.length} anexos selecionados` : "Anexo selecionado"}
+            </span>
+            <InputBase
+              inputRef={input => {
+                input && input.focus();
+                input && (inputRef.current = input);
+              }}
+              className={classes.mediaCaptionInput}
+              placeholder="Escreva uma mensagem para enviar junto"
+              multiline
+              maxRows={4}
+              value={inputMessage}
+              onChange={handleChangeInput}
+              disabled={loading || ticketStatus !== "open"}
+              onKeyPress={event => {
+                if (loading || event.shiftKey) return;
+                if (event.key === "Enter") {
+                  handleUploadMedia(event);
+                }
+              }}
+            />
+          </div>
         )}
         <IconButton
           aria-label="send-upload"

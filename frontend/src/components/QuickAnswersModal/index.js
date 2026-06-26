@@ -15,6 +15,7 @@ import {
   CircularProgress,
   FormControlLabel,
   Switch,
+  Typography,
 } from "@material-ui/core";
 import { green } from "@material-ui/core/colors";
 import { i18n } from "../../translate/i18n";
@@ -61,6 +62,14 @@ const QuickAnswerSchema = Yup.object().shape({
     .required("Required"),
 });
 
+const asBoolean = value =>
+  value === true || value === "true" || value === "1" || value === 1;
+
+const normalizeQuickAnswer = value => ({
+  ...value,
+  global: asBoolean(value?.global),
+});
+
 const QuickAnswersModal = ({
   open,
   onClose,
@@ -91,7 +100,7 @@ const QuickAnswersModal = ({
     const fetchQuickAnswer = async () => {
       if (initialValues) {
         setQuickAnswer((prevState) => {
-          return { ...prevState, ...initialValues };
+          return normalizeQuickAnswer({ ...prevState, ...initialValues });
         });
       }
 
@@ -100,7 +109,7 @@ const QuickAnswersModal = ({
       try {
         const { data } = await api.get(`/quickAnswers/${quickAnswerId}`);
         if (isMounted.current) {
-          setQuickAnswer(data);
+          setQuickAnswer(normalizeQuickAnswer(data));
         }
       } catch (err) {
         toastError(err);
@@ -119,7 +128,9 @@ const QuickAnswersModal = ({
   const handleSaveQuickAnswer = async (values) => {
     try {
       const payload = new FormData();
-      Object.entries(values).forEach(([key, value]) => payload.append(key, value));
+      Object.entries(values).forEach(([key, value]) => {
+        payload.append(key, key === "global" ? String(asBoolean(value)) : value);
+      });
       if (mediaFile) payload.append("media", mediaFile);
       const config = { headers: { "Content-Type": "multipart/form-data" } };
       if (quickAnswerId) {
@@ -156,14 +167,12 @@ const QuickAnswersModal = ({
           initialValues={quickAnswer}
           enableReinitialize={true}
           validationSchema={QuickAnswerSchema}
-          onSubmit={(values, actions) => {
-            setTimeout(() => {
-              handleSaveQuickAnswer(values);
-              actions.setSubmitting(false);
-            }, 400);
+          onSubmit={async (values, actions) => {
+            await handleSaveQuickAnswer(values);
+            actions.setSubmitting(false);
           }}
         >
-          {({ values, errors, touched, isSubmitting }) => (
+          {({ values, errors, touched, isSubmitting, setFieldValue }) => (
             <Form>
               <DialogContent dividers>
                 <div className={classes.textQuickAnswerContainer}>
@@ -192,23 +201,21 @@ const QuickAnswersModal = ({
                     mediaName={mediaFile?.name || values.mediaName}
                   />
                 </div>
-                {user?.profile === "admin" && (
-                  <Field name="global">
-                    {({ field, form }) => (
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            color="primary"
-                            checked={!!field.value}
-                            onChange={event =>
-                              form.setFieldValue("global", event.target.checked)
-                            }
-                          />
-                        }
-                        label="Publica para todos"
-                      />
-                    )}
-                  </Field>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      color="primary"
+                      checked={asBoolean(values.global)}
+                      disabled={user?.profile !== "admin" && quickAnswerId && asBoolean(quickAnswer.global)}
+                      onChange={event => setFieldValue("global", event.target.checked)}
+                    />
+                  }
+                  label="Publica para todos"
+                />
+                {user?.profile !== "admin" && quickAnswerId && asBoolean(quickAnswer.global) && (
+                  <Typography variant="caption" color="textSecondary" display="block">
+                    Mensagens publicas so podem voltar a ser privadas por um administrador.
+                  </Typography>
                 )}
               </DialogContent>
               <DialogActions>

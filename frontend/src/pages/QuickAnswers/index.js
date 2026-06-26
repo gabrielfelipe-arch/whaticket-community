@@ -32,9 +32,17 @@ import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 
+const asBoolean = value =>
+  value === true || value === "true" || value === "1" || value === 1;
+
+const normalizeQuickAnswer = quickAnswer => ({
+  ...quickAnswer,
+  global: asBoolean(quickAnswer?.global),
+});
+
 const reducer = (state, action) => {
   if (action.type === "LOAD_QUICK_ANSWERS") {
-    const quickAnswers = action.payload;
+    const quickAnswers = action.payload.map(normalizeQuickAnswer);
     const newQuickAnswers = [];
 
     quickAnswers.forEach((quickAnswer) => {
@@ -50,7 +58,7 @@ const reducer = (state, action) => {
   }
 
   if (action.type === "UPDATE_QUICK_ANSWERS") {
-    const quickAnswer = action.payload;
+    const quickAnswer = normalizeQuickAnswer(action.payload);
     const quickAnswerIndex = state.findIndex((q) => q.id === quickAnswer.id);
 
     if (quickAnswerIndex !== -1) {
@@ -154,12 +162,16 @@ const QuickAnswers = () => {
 
   const isVisibleQuickAnswer = quickAnswer =>
     user?.profile === "admin" ||
-    quickAnswer.global ||
+    asBoolean(quickAnswer.global) ||
     Number(quickAnswer.userId) === Number(user?.id);
 
-  const canManageQuickAnswer = quickAnswer =>
+  const canEditQuickAnswer = quickAnswer =>
     user?.profile === "admin" ||
-    (!quickAnswer.global && Number(quickAnswer.userId) === Number(user?.id));
+    Number(quickAnswer.userId) === Number(user?.id);
+
+  const canDeleteQuickAnswer = quickAnswer =>
+    user?.profile === "admin" ||
+    (!asBoolean(quickAnswer.global) && Number(quickAnswer.userId) === Number(user?.id));
 
   const handleSearch = (event) => {
     setSearchParam(event.target.value.toLowerCase());
@@ -280,32 +292,36 @@ const QuickAnswers = () => {
                   <TableCell align="center">
                     <Chip
                       size="small"
-                      color={quickAnswer.global ? "primary" : "default"}
-                      label={quickAnswer.global ? "Publica" : "Privada"}
+                      color={asBoolean(quickAnswer.global) ? "primary" : "default"}
+                      label={asBoolean(quickAnswer.global) ? "Publica" : "Privada"}
                     />
                   </TableCell>
                   <TableCell align="center">
-                    {quickAnswer.user?.name || (quickAnswer.global ? "Administrador" : "")}
+                    {quickAnswer.user?.name || (asBoolean(quickAnswer.global) ? "Administrador" : "")}
                   </TableCell>
                   <TableCell align="center">
-                    {canManageQuickAnswer(quickAnswer) && (
+                    {(canEditQuickAnswer(quickAnswer) || canDeleteQuickAnswer(quickAnswer)) && (
                       <>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditQuickAnswers(quickAnswer)}
-                        >
-                          <Edit />
-                        </IconButton>
+                        {canEditQuickAnswer(quickAnswer) && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditQuickAnswers(quickAnswer)}
+                          >
+                            <Edit />
+                          </IconButton>
+                        )}
 
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setConfirmModalOpen(true);
-                            setDeletingQuickAnswers(quickAnswer);
-                          }}
-                        >
-                          <DeleteOutline />
-                        </IconButton>
+                        {canDeleteQuickAnswer(quickAnswer) && (
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setConfirmModalOpen(true);
+                              setDeletingQuickAnswers(quickAnswer);
+                            }}
+                          >
+                            <DeleteOutline />
+                          </IconButton>
+                        )}
                       </>
                     )}
                   </TableCell>
