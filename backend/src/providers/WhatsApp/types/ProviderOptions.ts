@@ -10,3 +10,7 @@ export interface SendMediaOptions {
   sendMediaAsDocument?: boolean;
   quotedMessageId?: string;
 }
+
+export interface ReactMessageOptions {
+  participant?: string;
+}

@@ -67,6 +67,10 @@ class Message extends Model<Message> {
   @Column
   isDeleted: boolean;
 
+  @Default({})
+  @Column(DataType.JSONB)
+  reactions: Record<string, string>;
+
   @CreatedAt
   @Column(DataType.DATE(6))
   createdAt: Date;

@@ -5,10 +5,11 @@ import Ticket from "../../models/Ticket";
 import Contact from "../../models/Contact";
 import Message from "../../models/Message";
 import Queue from "../../models/Queue";
-import ShowUserService from "../UserServices/ShowUserService";
 import Whatsapp from "../../models/Whatsapp";
 import TicketCategory from "../../models/TicketCategory";
 import ClosingReason from "../../models/ClosingReason";
+import { getUserQueueIds } from "../../helpers/TicketAccess";
+import { isAdminProfile, isSupervisorProfile } from "../../helpers/ProfilePermissions";
 
 interface Request {
   searchParam?: string;
@@ -20,6 +21,7 @@ interface Request {
   withUnreadMessages?: string;
   queueIds: number[];
   triageOnly?: string;
+  requesterProfile?: string;
 }
 
 interface Response {
@@ -37,12 +39,25 @@ const ListTicketsService = async ({
   showAll,
   userId,
   withUnreadMessages,
-  triageOnly
+  triageOnly,
+  requesterProfile = "user"
 }: Request): Promise<Response> => {
-  let whereCondition: Filterable["where"] = {
-    [Op.or]: [{ userId }, { status: "pending" }],
-    queueId: { [Op.or]: [queueIds, null] }
+  const admin = isAdminProfile(requesterProfile);
+  const supervisor = isSupervisorProfile(requesterProfile);
+  const canShowAll = showAll === "true" && (admin || supervisor);
+  const userQueueIds = admin && queueIds.length ? [] : await getUserQueueIds(userId);
+  const effectiveQueueIds = queueIds.length ? queueIds : userQueueIds;
+  const queueCondition: Record<string, any> = {};
+  if (!admin || effectiveQueueIds.length) {
+    queueCondition.queueId = { [Op.or]: [effectiveQueueIds, null] };
+  }
+  const userVisibilityCondition: Record<string, any> = {
+    [Op.or]: [{ userId }, { userId: null }],
+    ...queueCondition
   };
+  let whereCondition: Filterable["where"] = canShowAll || (supervisor && showAll === "true")
+    ? queueCondition
+    : userVisibilityCondition;
   let includeCondition: Includeable[];
 
   includeCondition = [
@@ -80,10 +95,6 @@ const ListTicketsService = async ({
       attributes: ["id", "name"]
     }
   ];
-
-  if (showAll === "true") {
-    whereCondition = { queueId: { [Op.or]: [queueIds, null] } };
-  }
 
   if (status) {
     whereCondition = {
@@ -167,6 +178,7 @@ const ListTicketsService = async ({
 
   if (date) {
     whereCondition = {
+      ...whereCondition,
       createdAt: {
         [Op.between]: [+startOfDay(parseISO(date)), +endOfDay(parseISO(date))]
       }
@@ -174,12 +186,8 @@ const ListTicketsService = async ({
   }
 
   if (withUnreadMessages === "true") {
-    const user = await ShowUserService(userId);
-    const userQueueIds = user.queues.map(queue => queue.id);
-
     whereCondition = {
-      [Op.or]: [{ userId }, { status: "pending" }],
-      queueId: { [Op.or]: [userQueueIds, null] },
+      ...(canShowAll ? queueCondition : userVisibilityCondition),
       unreadMessages: { [Op.gt]: 0 }
     };
   }

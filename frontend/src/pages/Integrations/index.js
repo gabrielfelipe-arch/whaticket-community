@@ -268,9 +268,11 @@ const defaultSettings = {
   glpiAutoCategoryId: "",
   glpiAutoEntityId: "",
   glpiAutoLocationId: "",
+  glpiAllowedFormCategoryIds: "",
   glpiAllowedFormEntityIds: "",
   glpiAllowedFormLocationIds: "",
   glpiEntityLocationRules: "[]",
+  glpiEntityCategoryRules: "[]",
   glpiAutoTitleTemplate: "Solicitacao WhatsApp - {{contactName}}",
   glpiAutoSuccessMessage: "Sua solicitacao foi registrada com sucesso. Chamado GLPI: #{{glpiTicketNumber}}.",
   glpiRequireConfirmationBeforeCreate: "true",
@@ -370,6 +372,30 @@ const serializeEntityLocationRules = rules =>
     entityId: Number(rule.entityId) || "",
     allowedLocationIds: (rule.allowedLocationIds || []).map(item => Number(item)).filter(item => Number.isInteger(item) && item > 0),
     defaultLocationId: Number(rule.defaultLocationId) || null
+  })));
+
+const parseEntityCategoryRules = value => {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.map(rule => ({
+      entityId: Number(rule.entityId) || "",
+      allowedCategoryIds: Array.isArray(rule.allowedCategoryIds)
+        ? rule.allowedCategoryIds.map(item => Number(item)).filter(item => Number.isInteger(item) && item > 0)
+        : [],
+      defaultCategoryId: Number(rule.defaultCategoryId) || ""
+    }));
+  } catch (error) {
+    return [];
+  }
+};
+
+const serializeEntityCategoryRules = rules =>
+  JSON.stringify((rules || []).map(rule => ({
+    entityId: Number(rule.entityId) || "",
+    allowedCategoryIds: (rule.allowedCategoryIds || []).map(item => Number(item)).filter(item => Number.isInteger(item) && item > 0),
+    defaultCategoryId: Number(rule.defaultCategoryId) || null
   })));
 
 const SearchTextField = params => (
@@ -715,6 +741,8 @@ const Integrations = () => {
   };
 
   const entityLocationRules = parseEntityLocationRules(settings.glpiEntityLocationRules);
+  const entityCategoryRules = parseEntityCategoryRules(settings.glpiEntityCategoryRules);
+  const hasDefaultGlpiCategory = Boolean(settings.glpiAutoCategoryId);
   const hasDefaultGlpiEntity = Boolean(settings.glpiAutoEntityId);
   const hasDefaultGlpiLocation = Boolean(settings.glpiAutoLocationId);
   const whatsappMaintenance = whatsappStatus?.maintenance?.steps?.length
@@ -816,6 +844,9 @@ const Integrations = () => {
   const selectedConfiguredLocations = settings.glpiAutoLocationId
     ? filterByGlpiIds(defaultEntityLocations, settings.glpiAutoLocationId)
     : filterByGlpiIds(defaultEntityLocations, settings.glpiAllowedFormLocationIds);
+  const selectedConfiguredCategories = settings.glpiAutoCategoryId
+    ? filterByGlpiIds(catalogs.categories, settings.glpiAutoCategoryId)
+    : filterByGlpiIds(catalogs.categories, settings.glpiAllowedFormCategoryIds);
 
   const loadLocationsForEntity = async entityId => {
     if (!entityId) return [];
@@ -874,6 +905,10 @@ const Integrations = () => {
     handleSettingValue("glpiEntityLocationRules", serializeEntityLocationRules(nextRules));
   };
 
+  const updateEntityCategoryRules = nextRules => {
+    handleSettingValue("glpiEntityCategoryRules", serializeEntityCategoryRules(nextRules));
+  };
+
   const addEntityLocationRule = () => {
     if (hasDefaultGlpiEntity) {
       toast.warning("Limpe a entidade padrao antes de adicionar regras por entidade.");
@@ -903,6 +938,84 @@ const Integrations = () => {
 
   const removeEntityLocationRule = index => {
     updateEntityLocationRules(entityLocationRules.filter((rule, ruleIndex) => ruleIndex !== index));
+  };
+
+  const addEntityCategoryRule = () => {
+    if (hasDefaultGlpiEntity || hasDefaultGlpiCategory) {
+      toast.warning("Limpe a entidade ou categoria padrao antes de adicionar regras de categoria por entidade.");
+      return;
+    }
+
+    updateEntityCategoryRules([
+      ...entityCategoryRules,
+      { entityId: "", allowedCategoryIds: [], defaultCategoryId: "" }
+    ]);
+  };
+
+  const updateEntityCategoryRule = (index, patch) => {
+    const nextRules = entityCategoryRules.map((rule, ruleIndex) => {
+      if (ruleIndex !== index) return rule;
+      const nextRule = { ...rule, ...patch };
+      const availableCategoryIds = (catalogs.categories || []).map(category => Number(category.glpiId));
+
+      return {
+        ...nextRule,
+        allowedCategoryIds: (nextRule.allowedCategoryIds || []).filter(categoryId => availableCategoryIds.includes(Number(categoryId))),
+        defaultCategoryId: availableCategoryIds.includes(Number(nextRule.defaultCategoryId)) ? nextRule.defaultCategoryId : ""
+      };
+    });
+    updateEntityCategoryRules(nextRules);
+  };
+
+  const removeEntityCategoryRule = index => {
+    updateEntityCategoryRules(entityCategoryRules.filter((rule, ruleIndex) => ruleIndex !== index));
+  };
+
+  const buildLocationSelectionPatch = value => {
+    const ids = (value || []).map(location => Number(location.glpiId)).filter(item => Number.isInteger(item) && item > 0);
+    return {
+      allowedLocationIds: ids.length > 1 ? ids : [],
+      defaultLocationId: ids.length === 1 ? ids[0] : ""
+    };
+  };
+
+  const buildCategorySelectionPatch = value => {
+    const ids = (value || []).map(category => Number(category.glpiId)).filter(item => Number.isInteger(item) && item > 0);
+    return {
+      allowedCategoryIds: ids.length > 1 ? ids : [],
+      defaultCategoryId: ids.length === 1 ? ids[0] : ""
+    };
+  };
+
+  const upsertEntityCategoryRule = (entityId, patch) => {
+    const normalizedEntityId = Number(entityId) || "";
+    const existingIndex = entityCategoryRules.findIndex(rule => Number(rule.entityId) === Number(normalizedEntityId));
+    if (!normalizedEntityId) return;
+
+    if (existingIndex >= 0) {
+      updateEntityCategoryRule(existingIndex, patch);
+      return;
+    }
+
+    updateEntityCategoryRules([
+      ...entityCategoryRules,
+      {
+        entityId: normalizedEntityId,
+        allowedCategoryIds: [],
+        defaultCategoryId: "",
+        ...patch
+      }
+    ]);
+  };
+
+  const handleDefaultCategoryChange = option => {
+    const selected = Array.isArray(option) ? option : option ? [option] : [];
+    const categoryIds = selected.map(category => Number(category.glpiId)).filter(categoryId => Number.isInteger(categoryId) && categoryId > 0);
+    setSettings(prev => ({
+      ...prev,
+      glpiAutoCategoryId: categoryIds.length === 1 ? String(categoryIds[0]) : "",
+      glpiAllowedFormCategoryIds: categoryIds.length > 1 ? categoryIds.join(",") : ""
+    }));
   };
 
   const handleDefaultLocationChange = option => {
@@ -942,6 +1055,12 @@ const Integrations = () => {
     try {
       if (hasDefaultGlpiEntity && entityLocationRules.length) {
         const message = "Com entidade padrao preenchida, remova as regras por entidade ou limpe a entidade padrao antes de salvar.";
+        setStatusMessage(message);
+        toast.warning(message);
+        return;
+      }
+      if ((hasDefaultGlpiEntity || hasDefaultGlpiCategory) && entityCategoryRules.length) {
+        const message = "Com entidade ou categoria padrao preenchida, remova as regras de categoria por entidade antes de salvar.";
         setStatusMessage(message);
         toast.warning(message);
         return;
@@ -1008,6 +1127,21 @@ const Integrations = () => {
       toastError(err);
     }
   };
+
+  const mergedEntityRules = [
+    ...entityLocationRules.map((rule, index) => ({
+      rule,
+      locationIndex: index,
+      categoryRule: entityCategoryRules.find(categoryRule => Number(categoryRule.entityId) === Number(rule.entityId)) || { entityId: rule.entityId, allowedCategoryIds: [], defaultCategoryId: "" }
+    })),
+    ...entityCategoryRules
+      .filter(categoryRule => !entityLocationRules.some(rule => Number(rule.entityId) === Number(categoryRule.entityId)))
+      .map(categoryRule => ({
+        rule: { entityId: categoryRule.entityId, allowedLocationIds: [], defaultLocationId: "" },
+        locationIndex: -1,
+        categoryRule
+      }))
+  ];
 
   return (
     <Container maxWidth={false} className={classes.root}>
@@ -1190,13 +1324,21 @@ const Integrations = () => {
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Autocomplete
+                      multiple
+                      disableCloseOnSelect
                       options={catalogs.categories}
-                      value={findByGlpiId(catalogs.categories, settings.glpiAutoCategoryId)}
+                      value={selectedConfiguredCategories}
                       getOptionLabel={optionLabel}
                       getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                       noOptionsText="Nenhuma categoria encontrada"
-                      onChange={(event, option) => handleSettingValue("glpiAutoCategoryId", option?.glpiId ? String(option.glpiId) : "")}
-                      renderInput={params => <SearchTextField {...params} required label="Categoria padrao do chamado" placeholder="Pesquisar categoria" />}
+                      onChange={(event, option) => handleDefaultCategoryChange(option)}
+                      renderOption={(option, { selected }) => (
+                        <>
+                          <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
+                          {optionLabel(option)}
+                        </>
+                      )}
+                      renderInput={params => <SearchTextField {...params} required label="Categorias do formulario" placeholder="Pesquisar categoria" helperText="Vazio mostra todas quando houver pergunta Categoria GLPI. Uma vira padrao e pula a pergunta. Mais de uma vira lista." />}
                     />
                   </Grid>
                   <Grid item xs={12} md={4}>
@@ -1226,7 +1368,7 @@ const Integrations = () => {
                           {optionLabel(option)}
                         </>
                       )}
-                      renderInput={params => <SearchTextField {...params} label="Localizacoes do formulario" placeholder="Pesquisar localizacao" helperText="Uma localizacao vira padrao. Mais de uma aparece como opcao para o cliente." />}
+                      renderInput={params => <SearchTextField {...params} label="Localizacoes do formulario" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas quando houver pergunta Localizacao GLPI. Uma vira padrao e pula a pergunta. Mais de uma vira lista." />}
                     />
                   </Grid>
                   </Grid>
@@ -1251,28 +1393,34 @@ const Integrations = () => {
                       <div className={classes.automaticSection}>
                         <div className={classes.ruleHeader}>
                           <div>
-                            <Typography variant="subtitle1">Regras de localizacao por entidade</Typography>
+                            <Typography variant="subtitle1">Regras por entidade</Typography>
                             <Typography variant="body2" color="textSecondary">
-                              Configure aqui quando o GLPI tiver multiplas unidades. Cada entidade pode exibir um conjunto proprio de localizacoes.
+                              Configure aqui quando o GLPI tiver multiplas unidades. Cada entidade pode exibir localizacoes e categorias proprias.
                             </Typography>
                           </div>
                           <Button color="primary" variant="outlined" onClick={addEntityLocationRule}>
                             Adicionar regra
                           </Button>
                         </div>
-                        {!entityLocationRules.length && (
+                        {!mergedEntityRules.length && (
                           <Typography variant="body2" color="textSecondary">
-                            Sem regra especifica: o formulario mostra as localizacoes da entidade selecionada.
+                            Sem regra especifica: o formulario mostra as localizacoes da entidade selecionada e as categorias configuradas acima.
                           </Typography>
                         )}
-                        {entityLocationRules.map((rule, index) => {
+                        {mergedEntityRules.map(({ rule, locationIndex, categoryRule }, index) => {
                           const entityLocations = locationsByEntity(rule.entityId);
-                          const selectedAllowedLocations = entityLocations.filter(location =>
-                            (rule.allowedLocationIds || []).includes(Number(location.glpiId))
+                          const selectedLocations = entityLocations.filter(location =>
+                            [
+                              ...(rule.allowedLocationIds || []),
+                              ...(rule.defaultLocationId ? [rule.defaultLocationId] : [])
+                            ].map(Number).includes(Number(location.glpiId))
                           );
-                          const defaultLocationOptions = rule.allowedLocationIds?.length
-                            ? selectedAllowedLocations
-                            : entityLocations;
+                          const selectedCategories = (catalogs.categories || []).filter(category =>
+                            [
+                              ...(categoryRule.allowedCategoryIds || []),
+                              ...(categoryRule.defaultCategoryId ? [categoryRule.defaultCategoryId] : [])
+                            ].map(Number).includes(Number(category.glpiId))
+                          );
 
                           return (
                             <div className={classes.ruleRow} key={`${rule.entityId || "new"}-${index}`}>
@@ -1285,56 +1433,89 @@ const Integrations = () => {
                                     getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                                     noOptionsText="Nenhuma entidade encontrada"
                                     onChange={(event, option) => {
+                                      const previousEntityId = rule.entityId;
                                       const entityId = option?.glpiId ? Number(option.glpiId) : "";
-                                      updateEntityLocationRule(index, {
-                                        entityId,
-                                        allowedLocationIds: [],
-                                        defaultLocationId: ""
-                                      });
+                                      if (locationIndex >= 0) {
+                                        updateEntityLocationRule(locationIndex, {
+                                          entityId,
+                                          allowedLocationIds: [],
+                                          defaultLocationId: ""
+                                        });
+                                      } else {
+                                        updateEntityLocationRules([
+                                          ...entityLocationRules,
+                                          { entityId, allowedLocationIds: [], defaultLocationId: "" }
+                                        ]);
+                                      }
+                                      const categoryIndex = entityCategoryRules.findIndex(item => Number(item.entityId) === Number(previousEntityId));
+                                      if (categoryIndex >= 0) {
+                                        updateEntityCategoryRule(categoryIndex, {
+                                          entityId,
+                                          allowedCategoryIds: [],
+                                          defaultCategoryId: ""
+                                        });
+                                      }
                                       loadLocationsForEntity(entityId);
                                     }}
                                     renderInput={params => <SearchTextField {...params} label="Entidade" placeholder="Pesquisar entidade" />}
                                   />
                                 </Grid>
-                                <Grid item xs={12} md={5} className={classes.ruleField}>
+                                <Grid item xs={12} md={4} className={classes.ruleField}>
                                   <Autocomplete
                                     multiple
                                     disableCloseOnSelect
                                     options={entityLocations}
-                                    value={selectedAllowedLocations}
+                                    value={selectedLocations}
                                     getOptionLabel={optionLabel}
                                     getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
                                     noOptionsText={rule.entityId ? "Nenhuma localizacao desta entidade" : "Selecione uma entidade primeiro"}
-                                    onChange={(event, value) => updateEntityLocationRule(index, {
-                                      allowedLocationIds: value.map(location => Number(location.glpiId)),
-                                      defaultLocationId: value.some(location => Number(location.glpiId) === Number(rule.defaultLocationId))
-                                        ? rule.defaultLocationId
-                                        : ""
-                                    })}
+                                    onChange={(event, value) => {
+                                      const patch = buildLocationSelectionPatch(value);
+                                      if (locationIndex >= 0) {
+                                        updateEntityLocationRule(locationIndex, patch);
+                                      } else {
+                                        updateEntityLocationRules([
+                                          ...entityLocationRules,
+                                          { entityId: rule.entityId, ...patch }
+                                        ]);
+                                      }
+                                    }}
                                     renderOption={(option, { selected }) => (
                                       <>
                                         <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
                                         {optionLabel(option)}
                                       </>
                                     )}
-                                    renderInput={params => <SearchTextField {...params} label="Localizacoes exibidas" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas desta entidade." />}
+                                    renderInput={params => <SearchTextField {...params} label="Localizacoes" placeholder="Pesquisar localizacao" helperText="Vazio mostra todas se o formulario tiver pergunta Localizacao GLPI. Uma vira padrao e pula a pergunta. Mais de uma vira lista." />}
                                   />
                                 </Grid>
-                                <Grid item xs={12} md={3} className={classes.ruleField}>
+                                {!hasDefaultGlpiCategory && (
+                                <Grid item xs={12} md={4} className={classes.ruleField}>
                                   <Autocomplete
-                                    options={defaultLocationOptions}
-                                    value={findByGlpiId(defaultLocationOptions, rule.defaultLocationId)}
+                                    multiple
+                                    disableCloseOnSelect
+                                    options={catalogs.categories}
+                                    value={selectedCategories}
                                     getOptionLabel={optionLabel}
                                     getOptionSelected={(option, value) => Number(option.glpiId) === Number(value.glpiId)}
-                                    noOptionsText="Nenhuma localizacao disponivel"
-                                    onChange={(event, option) => updateEntityLocationRule(index, {
-                                      defaultLocationId: option?.glpiId ? Number(option.glpiId) : ""
-                                    })}
-                                    renderInput={params => <SearchTextField {...params} label="Localizacao padrao" placeholder="Pesquisar localizacao" />}
+                                    noOptionsText="Nenhuma categoria encontrada"
+                                    onChange={(event, value) => upsertEntityCategoryRule(rule.entityId, buildCategorySelectionPatch(value))}
+                                    renderOption={(option, { selected }) => (
+                                      <>
+                                        <Checkbox color="primary" checked={selected} style={{ marginRight: 8 }} />
+                                        {optionLabel(option)}
+                                      </>
+                                    )}
+                                    renderInput={params => <SearchTextField {...params} label="Categorias" placeholder="Pesquisar categoria" helperText="Vazio mostra todas se o formulario tiver pergunta Categoria GLPI. Uma vira padrao e pula a pergunta. Mais de uma vira lista." />}
                                   />
                                 </Grid>
+                                )}
                                 <Grid item xs={12} md={1} className={classes.ruleAction}>
-                                  <Button fullWidth color="secondary" variant="outlined" onClick={() => removeEntityLocationRule(index)}>
+                                  <Button fullWidth color="secondary" variant="outlined" onClick={() => {
+                                    if (locationIndex >= 0) removeEntityLocationRule(locationIndex);
+                                    const categoryIndex = entityCategoryRules.findIndex(item => Number(item.entityId) === Number(rule.entityId));
+                                    if (categoryIndex >= 0) removeEntityCategoryRule(categoryIndex);
+                                  }}>
                                     Remover
                                   </Button>
                                 </Grid>
@@ -1355,6 +1536,18 @@ const Integrations = () => {
                           {hasDefaultGlpiLocation
                             ? "Com localizacao padrao, o chamado sempre usa essa localizacao e nao precisa listar localizacoes para o cliente."
                             : "Com entidade padrao, o formulario usa uma unica entidade. Para configurar regras por unidade, limpe a entidade padrao acima."}
+                        </Typography>
+                      </div>
+                    </Grid>
+                  )}
+                  {hasDefaultGlpiCategory && (
+                    <Grid item xs={12}>
+                      <div className={classes.warningNotice}>
+                        <Typography variant="body2">
+                          Regras de categoria por entidade ocultas porque existe uma categoria padrao selecionada.
+                        </Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          Com uma unica categoria, o chamado usa essa categoria automaticamente. Para listar categorias por unidade, limpe a categoria padrao acima.
                         </Typography>
                       </div>
                     </Grid>

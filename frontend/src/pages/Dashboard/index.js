@@ -313,12 +313,23 @@ const Dashboard = () => {
 
     const rows = (selectedConversation.messages || []).map(message => {
       const origin = message.fromMe ? "Atendente / Sistema" : "Cliente";
-      const body = message.body || `[${message.mediaType || "midia"}]`;
+      const deletedBy = message.deletedAudit?.userName || "";
+      const deletedAt = message.deletedAudit?.createdAt ? formatPdfDate(message.deletedAudit.createdAt) : "";
+      const deletionInfo = message.isDeleted
+        ? [
+            "Mensagem deletada",
+            deletedBy ? `por ${deletedBy}` : "",
+            deletedAt ? `em ${deletedAt}` : ""
+          ].filter(Boolean).join(" ")
+        : "";
+      const body = message.isDeleted
+        ? `${deletionInfo}.\nConteudo registrado: ${message.body || `[${message.mediaType || "midia"}]`}`
+        : message.body || `[${message.mediaType || "midia"}]`;
       return `
       <tr>
         <td>${escapeHtml(formatPdfDate(message.createdAt))}</td>
         <td><span class="origin ${message.fromMe ? "origin-agent" : "origin-client"}">${escapeHtml(origin)}</span></td>
-        <td>${escapeHtml(body).replace(/\n/g, "<br />")}</td>
+        <td class="${message.isDeleted ? "deletedMessage" : ""}">${escapeHtml(body).replace(/\n/g, "<br />")}</td>
       </tr>
     `;
     }).join("");
@@ -428,6 +439,11 @@ const Dashboard = () => {
             }
             .origin-agent { background: #dbeafe; color: #1d4ed8; }
             .origin-client { background: #dcfce7; color: #166534; }
+            .deletedMessage {
+              color: #7f1d1d;
+              background: #fef2f2;
+              font-style: italic;
+            }
             .footer {
               position: fixed;
               left: 0;

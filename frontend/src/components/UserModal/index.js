@@ -89,6 +89,7 @@ const specialPermissionOptions = [
 	{ key: "accessAi", label: "Acessar IA" },
 	{ key: "importContactsSpreadsheet", label: "Importar contatos por planilha" },
 	{ key: "manageOtherCampaigns", label: "Editar/excluir campanhas de outros usuarios" },
+	{ key: "deleteMessages", label: "Excluir mensagens" },
 ];
 
 const UserSchema = Yup.object().shape({
@@ -118,6 +119,7 @@ const UserModal = ({ open, onClose, userId }) => {
 			accessAi: false,
 			importContactsSpreadsheet: false,
 			manageOtherCampaigns: false,
+			deleteMessages: false,
 		},
 	};
 

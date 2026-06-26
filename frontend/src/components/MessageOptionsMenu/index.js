@@ -6,7 +6,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import ConfirmationModal from "../ConfirmationModal";
-import { Menu } from "@material-ui/core";
+import { Box, Menu } from "@material-ui/core";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
@@ -16,6 +16,9 @@ const MessageOptionsMenu = ({ message, isGroup, menuOpen, handleClose, anchorEl 
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const { user } = useContext(AuthContext);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const reactionEmojis = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+  const canDeleteMessage = user?.profile === "admin" || user?.specialPermissions?.deleteMessages === true;
 
   const handleDeleteMessage = async () => {
     try {
@@ -56,6 +59,15 @@ const MessageOptionsMenu = ({ message, isGroup, menuOpen, handleClose, anchorEl 
     handleClose();
   };
 
+  const handleReactMessage = async emoji => {
+    try {
+      await api.post(`/messages/${message.id}/reaction`, { emoji });
+      handleClose();
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   return (
     <>
       <ConfirmationModal
@@ -80,7 +92,7 @@ const MessageOptionsMenu = ({ message, isGroup, menuOpen, handleClose, anchorEl 
         open={menuOpen}
         onClose={handleClose}
       >
-        {message.fromMe && (
+        {message.fromMe && canDeleteMessage && (
           <MenuItem onClick={handleOpenConfirmationModal}>
             {i18n.t("messageOptionsMenu.delete")}
           </MenuItem>
@@ -88,6 +100,25 @@ const MessageOptionsMenu = ({ message, isGroup, menuOpen, handleClose, anchorEl 
         <MenuItem onClick={hanldeReplyMessage}>
           {i18n.t("messageOptionsMenu.reply")}
         </MenuItem>
+        <Box display="flex" px={1} py={0.5} style={{ gap: 4 }}>
+          {reactionEmojis.map(emoji => (
+            <MenuItem
+              key={emoji}
+              dense
+              onClick={() => handleReactMessage(emoji)}
+              style={{ minWidth: 36, justifyContent: "center", paddingLeft: 8, paddingRight: 8 }}
+            >
+              {emoji}
+            </MenuItem>
+          ))}
+          <MenuItem
+            dense
+            onClick={() => handleReactMessage("")}
+            style={{ minWidth: 36, justifyContent: "center", paddingLeft: 8, paddingRight: 8 }}
+          >
+            ×
+          </MenuItem>
+        </Box>
         {isGroup && !message.fromMe && message.contact?.id && !message.contact?.isGroup && (
           <MenuItem onClick={handleOpenPrivateTicket}>
             Conversar no privado

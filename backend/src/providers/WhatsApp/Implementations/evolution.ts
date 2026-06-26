@@ -329,6 +329,27 @@ const deleteMessage = async (
   });
 };
 
+const reactMessage = async (
+  sessionId: number,
+  chatId: string,
+  messageId: string,
+  fromMe: boolean,
+  emoji: string,
+  options?: { participant?: string }
+): Promise<void> => {
+  const { client, instance } = await getClientContext(sessionId);
+
+  await client.post(`/message/sendReaction/${encodeURIComponent(instance)}`, {
+    reactionKey: {
+      remoteJid: chatId,
+      fromMe,
+      id: messageId,
+      participant: options?.participant
+    },
+    reactionMessage: emoji || ""
+  });
+};
+
 const checkNumber = async (_sessionId: number, number: string): Promise<string> => {
   const cleanNumber = normalizeNumber(number);
   if (!cleanNumber) throw new AppError("ERR_INVALID_NUMBER", 400);
@@ -403,6 +424,7 @@ export const EvolutionProvider: WhatsappProvider = {
   sendMessage,
   sendMedia,
   deleteMessage,
+  reactMessage,
   checkNumber,
   getProfilePicUrl,
   getContacts,

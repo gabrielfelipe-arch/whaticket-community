@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import { useHistory } from "react-router-dom";
 
 import Button from "@material-ui/core/Button";
@@ -22,6 +22,7 @@ import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import ButtonWithSpinner from "../ButtonWithSpinner";
 import toastError from "../../errors/toastError";
+import { toast } from "react-toastify";
 import useQueues from "../../hooks/useQueues";
 import useWhatsApps from "../../hooks/useWhatsApps";
 import { AuthContext } from "../../context/Auth/AuthContext";
@@ -52,6 +53,27 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 	const { loadingWhatsapps, whatsApps } = useWhatsApps();
 
 	const { user: loggedInUser } = useContext(AuthContext);
+
+	const userBelongsToQueue = useCallback((user, queueId) => {
+		return !queueId || (user?.queues || []).some(queue => Number(queue.id) === Number(queueId));
+	}, []);
+
+	const userCanReceiveTransfer = useCallback((user) => {
+		return user?.active !== false && user?.operationalStatus === "online";
+	}, []);
+
+	const getUserStatusLabel = useCallback((user) => {
+		if (user?.active === false) return i18n.t("transferTicketModal.inactiveLabel");
+		if (user?.operationalStatus === "online") return i18n.t("transferTicketModal.onlineLabel");
+		if (user?.operationalStatus === "away") return i18n.t("transferTicketModal.awayLabel");
+		return i18n.t("transferTicketModal.offlineLabel");
+	}, []);
+
+	const userOptions = useMemo(() => {
+		return options.filter(user => {
+			return userBelongsToQueue(user, selectedQueue);
+		});
+	}, [options, selectedQueue, userBelongsToQueue]);
 
 	useEffect(() => {
 		const loadQueues = async () => {
@@ -97,6 +119,14 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 	const handleSaveTicket = async e => {
 		e.preventDefault();
 		if (!ticketid) return;
+		if (!selectedUser && !selectedQueue) {
+			toast.warning(i18n.t("transferTicketModal.selectTarget"));
+			return;
+		}
+		if (selectedUser && !userCanReceiveTransfer(selectedUser)) {
+			toast.warning(i18n.t("transferTicketModal.onlineOnly"));
+			return;
+		}
 		setLoading(true);
 		try {
 			let data = {};
@@ -147,18 +177,25 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 								setSelectedQueue('');
 							}
 						}}
-						options={options}
+						options={userOptions}
 						filterOptions={filterOptions}
-						freeSolo
+						getOptionDisabled={option => !userCanReceiveTransfer(option)}
 						autoHighlight
 						noOptionsText={i18n.t("transferTicketModal.noOptions")}
 						loading={loading}
+						renderOption={option => (
+							<div style={{ display: "flex", justifyContent: "space-between", width: "100%", gap: 12 }}>
+								<span>{option.name}</span>
+								<span style={{ color: userCanReceiveTransfer(option) ? "#2e7d32" : "#9e9e9e", fontSize: 12 }}>
+									{getUserStatusLabel(option)}
+								</span>
+							</div>
+						)}
 						renderInput={params => (
 							<TextField
 								{...params}
 								label={i18n.t("transferTicketModal.fieldLabel")}
 								variant="outlined"
-								required
 								autoFocus
 								onChange={e => setSearchParam(e.target.value)}
 								InputProps={{
@@ -179,7 +216,13 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 						<InputLabel>{i18n.t("transferTicketModal.fieldQueueLabel")}</InputLabel>
 						<Select
 							value={selectedQueue}
-							onChange={(e) => setSelectedQueue(e.target.value)}
+							onChange={(e) => {
+								const queueId = e.target.value;
+								setSelectedQueue(queueId);
+								if (selectedUser && !userBelongsToQueue(selectedUser, queueId)) {
+									setSelectedUser(null);
+								}
+							}}
 							label={i18n.t("transferTicketModal.fieldQueuePlaceholder")}
 						>
 							<MenuItem value={''}>&nbsp;</MenuItem>

@@ -20,4 +20,10 @@ messageRoutes.post(
 
 messageRoutes.delete("/messages/:messageId", isAuth, MessageController.remove);
 
+messageRoutes.post(
+  "/messages/:messageId/reaction",
+  isAuth,
+  MessageController.react
+);
+
 export default messageRoutes;

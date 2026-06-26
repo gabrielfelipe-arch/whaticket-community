@@ -670,7 +670,8 @@ const resources = [
 					{ value: "single_choice", label: "Escolha unica" },
 					{ value: "multiple_choice", label: "Multipla escolha" },
 					{ value: "glpi_entity", label: "Entidade GLPI" },
-					{ value: "glpi_location", label: "Localizacao GLPI" }
+					{ value: "glpi_location", label: "Localizacao GLPI" },
+					{ value: "glpi_category", label: "Categoria GLPI" }
 				]
 			},
 			{
@@ -2148,12 +2149,32 @@ const parseGlpiEntityLocationRules = value => {
 	}
 };
 
+const parseGlpiEntityCategoryRules = value => {
+	try {
+		const parsed = JSON.parse(value || "[]");
+		if (!Array.isArray(parsed)) return [];
+
+		return parsed
+			.map(rule => ({
+				entityId: Number(rule?.entityId) || null,
+				allowedCategoryIds: Array.isArray(rule?.allowedCategoryIds)
+					? rule.allowedCategoryIds.map(item => Number(item)).filter(item => Number.isInteger(item) && item > 0)
+					: [],
+				defaultCategoryId: Number(rule?.defaultCategoryId) || null
+			}))
+			.filter(rule => rule.entityId);
+	} catch (err) {
+		return [];
+	}
+};
+
 const questionTypeOptions = [
 	{ value: "text", label: "Texto livre" },
 	{ value: "single_choice", label: "Escolha unica" },
 	{ value: "multiple_choice", label: "Multipla escolha" },
 	{ value: "glpi_entity", label: "Entidade GLPI" },
-	{ value: "glpi_location", label: "Localizacao GLPI" }
+	{ value: "glpi_location", label: "Localizacao GLPI" },
+	{ value: "glpi_category", label: "Categoria GLPI" }
 ];
 
 const getVisibleQuestionType = type =>
@@ -2168,12 +2189,14 @@ const getQuestionTypeHelp = type => ({
 	single_choice: "O cliente escolhe uma unica opcao pelo numero enviado.",
 	multiple_choice: "O cliente pode informar mais de uma opcao, como 1,3.",
 	glpi_entity: "O cliente escolhe uma entidade sincronizada do GLPI. A escolha tambem pode preencher a entidade do chamado automatico.",
-	glpi_location: "O cliente escolhe uma localizacao sincronizada do GLPI. A escolha tambem pode preencher a localizacao do chamado automatico."
+	glpi_location: "O cliente escolhe uma localizacao sincronizada do GLPI. A escolha tambem pode preencher a localizacao do chamado automatico.",
+	glpi_category: "O cliente escolhe uma categoria sincronizada do GLPI. A escolha preenche a categoria do chamado automatico."
 }[type || "text"] || "Escolha como o cliente deve responder no WhatsApp.");
 
 const getDefaultGlpiFieldForQuestionType = type => {
 	if (type === "glpi_entity") return "entity";
 	if (type === "glpi_location") return "location";
+	if (type === "glpi_category") return "category";
 	return "description";
 };
 
@@ -2188,6 +2211,7 @@ const getGlpiFieldLabel = (type, field) => {
 	if (normalized === "ignore") return "Nao usa GLPI";
 	if (normalized === "entity") return "Preenche entidade do chamado";
 	if (normalized === "location") return "Preenche localizacao do chamado";
+	if (normalized === "category") return "Preenche categoria do chamado";
 	return "Entra na descricao do chamado";
 };
 
@@ -2197,6 +2221,9 @@ const getGlpiQuestionUsageText = type => {
 	}
 	if (type === "glpi_location") {
 		return "A localizacao escolhida pelo cliente sera usada como localizacao do chamado GLPI.";
+	}
+	if (type === "glpi_category") {
+		return "A categoria escolhida pelo cliente sera usada como categoria do chamado GLPI.";
 	}
 	return "Quando ligado, a resposta sera adicionada na descricao do chamado GLPI.";
 };
@@ -2429,7 +2456,7 @@ const QualificationFormsPanel = ({ classes }) => {
 	const [tags, setTags] = useState([]);
 	const [uraOptions, setUraOptions] = useState([]);
 	const [queues, setQueues] = useState([]);
-	const [glpiCatalogs, setGlpiCatalogs] = useState({ entities: [], locations: [], settings: {} });
+	const [glpiCatalogs, setGlpiCatalogs] = useState({ categories: [], entities: [], locations: [], settings: {} });
 	const [selectedFormId, setSelectedFormId] = useState("");
 	const [form, setForm] = useState(emptyQualificationForm);
 	const [questionForm, setQuestionForm] = useState(null);
@@ -2448,7 +2475,7 @@ const QualificationFormsPanel = ({ classes }) => {
 		.sort((a, b) => Number(a.order || 0) - Number(b.order || 0) || Number(a.id || 0) - Number(b.id || 0));
 
 	const manualChoiceQuestion = ["single_choice", "multiple_choice"].includes(questionForm?.type);
-	const glpiChoiceQuestion = ["glpi_entity", "glpi_location"].includes(questionForm?.type);
+	const glpiChoiceQuestion = ["glpi_entity", "glpi_location", "glpi_category"].includes(questionForm?.type);
 
 	const load = async () => {
 		setLoading(true);
@@ -2460,6 +2487,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				{ data: uraOptionData },
 				{ data: queueData },
 				glpiConfig,
+				glpiCategories,
 				glpiEntities,
 				glpiLocations
 			] = await Promise.all([
@@ -2469,6 +2497,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				api.get("/ura-options").catch(() => ({ data: [] })),
 				api.get("/queues").catch(() => ({ data: [] })),
 				api.get("/glpi/config").catch(() => ({ data: {} })),
+				api.get("/glpi/categories").catch(() => ({ data: [] })),
 				api.get("/glpi/entities").catch(() => ({ data: [] })),
 				api.get("/glpi/locations").catch(() => ({ data: [] }))
 			]);
@@ -2481,6 +2510,7 @@ const QualificationFormsPanel = ({ classes }) => {
 			setQueues(safeArray(queueData));
 			setGlpiCatalogs({
 				settings: glpiConfig.data || {},
+				categories: safeArray(glpiCategories.data),
 				entities: safeArray(glpiEntities.data),
 				locations: safeArray(glpiLocations.data)
 			});
@@ -2922,17 +2952,33 @@ const QualificationFormsPanel = ({ classes }) => {
 	const glpiEnabledForQuestion = questionForm && normalizeGlpiFieldForQuestionType(questionForm.type, questionForm.glpiField) !== "ignore";
 	const selectedFormOption = safeArray(forms).find(item => Number(item.id) === Number(selectedFormId)) || null;
 	const allowedGlpiEntityIds = parseNumericList(glpiCatalogs.settings?.glpiAllowedFormEntityIds);
+	const allowedGlpiCategoryIds = parseNumericList(glpiCatalogs.settings?.glpiAllowedFormCategoryIds);
 	const glpiEntityLocationRules = parseGlpiEntityLocationRules(glpiCatalogs.settings?.glpiEntityLocationRules);
+	const glpiEntityCategoryRules = parseGlpiEntityCategoryRules(glpiCatalogs.settings?.glpiEntityCategoryRules);
 	const glpiEntityRuleIds = glpiEntityLocationRules.map(rule => Number(rule.entityId)).filter(item => Number.isInteger(item) && item > 0);
+	const glpiCategoryRuleIds = glpiEntityCategoryRules
+		.reduce((acc, rule) => acc.concat(rule.allowedCategoryIds || []), [])
+		.map(item => Number(item))
+		.filter(item => Number.isInteger(item) && item > 0);
 	const previewGlpiEntities = safeArray(glpiCatalogs.entities)
 		.filter(item => glpiEntityRuleIds.length
 			? glpiEntityRuleIds.includes(Number(item.glpiId))
 			: (!allowedGlpiEntityIds.length || allowedGlpiEntityIds.includes(Number(item.glpiId))));
+	const previewGlpiCategories = safeArray(glpiCatalogs.categories)
+		.filter(item => {
+			if (glpiCatalogs.settings?.glpiAutoCategoryId) {
+				return Number(item.glpiId) === Number(glpiCatalogs.settings.glpiAutoCategoryId);
+			}
+			if (glpiCategoryRuleIds.length) return glpiCategoryRuleIds.includes(Number(item.glpiId));
+			return !allowedGlpiCategoryIds.length || allowedGlpiCategoryIds.includes(Number(item.glpiId));
+		});
 	const previewGlpiLocationContext = questionForm?.type === "glpi_location"
 		? "A lista de localizacoes nao aparece nesta previa porque depende da entidade escolhida pelo cliente. No WhatsApp, o sistema usa as regras de localizacao por entidade configuradas no GLPI."
 		: "";
 	const previewGlpiOptions = questionForm?.type === "glpi_entity"
 		? previewGlpiEntities
+		: questionForm?.type === "glpi_category"
+			? previewGlpiCategories
 		: [];
 
 	return (
@@ -3570,17 +3616,23 @@ const QualificationFormsPanel = ({ classes }) => {
 							{glpiChoiceQuestion && (
 								<div className={classes.previewBox}>
 									<Typography variant="subtitle2">
-										{questionForm.type === "glpi_entity" ? "Entidades GLPI como opcoes" : "Localizacoes por entidade"}
+										{questionForm.type === "glpi_entity"
+											? "Entidades GLPI como opcoes"
+											: questionForm.type === "glpi_category"
+												? "Categorias GLPI como opcoes"
+												: "Localizacoes por entidade"}
 									</Typography>
 									<Typography variant="body2" color="textSecondary">
 										{questionForm.type === "glpi_entity"
 											? "No WhatsApp, o cliente recebe uma lista numerada com as entidades configuradas nas regras."
-											: previewGlpiLocationContext}
+											: questionForm.type === "glpi_category"
+												? "No WhatsApp, o cliente recebe uma lista numerada com as categorias configuradas no GLPI."
+												: previewGlpiLocationContext}
 									</Typography>
 									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
 										Apos a resposta, o formulario segue para a proxima pergunta. A acao final acontece ao terminar o formulario.
 									</Typography>
-									{questionForm.type === "glpi_entity" && previewGlpiOptions.length > 0 ? (
+									{["glpi_entity", "glpi_category"].includes(questionForm.type) && previewGlpiOptions.length > 0 ? (
 										<div className={classes.inlineChips}>
 											{previewGlpiOptions.slice(0, 8).map((option, index) => (
 												<Chip
@@ -3593,9 +3645,9 @@ const QualificationFormsPanel = ({ classes }) => {
 												<Chip size="small" variant="outlined" label={`+${previewGlpiOptions.length - 8} opcoes`} />
 											)}
 										</div>
-									) : questionForm.type === "glpi_entity" ? (
+									) : ["glpi_entity", "glpi_category"].includes(questionForm.type) ? (
 										<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
-											Nenhuma entidade sincronizada encontrada para as regras configuradas.
+											Nenhuma opcao sincronizada encontrada para as regras configuradas.
 										</Typography>
 									) : null}
 								</div>
@@ -3705,19 +3757,19 @@ const QualificationFormsPanel = ({ classes }) => {
 										)}
 									</div>
 								))}
-								{questionForm.type === "glpi_entity" && previewGlpiOptions.slice(0, 8).map((option, index) => (
+								{["glpi_entity", "glpi_category"].includes(questionForm.type) && previewGlpiOptions.slice(0, 8).map((option, index) => (
 									<Typography key={`${questionForm.type}-preview-${option.glpiId || option.id || index}`} variant="body2">
 										<strong>{index + 1}</strong> - {getGlpiOptionLabel(option)}
 									</Typography>
 								))}
-								{questionForm.type === "glpi_entity" && previewGlpiOptions.length > 8 && (
+								{["glpi_entity", "glpi_category"].includes(questionForm.type) && previewGlpiOptions.length > 8 && (
 									<Typography variant="caption" color="textSecondary" display="block">
 										...mais {previewGlpiOptions.length - 8} opcao(oes) sincronizada(s)
 									</Typography>
 								)}
-								{questionForm.type === "glpi_entity" && !previewGlpiOptions.length && (
+								{["glpi_entity", "glpi_category"].includes(questionForm.type) && !previewGlpiOptions.length && (
 									<Typography variant="caption" color="textSecondary" display="block" style={{ marginTop: 8 }}>
-										As entidades serao exibidas aqui depois de sincronizar o catalogo GLPI e configurar as regras.
+										As opcoes serao exibidas aqui depois de sincronizar o catalogo GLPI e configurar as regras.
 									</Typography>
 								)}
 								{questionForm.type === "glpi_location" && (

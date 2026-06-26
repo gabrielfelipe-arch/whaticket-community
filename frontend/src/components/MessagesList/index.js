@@ -225,6 +225,23 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.text.secondary,
   },
 
+  reactionsBubble: {
+    position: "absolute",
+    bottom: -16,
+    right: 8,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 2,
+    padding: "1px 6px",
+    borderRadius: 12,
+    fontSize: 13,
+    lineHeight: 1.4,
+    background: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: "0 2px 8px rgba(15, 23, 42, 0.12)",
+    zIndex: 2,
+  },
+
   dailyTimestamp: {
     alignItems: "center",
     textAlign: "center",
@@ -691,6 +708,18 @@ const MessagesList = ({ ticketId, isGroup }) => {
     );
   };
 
+  const renderReactions = message => {
+    const reactions = Object.values(message.reactions || {}).filter(Boolean);
+    if (!reactions.length) return null;
+
+    return (
+      <span className={classes.reactionsBubble}>
+        {reactions.slice(0, 4).join(" ")}
+        {reactions.length > 4 ? ` +${reactions.length - 4}` : ""}
+      </span>
+    );
+  };
+
   const renderMessagesForList = (list, options = {}) => {
     const { readOnly = false, keyPrefix = "message", useLastRef = false } = options;
 
@@ -728,6 +757,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
                   <span className={classes.timestamp}>
                     {format(parseISO(message.createdAt), "HH:mm")}
                   </span>
+                  {renderReactions(message)}
                 </div>
               </div>
             </React.Fragment>
@@ -771,6 +801,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
                     {format(parseISO(message.createdAt), "HH:mm")}
                     {renderMessageAck(message)}
                   </span>
+                  {renderReactions(message)}
                 </div>
               </div>
             </React.Fragment>

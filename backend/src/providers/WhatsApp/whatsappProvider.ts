@@ -4,7 +4,8 @@ import {
   ProviderMediaInput,
   ProviderContact,
   SendMessageOptions,
-  SendMediaOptions
+  SendMediaOptions,
+  ReactMessageOptions
 } from "./types";
 import { WhatsappWebJsProvider } from "./Implementations/wwebjs";
 import { WhaileysProvider } from "./Implementations/whaileys";
@@ -36,6 +37,14 @@ export interface WhatsappProvider {
     chatId: string,
     messageId: string,
     fromMe: boolean
+  ): Promise<void>;
+  reactMessage(
+    sessionId: number,
+    chatId: string,
+    messageId: string,
+    fromMe: boolean,
+    emoji: string,
+    options?: ReactMessageOptions
   ): Promise<void>;
   checkNumber(sessionId: number, number: string): Promise<string>;
   getProfilePicUrl(sessionId: number, number: string): Promise<string>;
@@ -93,6 +102,10 @@ const whatsappProvider: WhatsappProvider = {
   deleteMessage: async (sessionId, chatId, messageId, fromMe) => {
     const provider = await resolveProvider();
     return provider.deleteMessage(sessionId, chatId, messageId, fromMe);
+  },
+  reactMessage: async (sessionId, chatId, messageId, fromMe, emoji, options) => {
+    const provider = await resolveProvider();
+    return provider.reactMessage(sessionId, chatId, messageId, fromMe, emoji, options);
   },
   checkNumber: async (sessionId, number) => {
     const provider = await resolveProvider();

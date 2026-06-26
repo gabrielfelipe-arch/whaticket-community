@@ -17,6 +17,10 @@ import SendIcon from "@material-ui/icons/Send";
 import CancelIcon from "@material-ui/icons/Cancel";
 import ClearIcon from "@material-ui/icons/Clear";
 import MicIcon from "@material-ui/icons/Mic";
+import FormatBoldIcon from "@material-ui/icons/FormatBold";
+import FormatItalicIcon from "@material-ui/icons/FormatItalic";
+import FormatQuoteIcon from "@material-ui/icons/FormatQuote";
+import CodeIcon from "@material-ui/icons/Code";
 import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
 import HighlightOffIcon from "@material-ui/icons/HighlightOff";
 import {
@@ -236,6 +240,30 @@ const useStyles = makeStyles(theme => ({
       },
     },
   },
+
+  formattingToolbar: {
+    position: "absolute",
+    bottom: "calc(100% + 6px)",
+    left: 8,
+    zIndex: 3,
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    padding: "4px 6px",
+    borderRadius: 6,
+    background: theme.palette.type === "dark" ? "#111827" : "#111827",
+    boxShadow: "0 8px 24px rgba(15, 23, 42, 0.28)",
+  },
+
+  formattingButton: {
+    width: 30,
+    height: 28,
+    padding: 4,
+    color: "#FFFFFF",
+    "&:hover": {
+      background: "rgba(255, 255, 255, 0.12)"
+    }
+  },
 }));
 
 const MessageInput = ({ ticketStatus }) => {
@@ -249,6 +277,7 @@ const MessageInput = ({ ticketStatus }) => {
   const [recording, setRecording] = useState(false);
   const [quickAnswers, setQuickAnswer] = useState([]);
   const [typeBar, setTypeBar] = useState(false);
+  const [selectionRange, setSelectionRange] = useState(null);
   const inputRef = useRef();
   const recorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -277,6 +306,68 @@ const MessageInput = ({ ticketStatus }) => {
   const handleChangeInput = e => {
     setInputMessage(e.target.value);
     handleLoadQuickAnswer(e.target.value);
+  };
+
+  const updateSelectionRange = () => {
+    const input = inputRef.current;
+    if (!input || input.selectionStart === input.selectionEnd) {
+      setSelectionRange(null);
+      return;
+    }
+
+    setSelectionRange({
+      start: input.selectionStart,
+      end: input.selectionEnd
+    });
+  };
+
+  const applyTextFormat = (prefix, suffix = prefix, linePrefix = "") => {
+    const input = inputRef.current;
+    const range = selectionRange || (
+      input && input.selectionStart !== input.selectionEnd
+        ? { start: input.selectionStart, end: input.selectionEnd }
+        : null
+    );
+
+    if (!range) return;
+
+    const selected = inputMessage.slice(range.start, range.end);
+    const replacement = linePrefix
+      ? selected.split("\n").map(line => `${linePrefix}${line}`).join("\n")
+      : `${prefix}${selected}${suffix}`;
+    const nextMessage = `${inputMessage.slice(0, range.start)}${replacement}${inputMessage.slice(range.end)}`;
+    const nextCursor = range.start + replacement.length;
+
+    setInputMessage(nextMessage);
+    setSelectionRange(null);
+    setTimeout(() => {
+      input?.focus();
+      input?.setSelectionRange(nextCursor, nextCursor);
+    }, 0);
+  };
+
+  const renderFormattingToolbar = () => {
+    if (!selectionRange || loading || recording || ticketStatus !== "open") return null;
+
+    return (
+      <div className={classes.formattingToolbar}>
+        <IconButton size="small" className={classes.formattingButton} title="Negrito" onMouseDown={event => event.preventDefault()} onClick={() => applyTextFormat("*")}>
+          <FormatBoldIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" className={classes.formattingButton} title="Italico" onMouseDown={event => event.preventDefault()} onClick={() => applyTextFormat("_")}>
+          <FormatItalicIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" className={classes.formattingButton} title="Tachado" onMouseDown={event => event.preventDefault()} onClick={() => applyTextFormat("~")}>
+          <span style={{ fontWeight: 700, textDecoration: "line-through" }}>S</span>
+        </IconButton>
+        <IconButton size="small" className={classes.formattingButton} title="Codigo" onMouseDown={event => event.preventDefault()} onClick={() => applyTextFormat("`")}>
+          <CodeIcon fontSize="small" />
+        </IconButton>
+        <IconButton size="small" className={classes.formattingButton} title="Citacao" onMouseDown={event => event.preventDefault()} onClick={() => applyTextFormat("", "", "> ")}>
+          <FormatQuoteIcon fontSize="small" />
+        </IconButton>
+      </div>
+    );
   };
 
   const handleQuickAnswersClick = async quickAnswer => {
@@ -559,6 +650,9 @@ const MessageInput = ({ ticketStatus }) => {
               maxRows={4}
               value={inputMessage}
               onChange={handleChangeInput}
+              onSelect={updateSelectionRange}
+              onKeyUp={updateSelectionRange}
+              onMouseUp={updateSelectionRange}
               disabled={loading || ticketStatus !== "open"}
               onKeyPress={event => {
                 if (loading || event.shiftKey) return;
@@ -705,6 +799,7 @@ const MessageInput = ({ ticketStatus }) => {
             </Menu>
           </Hidden>
           <div className={classes.messageInputWrapper}>
+            {renderFormattingToolbar()}
             <InputBase
               inputRef={input => {
                 input && input.focus();
@@ -722,6 +817,9 @@ const MessageInput = ({ ticketStatus }) => {
               maxRows={5}
               value={inputMessage}
               onChange={handleChangeInput}
+              onSelect={updateSelectionRange}
+              onKeyUp={updateSelectionRange}
+              onMouseUp={updateSelectionRange}
               disabled={recording || loading || ticketStatus !== "open"}
               onPaste={e => {
                 ticketStatus === "open" && handleInputPaste(e);

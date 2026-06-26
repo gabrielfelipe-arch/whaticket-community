@@ -4,6 +4,7 @@ import { getIO } from "../../libs/socket";
 import AppError from "../../errors/AppError";
 import Ticket from "../../models/Ticket";
 import Queue from "../../models/Queue";
+import User from "../../models/User";
 import UserQueue from "../../models/UserQueue";
 import ShowTicketService from "./ShowTicketService";
 import {
@@ -159,6 +160,18 @@ const UpdateTicketService = async ({
   const oldStatus = ticket.status;
   const oldUserId = ticket.user?.id;
   const oldQueueId = ticket.queueId;
+
+  if (userId && Number(userId) !== Number(oldUserId)) {
+    const targetUser = await User.findByPk(userId);
+
+    if (!targetUser) {
+      throw new AppError("ERR_NO_USER_FOUND", 404);
+    }
+
+    if (targetUser.active === false || targetUser.operationalStatus !== "online") {
+      throw new AppError("O atendente precisa estar online para receber a transferencia.", 400);
+    }
+  }
 
   if (oldStatus === "closed") {
     await CheckContactOpenTickets(ticket.contact.id, ticket.whatsappId);

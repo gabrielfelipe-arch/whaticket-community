@@ -612,6 +612,38 @@ const deleteMessage = async (
   await message.delete(true);
 };
 
+const reactMessage = async (
+  sessionId: number,
+  chatId: string,
+  messageId: string,
+  fromMe: boolean,
+  emoji: string
+): Promise<void> => {
+  const wbot = getWbot(sessionId);
+  const serializedMsgId = getSerializedMessageId(chatId, fromMe, messageId);
+  const message = await wbot.getMessageById(serializedMsgId);
+
+  if (!message) {
+    throw new AppError("ERR_MESSAGE_NOT_FOUND");
+  }
+
+  if (typeof (message as any).react === "function") {
+    await (message as any).react(emoji || "");
+    return;
+  }
+
+  await (wbot as any).sendMessage(chatId, {
+    react: {
+      text: emoji || "",
+      key: {
+        remoteJid: chatId,
+        id: messageId,
+        fromMe
+      }
+    }
+  });
+};
+
 const init = async (whatsapp: Whatsapp): Promise<void> => {
   try {
     removeSession(whatsapp.id);
@@ -855,6 +887,7 @@ export const WhatsappWebJsProvider: WhatsappProvider = {
   sendMessage,
   sendMedia,
   deleteMessage,
+  reactMessage,
   checkNumber,
   getProfilePicUrl,
   getContacts,

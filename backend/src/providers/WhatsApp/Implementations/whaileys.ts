@@ -1407,6 +1407,31 @@ const deleteMessage = async (
   await wbot.sendMessage(normalizedChatId, { delete: key });
 };
 
+const reactMessage = async (
+  sessionId: number,
+  chatId: string,
+  messageId: string,
+  fromMe: boolean,
+  emoji: string,
+  options?: { participant?: string }
+): Promise<void> => {
+  const wbot = getWbot(sessionId);
+  const normalizedChatId = normalizeJid(chatId);
+  const participant = options?.participant || (fromMe ? wbot.user?.id : undefined);
+
+  await wbot.sendMessage(normalizedChatId, {
+    react: {
+      text: emoji || "",
+      key: {
+        remoteJid: normalizedChatId,
+        id: messageId,
+        fromMe,
+        participant
+      }
+    }
+  });
+};
+
 const checkNumber = async (
   sessionId: number,
   number: string
@@ -1526,6 +1551,7 @@ export const WhaileysProvider: WhatsappProvider = {
   sendMessage,
   sendMedia,
   deleteMessage,
+  reactMessage,
   checkNumber,
   getProfilePicUrl,
   getContacts,

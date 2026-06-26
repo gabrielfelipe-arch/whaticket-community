@@ -20,6 +20,7 @@ import FormatTicketTemplate from "../helpers/FormatTicketTemplate";
 import {
   validateManualTicketAcceptance
 } from "../services/QueueService/QueueDistributionService";
+import { assertUserCanAccessTicket } from "../helpers/TicketAccess";
 
 type IndexQuery = {
   searchParam: string;
@@ -75,7 +76,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     userId,
     queueIds,
     withUnreadMessages,
-    triageOnly
+    triageOnly,
+    requesterProfile: req.user.profile
   });
 
   return res.status(200).json({ tickets, count, hasMore });
@@ -98,6 +100,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
 
+  await assertUserCanAccessTicket(req.user.id, req.user.profile, ticketId);
   const contact = await ShowTicketService(ticketId);
 
   return res.status(200).json(contact);
@@ -107,6 +110,7 @@ export const previousMessages = async (req: Request, res: Response): Promise<Res
   const { ticketId } = req.params;
   const { pageNumber } = req.query as { pageNumber: string };
 
+  await assertUserCanAccessTicket(req.user.id, req.user.profile, ticketId);
   const result = await ListPreviousTicketMessagesService({
     ticketId,
     pageNumber

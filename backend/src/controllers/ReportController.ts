@@ -9,6 +9,7 @@ import User from "../models/User";
 import TicketCategory from "../models/TicketCategory";
 import ClosingReason from "../models/ClosingReason";
 import SatisfactionSurveyResponse from "../models/SatisfactionSurveyResponse";
+import AuditLog from "../models/AuditLog";
 import AppError from "../errors/AppError";
 import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
 
@@ -392,7 +393,7 @@ export const conversationDetail = async (req: Request, res: Response): Promise<R
       {
         model: Message,
         as: "messages",
-        attributes: ["id", "body", "fromMe", "createdAt", "mediaType"],
+        attributes: ["id", "body", "fromMe", "createdAt", "mediaType", "isDeleted"],
         required: false
       }
     ],
@@ -403,7 +404,35 @@ export const conversationDetail = async (req: Request, res: Response): Promise<R
     throw new AppError("ERR_TICKET_NOT_FOUND", 404);
   }
 
-  return res.json(ticket);
+  const json = ticket.toJSON() as any;
+  const deletedMessageIds = (json.messages || [])
+    .filter((message: any) => message.isDeleted)
+    .map((message: any) => String(message.id));
+
+  if (deletedMessageIds.length) {
+    const logs = await AuditLog.findAll({
+      where: {
+        resource: "messages",
+        action: "delete",
+        resourceId: { [Op.in]: deletedMessageIds }
+      },
+      order: [["createdAt", "DESC"]]
+    });
+    const logByMessageId = new Map(logs.map(log => [String(log.resourceId), log]));
+    json.messages = json.messages.map((message: any) => {
+      const log = logByMessageId.get(String(message.id));
+      return {
+        ...message,
+        deletedAudit: log ? {
+          userName: log.userName,
+          userProfile: log.userProfile,
+          createdAt: log.createdAt
+        } : null
+      };
+    });
+  }
+
+  return res.json(json);
 };
 
 export const satisfaction = async (req: Request, res: Response): Promise<Response> => {

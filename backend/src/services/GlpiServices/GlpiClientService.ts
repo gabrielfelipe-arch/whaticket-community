@@ -24,8 +24,10 @@ export type GlpiSettings = {
   autoCloseMessage: string;
   autoCloseReasonId: number | null;
   allowedFormEntityIds: number[];
+  allowedFormCategoryIds: number[];
   allowedFormLocationIds: number[];
   entityLocationRules: GlpiEntityLocationRule[];
+  entityCategoryRules: GlpiEntityCategoryRule[];
   timeoutMs: number;
 };
 
@@ -33,6 +35,12 @@ export type GlpiEntityLocationRule = {
   entityId: number;
   allowedLocationIds: number[];
   defaultLocationId: number | null;
+};
+
+export type GlpiEntityCategoryRule = {
+  entityId: number;
+  allowedCategoryIds: number[];
+  defaultCategoryId: number | null;
 };
 
 type Session = {
@@ -65,8 +73,10 @@ const defaultSettingValues: Record<string, string> = {
   glpiAutoCloseMessage: "",
   glpiAutoCloseReasonId: "",
   glpiAllowedFormEntityIds: "",
+  glpiAllowedFormCategoryIds: "",
   glpiAllowedFormLocationIds: "",
   glpiEntityLocationRules: "[]",
+  glpiEntityCategoryRules: "[]",
   glpiTimeoutMs: "15000"
 };
 
@@ -108,6 +118,33 @@ const parseEntityLocationRules = (value: string): GlpiEntityLocationRule[] => {
   }
 };
 
+const parseEntityCategoryRules = (value: string): GlpiEntityCategoryRule[] => {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .map(item => {
+        const entityId = Number(item?.entityId);
+        const defaultCategoryId = Number(item?.defaultCategoryId);
+        const allowedCategoryIds = Array.isArray(item?.allowedCategoryIds)
+          ? item.allowedCategoryIds
+              .map((categoryId: unknown) => Number(categoryId))
+              .filter((categoryId: number) => Number.isInteger(categoryId) && categoryId > 0)
+          : [];
+
+        return {
+          entityId,
+          allowedCategoryIds,
+          defaultCategoryId: Number.isInteger(defaultCategoryId) && defaultCategoryId > 0 ? defaultCategoryId : null
+        };
+      })
+      .filter(item => Number.isInteger(item.entityId) && item.entityId > 0);
+  } catch (error) {
+    return [];
+  }
+};
+
 const buildGlpiSettings = (values: Record<string, string>): GlpiSettings => {
   const data = { ...defaultSettingValues, ...values };
   const enabled = String(data.glpiEnabled || "").trim();
@@ -128,8 +165,10 @@ const buildGlpiSettings = (values: Record<string, string>): GlpiSettings => {
   const autoCloseMessage = String(data.glpiAutoCloseMessage || "").trim();
   const autoCloseReasonId = String(data.glpiAutoCloseReasonId || "").trim();
   const allowedFormEntityIds = String(data.glpiAllowedFormEntityIds || "").trim();
+  const allowedFormCategoryIds = String(data.glpiAllowedFormCategoryIds || "").trim();
   const allowedFormLocationIds = String(data.glpiAllowedFormLocationIds || "").trim();
   const entityLocationRules = String(data.glpiEntityLocationRules || "").trim();
+  const entityCategoryRules = String(data.glpiEntityCategoryRules || "").trim();
   const timeoutMs = String(data.glpiTimeoutMs || "").trim();
 
   return {
@@ -151,8 +190,10 @@ const buildGlpiSettings = (values: Record<string, string>): GlpiSettings => {
     autoCloseMessage: autoCloseMessage || "",
     autoCloseReasonId: autoCloseReasonId ? Number(autoCloseReasonId) : null,
     allowedFormEntityIds: parseNumberList(allowedFormEntityIds),
+    allowedFormCategoryIds: parseNumberList(allowedFormCategoryIds),
     allowedFormLocationIds: parseNumberList(allowedFormLocationIds),
     entityLocationRules: parseEntityLocationRules(entityLocationRules),
+    entityCategoryRules: parseEntityCategoryRules(entityCategoryRules),
     timeoutMs: Math.max(Number(timeoutMs || 15000), 1000)
   };
 };
@@ -208,8 +249,10 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     autoCloseMessage,
     autoCloseReasonId,
     allowedFormEntityIds,
+    allowedFormCategoryIds,
     allowedFormLocationIds,
     entityLocationRules,
+    entityCategoryRules,
     timeoutMs
   ] = await Promise.all([
     getSettingValue("glpiEnabled"),
@@ -230,8 +273,10 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     getSettingValue("glpiAutoCloseMessage"),
     getSettingValue("glpiAutoCloseReasonId"),
     getSettingValue("glpiAllowedFormEntityIds"),
+    getSettingValue("glpiAllowedFormCategoryIds"),
     getSettingValue("glpiAllowedFormLocationIds"),
     getSettingValue("glpiEntityLocationRules"),
+    getSettingValue("glpiEntityCategoryRules"),
     getSettingValue("glpiTimeoutMs")
   ]);
 
@@ -254,8 +299,10 @@ export const getGlpiSettings = async (): Promise<GlpiSettings> => {
     glpiAutoCloseMessage: autoCloseMessage,
     glpiAutoCloseReasonId: autoCloseReasonId,
     glpiAllowedFormEntityIds: allowedFormEntityIds,
+    glpiAllowedFormCategoryIds: allowedFormCategoryIds,
     glpiAllowedFormLocationIds: allowedFormLocationIds,
     glpiEntityLocationRules: entityLocationRules,
+    glpiEntityCategoryRules: entityCategoryRules,
     glpiTimeoutMs: timeoutMs
   });
 };

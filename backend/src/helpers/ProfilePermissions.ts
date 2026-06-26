@@ -37,7 +37,8 @@ export const SPECIAL_PERMISSION_KEYS = [
   "accessForms",
   "accessAi",
   "importContactsSpreadsheet",
-  "manageOtherCampaigns"
+  "manageOtherCampaigns",
+  "deleteMessages"
 ] as const;
 
 export type SpecialPermissionKey = typeof SPECIAL_PERMISSION_KEYS[number];

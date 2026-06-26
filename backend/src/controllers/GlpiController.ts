@@ -31,6 +31,7 @@ const configKeys = [
   "glpiAutoCategoryId",
   "glpiAutoEntityId",
   "glpiAutoLocationId",
+  "glpiAllowedFormCategoryIds",
   "glpiAutoTitleTemplate",
   "glpiAutoSuccessMessage",
   "glpiRequireConfirmationBeforeCreate",
@@ -40,6 +41,7 @@ const configKeys = [
   "glpiAllowedFormEntityIds",
   "glpiAllowedFormLocationIds",
   "glpiEntityLocationRules",
+  "glpiEntityCategoryRules",
   "glpiTimeoutMs",
   "glpiApiMode"
 ];
