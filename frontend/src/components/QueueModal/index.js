@@ -148,6 +148,18 @@ const useStyles = makeStyles(theme => ({
 	colorPicker: {
 		padding: theme.spacing(1),
 	},
+	fullWidthControl: {
+		width: "100%",
+		margin: 0,
+	},
+	distributionHelp: {
+		display: "block",
+		marginBottom: theme.spacing(1),
+	},
+	queuePositionControl: {
+		display: "flex",
+		margin: theme.spacing(1, 0, 0),
+	},
 }));
 
 const QueueSchema = Yup.object().shape({
@@ -176,6 +188,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 		balanceAction: "ignore",
 		overflowAction: "keep_waiting",
 		sendQueuePositionMessage: false,
+		scheduledReturnWindowHours: 24,
 		queuePositionMessage: "Atendimento nº {{ticketId}} criado com sucesso.\n\nVocê foi encaminhado para a fila {{queueName}}.\nSua posição atual é: {{position}}º.\n\nAguarde, em breve um atendente irá te chamar.",
 		blockIfUserHasStalledTicket: false,
 		stalledTicketMinutes: "",
@@ -225,6 +238,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 						businessHoursMode: data.businessHoursMode || (data.businessHoursEnabled ? "custom" : "always"),
 						businessHoursRules: parseBusinessHours(data.businessHours),
 						maxActiveTicketsPerUser: data.maxActiveTicketsPerUser || "",
+						scheduledReturnWindowHours: data.scheduledReturnWindowHours || 24,
 						stalledTicketMinutes: data.stalledTicketMinutes || "",
 					};
 				});
@@ -288,7 +302,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 
 	return (
 		<div className={classes.root}>
-			<Dialog open={open} onClose={handleClose} scroll="paper">
+			<Dialog open={open} onClose={handleClose} scroll="paper" maxWidth="md" fullWidth>
 				<DialogTitle>
 					{queueId
 						? `${i18n.t("queueModal.title.edit")}`
@@ -308,6 +322,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 					{({ touched, errors, isSubmitting, values, setFieldValue }) => (
 						<Form>
 							<DialogContent dividers>
+								<Grid container spacing={2} alignItems="center">
+								<Grid item xs={12} sm={4}>
 								<Field
 									as={TextField}
 									label={i18n.t("queueModal.form.name")}
@@ -317,8 +333,10 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									helperText={touched.name && errors.name}
 									variant="outlined"
 									margin="dense"
-									className={classes.textField}
+									fullWidth
 								/>
+								</Grid>
+								<Grid item xs={12} sm={4}>
 								<Field
 									as={TextField}
 									label={i18n.t("queueModal.form.color")}
@@ -353,7 +371,9 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									}}
 									variant="outlined"
 									margin="dense"
+									fullWidth
 								/>
+								</Grid>
 								<Popover
 									open={Boolean(colorPickerAnchor)}
 									anchorEl={colorPickerAnchor}
@@ -381,7 +401,9 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										/>
 									</div>
 								</Popover>
+								<Grid item xs={12} sm={4}>
 								<FormControlLabel
+									className={classes.fullWidthControl}
 									control={
 										<Field
 											as={Switch}
@@ -392,7 +414,10 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									}
 									label="Usar IA nesta fila"
 								/>
+								</Grid>
+								<Grid item xs={12}>
 								<FormControlLabel
+									className={classes.fullWidthControl}
 									control={
 										<Field
 											as={Switch}
@@ -403,6 +428,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									}
 									label="Permitir abertura de chamado GLPI nesta fila"
 								/>
+								</Grid>
+								<Grid item xs={12} sm={6}>
 								<Field
 									as={TextField}
 									select
@@ -417,9 +444,11 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									{aiSettings.map(setting => (
 										<MenuItem key={setting.id} value={setting.id}>
 											{setting.name}
-										</MenuItem>
+									</MenuItem>
 									))}
 								</Field>
+								</Grid>
+								<Grid item xs={12} sm={6}>
 								<Field
 									as={TextField}
 									select
@@ -433,6 +462,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									<MenuItem value="company">Usar horario da empresa</MenuItem>
 									<MenuItem value="custom">Horario proprio desta fila</MenuItem>
 								</Field>
+								</Grid>
+								</Grid>
 								{values.businessHoursMode === "company" && (
 									<Typography variant="caption" color="textSecondary">
 										Esta fila seguira o horario configurado em Configuracoes &gt; Geral &gt; Horario de funcionamento da empresa.
@@ -550,7 +581,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 								<Typography variant="subtitle2" style={{ marginTop: 16 }}>
 									Distribuicao e balanceamento
 								</Typography>
-								<Typography variant="caption" color="textSecondary">
+								<Typography variant="caption" color="textSecondary" className={classes.distributionHelp}>
 									Apenas atendentes com status Online entram na distribuicao. Ausentes e Offline nao recebem novos atendimentos.
 								</Typography>
 								<Field
@@ -568,7 +599,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										</MenuItem>
 									))}
 								</Field>
-								<Typography variant="caption" color="textSecondary">
+								<Typography variant="caption" color="textSecondary" className={classes.distributionHelp}>
 									{distributionModes.find(mode => mode.value === values.distributionMode)?.help}
 								</Typography>
 								{modesWithActiveLimit.includes(values.distributionMode) && (
@@ -632,6 +663,7 @@ const QueueModal = ({ open, onClose, queueId }) => {
 									</Field>
 								)}
 								<FormControlLabel
+									className={classes.queuePositionControl}
 									control={
 										<Field
 											as={Switch}
@@ -641,6 +673,17 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										/>
 									}
 									label="Enviar posicao inicial na fila"
+								/>
+								<Field
+									as={TextField}
+									fullWidth
+									type="number"
+									label="Janela de retorno de agendamento (horas)"
+									name="scheduledReturnWindowHours"
+									variant="outlined"
+									margin="dense"
+									helperText="Se o cliente responder uma mensagem agendada dentro desse prazo, nao volta para URA nem recebe posicao de fila."
+									inputProps={{ min: 1 }}
 								/>
 								{values.sendQueuePositionMessage && (
 									<MessageTemplateField

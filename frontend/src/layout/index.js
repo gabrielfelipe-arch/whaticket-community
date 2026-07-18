@@ -12,6 +12,7 @@ import {
   Menu,
   Switch,
   Chip,
+  Tooltip,
 } from "@material-ui/core";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
@@ -29,8 +30,13 @@ import { useBranding } from "../context/Branding";
 import api from "../services/api";
 import toastError from "../errors/toastError";
 import { getBackendUrl } from "../config";
+import MobileNavigation from "../components/MobileNavigation";
+import rocketLogo from "../assets/rocketservice-logo.png";
 
 const drawerWidth = 268;
+const drawerClosedWidth = 76;
+const SIDEBAR_STORAGE_KEY = "rocketserviceSidebarOpen";
+const rocketIcon = "/android-chrome-192x192.png";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -38,89 +44,96 @@ const useStyles = makeStyles((theme) => ({
     height: "100vh",
     background: theme.palette.background.default,
     [theme.breakpoints.down("sm")]: {
-      height: "calc(100vh - 56px)",
+      height: "100vh",
     },
   },
   toolbar: {
-    paddingRight: 24,
-    minHeight: 72,
+    paddingRight: theme.spacing(2),
+    minHeight: 64,
     gap: theme.spacing(1),
-    color: "#FFFFFF",
+    color: theme.palette.text.primary,
+    [theme.breakpoints.down("xs")]: {
+      minHeight: 56,
+      paddingRight: theme.spacing(1),
+      gap: theme.spacing(0.5),
+    },
     "& .MuiSvgIcon-root": {
-      color: "#FFFFFF !important",
-      fill: "#FFFFFF !important",
+      color: `${theme.palette.text.primary} !important`,
+      fill: "currentColor !important",
     },
     "& .MuiIconButton-root": {
-      color: "#FFFFFF",
+      color: theme.palette.text.primary,
     },
     "& .MuiTypography-root": {
-      color: "#FFFFFF",
+      color: theme.palette.text.primary,
     },
   },
   toolbarIcon: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: theme.spacing(1.5, 1.75),
-    minHeight: 64,
-    background: "#08111F",
+    gap: theme.spacing(1),
+    padding: theme.spacing(1.25, 1.25, 1.25, 1.5),
+    minHeight: 76,
+    background: theme.custom.sidebarStrong,
+    overflow: "hidden",
   },
-  sidebarTitle: {
-    color: "#FFFFFF",
-    fontWeight: 800,
-    fontSize: 15,
-    letterSpacing: 0,
+  toolbarIconClosed: {
+    justifyContent: "center",
+    minHeight: 72,
+    padding: theme.spacing(1, 0),
   },
-  brandBox: {
+  sidebarBrand: {
     display: "flex",
     alignItems: "center",
     minWidth: 0,
-    gap: theme.spacing(1.5),
+    gap: theme.spacing(1),
+    flex: 1,
   },
-  brandLogoFrame: {
-    width: 136,
-    height: 48,
+  sidebarLogoFrame: {
+    width: 150,
+    height: 50,
     borderRadius: 8,
-    background: "rgba(255,255,255,0.10)",
+    background: "rgba(255,255,255,0.08)",
     overflow: "hidden",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    [theme.breakpoints.down("xs")]: {
-      width: 104,
-      height: 40,
-    },
+    flexShrink: 0,
   },
-  brandLogo: {
+  sidebarLogo: {
     width: "100%",
     height: "100%",
-    padding: 6,
+    padding: 4,
+    objectFit: "contain",
+    objectPosition: "center",
+    transform: "scale(1.42)",
     transformOrigin: "center",
   },
-  brandFallback: {
-    width: 64,
+  sidebarIconLogo: {
+    width: 44,
     height: 44,
+    objectFit: "contain",
+    display: "block",
+    filter: "drop-shadow(0 8px 16px rgba(56, 189, 248, 0.28))",
+  },
+  sidebarBrandFallback: {
+    width: 48,
+    height: 48,
     borderRadius: 8,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     fontWeight: 800,
     color: "#FFFFFF",
-    background: "linear-gradient(135deg, #2563EB 0%, #38BDF8 100%)",
-  },
-  brandName: {
-    color: "#FFFFFF",
-    fontWeight: 800,
-    fontSize: 18,
-    lineHeight: 1.1,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    [theme.breakpoints.down("xs")]: {
-      fontSize: 15,
-    },
+    background: `linear-gradient(135deg, ${theme.custom.sidebarSoft} 0%, ${theme.palette.secondary.main} 100%)`,
   },
   collapseButton: {
-    color: "#94A3B8",
+    color: "#FFFFFF",
+    background: "rgba(255,255,255,0.08)",
+    "&:hover": {
+      background: "rgba(255,255,255,0.14)",
+    },
   },
   appBar: {
     zIndex: theme.zIndex.drawer + 1,
@@ -128,10 +141,10 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    backgroundColor: "#0B1220",
-    color: "#FFFFFF",
-    borderBottom: "1px solid rgba(148, 163, 184, 0.16)",
-    boxShadow: "0 10px 28px rgba(2, 6, 23, 0.20)",
+    backgroundColor: theme.palette.background.paper,
+    color: theme.palette.text.primary,
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    boxShadow: "none",
   },
   appBarShift: {
     marginLeft: drawerWidth,
@@ -141,16 +154,28 @@ const useStyles = makeStyles((theme) => ({
       duration: theme.transitions.duration.enteringScreen,
     }),
   },
+  appBarShiftCollapsed: {
+    marginLeft: drawerClosedWidth,
+    width: `calc(100% - ${drawerClosedWidth}px)`,
+    transition: theme.transitions.create(["width", "margin"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+  },
+  appBarMobile: {
+    marginLeft: 0,
+    width: "100%",
+  },
   menuButton: {
     marginRight: theme.spacing(1),
-    color: "#FFFFFF",
+    color: theme.palette.text.primary,
   },
   menuButtonHidden: {
     display: "none",
   },
   title: {
     flexGrow: 1,
-    color: "#FFFFFF",
+    color: theme.palette.text.primary,
     fontWeight: 800,
     letterSpacing: 0,
   },
@@ -162,7 +187,7 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    backgroundColor: "#08111F",
+    backgroundColor: theme.custom.sidebar,
     borderRight: "1px solid rgba(148, 163, 184, 0.16)",
     color: "#FFFFFF",
     "& .MuiListItemIcon-root": {
@@ -185,18 +210,25 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    width: theme.spacing(8),
+    width: drawerClosedWidth,
     [theme.breakpoints.up("sm")]: {
-      width: theme.spacing(9),
+      width: drawerClosedWidth,
     },
   },
   appBarSpacer: {
-    minHeight: 72,
+    minHeight: 64,
+    [theme.breakpoints.down("xs")]: {
+      minHeight: 56,
+    },
   },
   content: {
     flex: 1,
     overflow: "auto",
     background: theme.palette.background.default,
+    paddingBottom: 0,
+    [theme.breakpoints.down("sm")]: {
+      paddingBottom: 72,
+    },
   },
   container: {
     paddingTop: theme.spacing(4),
@@ -212,7 +244,7 @@ const useStyles = makeStyles((theme) => ({
     transform: "scale(0.8)",
   },
   iconButton: {
-    color: "#FFFFFF",
+    color: theme.palette.text.primary,
   },
   userPill: {
     display: "flex",
@@ -220,9 +252,13 @@ const useStyles = makeStyles((theme) => ({
     gap: theme.spacing(1),
     padding: theme.spacing(0.5, 1),
     borderRadius: 8,
-    border: "1px solid rgba(148, 163, 184, 0.22)",
-    background: "rgba(255, 255, 255, 0.06)",
-    color: "#FFFFFF",
+    border: `1px solid ${theme.palette.divider}`,
+    background: theme.palette.background.paper,
+    color: theme.palette.text.primary,
+    [theme.breakpoints.down("xs")]: {
+      padding: theme.spacing(0.25, 0.5),
+      gap: theme.spacing(0.25),
+    },
   },
   userText: {
     display: "flex",
@@ -238,19 +274,22 @@ const useStyles = makeStyles((theme) => ({
   },
   userProfile: {
     fontSize: 11,
-    color: "#CBD5E1",
+    color: theme.palette.text.secondary,
   },
   themeSwitchContainer: {
     display: "flex",
     alignItems: "center",
   },
   themeIcon: {
-    color: "#FFFFFF",
+    color: theme.palette.text.secondary,
   },
   statusChip: {
     height: 22,
-    color: "#FFFFFF",
+    color: theme.palette.text.primary,
     fontWeight: 800,
+    [theme.breakpoints.down("xs")]: {
+      display: "none",
+    },
   },
 }));
 
@@ -272,22 +311,56 @@ const LoggedInLayout = ({ children }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const { handleLogout, loading } = useContext(AuthContext);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      return stored === null ? document.body.offsetWidth > 600 : stored === "true";
+    } catch (err) {
+      return document.body.offsetWidth > 600;
+    }
+  });
   const [drawerVariant, setDrawerVariant] = useState("permanent");
   const { user } = useContext(AuthContext);
   const { darkMode, toggleTheme } = useThemeContext();
   const branding = useBranding();
   const backendUrl = getBackendUrl() || "http://localhost:8085";
+  const brandName = branding.brandName || "Rocket Service";
+  const sidebarLogo = branding.brandLogo ? `${backendUrl}${branding.brandLogo}` : rocketLogo;
   const lastActivityRef = useRef(Date.now());
   const lastTouchRef = useRef(0);
   const returningOnlineRef = useRef(false);
   const [inactivitySettings, setInactivitySettings] = useState({});
 
   useEffect(() => {
-    if (document.body.offsetWidth > 600) {
-      setDrawerOpen(true);
-    }
+    const updateVariant = () => {
+      const mobile = window.innerWidth < 960;
+      setDrawerVariant(mobile ? "temporary" : "permanent");
+      if (mobile) {
+        setDrawerOpen(false);
+        return;
+      }
+
+      try {
+        const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+        setDrawerOpen(stored === null ? true : stored === "true");
+      } catch (err) {
+        setDrawerOpen(true);
+      }
+    };
+
+    updateVariant();
+    window.addEventListener("resize", updateVariant);
+    return () => window.removeEventListener("resize", updateVariant);
   }, []);
+
+  useEffect(() => {
+    if (drawerVariant !== "permanent") return;
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(drawerOpen));
+    } catch (err) {
+      // Keep state in memory when storage is unavailable.
+    }
+  }, [drawerOpen, drawerVariant]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -361,14 +434,6 @@ const LoggedInLayout = ({ children }) => {
     };
   }, [user?.id, user?.profile, user?.operationalStatus, inactivitySettings]);
 
-  useEffect(() => {
-    if (document.body.offsetWidth < 600) {
-      setDrawerVariant("temporary");
-    } else {
-      setDrawerVariant("permanent");
-    }
-  }, [drawerOpen]);
-
   const handleMenu = (event) => {
     setAnchorEl(event.currentTarget);
     setMenuOpen(true);
@@ -399,9 +464,13 @@ const LoggedInLayout = ({ children }) => {
   };
 
   const drawerClose = () => {
-    if (document.body.offsetWidth < 600) {
+    if (drawerVariant !== "permanent") {
       setDrawerOpen(false);
     }
+  };
+
+  const toggleDrawer = () => {
+    setDrawerOpen(current => !current);
   };
 
   if (loading) {
@@ -421,14 +490,42 @@ const LoggedInLayout = ({ children }) => {
         }}
         open={drawerOpen}
       >
-        <div className={classes.toolbarIcon}>
-          {drawerOpen && <Typography className={classes.sidebarTitle}>Menu</Typography>}
-          <IconButton
-            onClick={() => setDrawerOpen(!drawerOpen)}
-            className={classes.collapseButton}
-          >
-            <ChevronLeftIcon />
-          </IconButton>
+        <div className={clsx(classes.toolbarIcon, !drawerOpen && classes.toolbarIconClosed)}>
+          {drawerOpen ? (
+            <>
+              <div className={classes.sidebarBrand}>
+                {sidebarLogo ? (
+                  <div className={classes.sidebarLogoFrame}>
+                    <img
+                      src={sidebarLogo}
+                      alt={brandName}
+                      className={classes.sidebarLogo}
+                      style={branding.brandLogo ? {
+                        objectFit: branding.brandLogoFit || "contain",
+                        objectPosition: `${branding.brandLogoPositionX || 50}% ${branding.brandLogoPositionY || 50}%`,
+                        transform: `scale(${Number(branding.brandLogoScale || 1)})`
+                      } : undefined}
+                    />
+                  </div>
+                ) : (
+                  <div className={classes.sidebarBrandFallback}>
+                    {brandName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <Tooltip title="Recolher menu">
+                <IconButton
+                  onClick={toggleDrawer}
+                  className={classes.collapseButton}
+                  aria-label="Recolher menu"
+                >
+                  <ChevronLeftIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          ) : (
+            <img src={rocketIcon} alt={brandName} className={classes.sidebarIconLogo} />
+          )}
         </div>
         <List>
           <MainListItems drawerClose={drawerClose} drawerOpen={drawerOpen} />
@@ -441,16 +538,21 @@ const LoggedInLayout = ({ children }) => {
       />
       <AppBar
         position="absolute"
-        className={clsx(classes.appBar, drawerOpen && classes.appBarShift)}
+        className={clsx(
+          classes.appBar,
+          drawerVariant === "permanent" && drawerOpen && classes.appBarShift,
+          drawerVariant === "permanent" && !drawerOpen && classes.appBarShiftCollapsed,
+          drawerVariant !== "permanent" && classes.appBarMobile
+        )}
       >
         <Toolbar variant="dense" className={classes.toolbar}>
           <IconButton
             edge="start"
             aria-label="open drawer"
-            onClick={() => setDrawerOpen(!drawerOpen)}
+            onClick={toggleDrawer}
             className={clsx(
               classes.menuButton,
-              drawerOpen && classes.menuButtonHidden
+              drawerVariant === "permanent" && drawerOpen && classes.menuButtonHidden
             )}
           >
             <MenuIcon />
@@ -461,29 +563,7 @@ const LoggedInLayout = ({ children }) => {
             noWrap
             className={classes.title}
           >
-            <div className={classes.brandBox}>
-              {branding.brandLogo ? (
-                <div className={classes.brandLogoFrame}>
-                  <img
-                    src={`${backendUrl}${branding.brandLogo}`}
-                    alt={branding.brandName}
-                    className={classes.brandLogo}
-                    style={{
-                      objectFit: branding.brandLogoFit || "contain",
-                      objectPosition: `${branding.brandLogoPositionX || 50}% ${branding.brandLogoPositionY || 50}%`,
-                      transform: `scale(${Number(branding.brandLogoScale || 1)})`
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className={classes.brandFallback}>
-                  {(branding.brandName || "A").charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className={classes.brandName}>
-                {branding.brandName || "Atendimento"}
-              </div>
-            </div>
+            {drawerVariant !== "permanent" ? brandName : ""}
           </Typography>
 
           <div className={classes.themeSwitchContainer}>
@@ -557,6 +637,7 @@ const LoggedInLayout = ({ children }) => {
         <div className={classes.appBarSpacer} />
         {children ? children : null}
       </main>
+      <MobileNavigation />
     </div>
   );
 };

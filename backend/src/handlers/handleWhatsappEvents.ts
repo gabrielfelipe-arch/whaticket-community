@@ -13,6 +13,8 @@ import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
 import Message from "../models/Message";
 import Queue from "../models/Queue";
+import ScheduledMessage from "../models/ScheduledMessage";
+import User from "../models/User";
 import AiSetting from "../models/AiSetting";
 import Setting from "../models/Setting";
 import ClosingReason from "../models/ClosingReason";
@@ -36,6 +38,7 @@ import {
 import CreateMessageService from "../services/MessageServices/CreateMessageService";
 import CreateOrUpdateContactService from "../services/ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../services/TicketServices/FindOrCreateTicketService";
+import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import CreateContactService from "../services/ContactServices/CreateContactService";
@@ -45,6 +48,7 @@ import ExecuteAiToolService, { AiToolName } from "../services/AiServices/AiToolS
 import uploadConfig from "../config/upload";
 import RenderMessageVariables from "../helpers/RenderMessageVariables";
 import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
+import { logQueueEntry } from "../services/QueueService/QueueDistributionService";
 import {
   getGlpiConfigurationByWhatsapp,
   getGlpiSettings,
@@ -61,6 +65,110 @@ const AI_CLOSE_TAG = "[FECHAR TICKET]";
 const QUALIFICATION_GLPI_CONFIRMATION_STATUS = "waiting_glpi_confirmation";
 const AI_NO_SAFE_ANSWER_HANDOFF_MESSAGE =
   "Nao consegui identificar uma orientacao segura para esse caso com as informacoes disponiveis.\n\nPara evitar te passar uma informacao incorreta, vou encaminhar seu atendimento para um atendente.";
+
+const buildScheduledReturnContextMessage = (
+  schedule: ScheduledMessage,
+  assignedBackToUser: boolean
+): string => {
+  const schedulerName = schedule.user?.name || `usuario #${schedule.userId || "nao identificado"}`;
+  const sentAtPart = schedule.sentAt
+    ? `Mensagem agendada enviada em: ${new Date(schedule.sentAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}.`
+    : null;
+  const queuePart = schedule.returnQueueId
+    ? `Fila de retorno: #${schedule.returnQueueId}.`
+    : "Sem fila de retorno definida.";
+  const actionPart = assignedBackToUser
+    ? `O responsavel pelo agendamento (${schedulerName}) esta online; o atendimento retornou para ele.`
+    : `O responsavel pelo agendamento (${schedulerName}) nao esta online; o atendimento entrou na fila.`;
+
+  return [
+    "Retorno de mensagem agendada.",
+    `Agendada por: ${schedulerName}.`,
+    actionPart,
+    queuePart,
+    sentAtPart,
+    schedule.returnContext ? `Contexto: ${schedule.returnContext}` : null,
+    schedule.message ? `Mensagem agendada enviada: ${schedule.message}` : null
+  ].filter(Boolean).join("\n");
+};
+
+const handleScheduledMessageReturn = async ({
+  ticket,
+  contactId,
+  whatsappId
+}: {
+  ticket: Ticket;
+  contactId: number;
+  whatsappId: number;
+}): Promise<boolean> => {
+  const now = new Date();
+  const schedule = await ScheduledMessage.findOne({
+    where: {
+      contactId,
+      whatsappId,
+      returnHandledAt: null,
+      returnWindowExpiresAt: { [Op.gte]: now }
+    },
+    include: [{ model: User, as: "user" }],
+    order: [["sentAt", "DESC"], ["id", "DESC"]]
+  });
+
+  if (!schedule) return false;
+
+  const schedulerOnline = schedule.user?.operationalStatus === "online";
+  const nextQueueId = schedule.returnQueueId || ticket.queueId || null;
+  const assignedUserId = schedulerOnline ? schedule.userId : null;
+  const oldStatus = ticket.status;
+  const oldUserId = ticket.userId;
+
+  await ticket.update({
+    status: schedulerOnline ? "open" : "pending",
+    userId: assignedUserId,
+    queueId: nextQueueId,
+    queueEnteredAt: schedulerOnline ? ticket.queueEnteredAt : new Date(),
+    uraActive: false,
+    currentUraOptionId: null,
+    aiActive: false,
+    aiHandled: false
+  });
+  const updatedTicket = await ShowTicketService(ticket.id);
+  const io = getIO();
+
+  if (updatedTicket.status !== oldStatus || Number(updatedTicket.userId || 0) !== Number(oldUserId || 0)) {
+    io.to(oldStatus).emit("ticket", {
+      action: "delete",
+      ticketId: updatedTicket.id
+    });
+  }
+
+  io.to(updatedTicket.status)
+    .to("notification")
+    .to(updatedTicket.id.toString())
+    .emit("ticket", {
+      action: "update",
+      ticket: updatedTicket
+    });
+
+  const body = buildScheduledReturnContextMessage(schedule, schedulerOnline);
+  await CreateMessageService({
+    messageData: {
+      id: `scheduled-return-${schedule.id}-${ticket.id}`,
+      ticketId: ticket.id,
+      body,
+      fromMe: true,
+      read: true,
+      senderType: "system"
+    }
+  });
+
+  await schedule.update({ returnHandledAt: now });
+
+  if (!schedulerOnline && nextQueueId) {
+    await logQueueEntry(ticket.id);
+  }
+
+  return true;
+};
 
 export interface ContactPayload {
   name: string;
@@ -3662,6 +3770,16 @@ export const handleMessage = async (
     await ticket.update({ lastMessage: lastMessageText });
 
     await CreateMessageService({ messageData });
+
+    if (!processedMessage.fromMe && !contextPayload.groupContact) {
+      const handledScheduledReturn = await handleScheduledMessageReturn({
+        ticket,
+        contactId: contact.id,
+        whatsappId: contextPayload.whatsappId
+      });
+
+      if (handledScheduledReturn) return;
+    }
 
     if (!processedMessage.fromMe && !contextPayload.groupContact) {
       const satisfactionHandled = await tryRegisterSatisfactionResponse(

@@ -13,6 +13,7 @@ import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import IconButton from "@material-ui/core/IconButton";
 import SearchIcon from "@material-ui/icons/Search";
+import SupervisorAccountIcon from "@material-ui/icons/SupervisorAccount";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
 
@@ -31,6 +32,7 @@ import UserModal from "../../components/UserModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { EmptyState, ListToolbar } from "../../components/ExecutiveLayout";
 
 const statusLabels = {
   online: "Online",
@@ -107,8 +109,12 @@ const reducer = (state, action) => {
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
-    padding: theme.spacing(1),
+    padding: 0,
     overflowY: "scroll",
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
     ...theme.scrollbarStyles,
   },
 }));
@@ -236,21 +242,8 @@ const Users = () => {
         userId={selectedUser && selectedUser.id}
       />
       <MainHeader>
-        <Title>{i18n.t("users.title")}</Title>
+        <Title subtitle="Controle acesso, perfil, filas e status operacional da equipe.">{i18n.t("users.title")}</Title>
         <MainHeaderButtonsWrapper>
-          <TextField
-            placeholder={i18n.t("contacts.searchPlaceholder")}
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon style={{ color: "gray" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
           <Button
             variant="contained"
             color="primary"
@@ -260,6 +253,23 @@ const Users = () => {
           </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
+      <ListToolbar>
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder={i18n.t("contacts.searchPlaceholder")}
+          type="search"
+          value={searchParam}
+          onChange={handleSearch}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </ListToolbar>
       <Paper
         className={classes.mainPaper}
         variant="outlined"
@@ -344,6 +354,19 @@ const Users = () => {
                 </TableRow>
               ))}
               {loading && <TableRowSkeleton columns={7} />}
+              {!loading && users.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7}>
+                    <EmptyState
+                      icon={SupervisorAccountIcon}
+                      title="Nenhum usuario encontrado"
+                      description="Ajuste a busca ou cadastre um novo usuario para a equipe."
+                      actionLabel={i18n.t("users.buttons.add")}
+                      onAction={handleOpenUserModal}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
             </>
           </TableBody>
         </Table>

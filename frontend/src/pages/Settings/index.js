@@ -27,7 +27,8 @@ import {
 	TableHead,
 	TableRow,
 	TextField,
-	Typography
+	Typography,
+	useMediaQuery
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
@@ -36,6 +37,15 @@ import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
 import EditIcon from "@material-ui/icons/Edit";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 import SearchIcon from "@material-ui/icons/Search";
+import TuneIcon from "@material-ui/icons/Tune";
+import CategoryOutlinedIcon from "@material-ui/icons/CategoryOutlined";
+import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
+import SentimentSatisfiedAltIcon from "@material-ui/icons/SentimentSatisfiedAlt";
+import LabelOutlinedIcon from "@material-ui/icons/LabelOutlined";
+import AccountTreeIcon from "@material-ui/icons/AccountTree";
+import MemoryIcon from "@material-ui/icons/Memory";
+import DescriptionOutlinedIcon from "@material-ui/icons/DescriptionOutlined";
+import HistoryIcon from "@material-ui/icons/History";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import { toast } from "react-toastify";
 
@@ -91,7 +101,7 @@ const serializeBusinessHours = rules =>
 const useStyles = makeStyles(theme => ({
 	root: {
 		flex: 1,
-		padding: theme.spacing(2),
+		padding: 0,
 		overflowY: "auto",
 		...theme.scrollbarStyles,
 		backgroundColor: theme.palette.background.default
@@ -99,9 +109,73 @@ const useStyles = makeStyles(theme => ({
 	pageHeader: {
 		display: "flex",
 		justifyContent: "space-between",
-		alignItems: "flex-start",
+		alignItems: "center",
 		gap: theme.spacing(2),
-		marginBottom: theme.spacing(2)
+		minHeight: 86,
+		padding: theme.spacing(1.5, 3),
+		background: theme.palette.background.paper,
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		[theme.breakpoints.down("xs")]: {
+			padding: theme.spacing(1.5),
+			minHeight: 76
+		}
+	},
+	pageBreadcrumb: {
+		display: "flex",
+		alignItems: "center",
+		gap: theme.spacing(1),
+		color: theme.palette.primary.main,
+		fontSize: 12,
+		fontWeight: 700,
+		marginBottom: theme.spacing(0.75),
+		"& span": {
+			color: theme.palette.text.secondary,
+			fontWeight: 500
+		}
+	},
+	pageTitleRow: {
+		display: "flex",
+		alignItems: "center",
+		gap: theme.spacing(1.5),
+		minWidth: 0
+	},
+	pageTitle: {
+		fontWeight: 800,
+		letterSpacing: 0,
+		fontSize: 26
+	},
+	pageTitleDivider: {
+		width: 1,
+		height: 30,
+		background: theme.palette.divider,
+		flexShrink: 0
+	},
+	activeSection: {
+		color: theme.palette.text.secondary,
+		fontSize: 17,
+		fontWeight: 500,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap"
+	},
+	settingsWorkspace: {
+		padding: theme.spacing(2, 3, 3),
+		[theme.breakpoints.down("xs")]: {
+			padding: theme.spacing(1.5)
+		}
+	},
+	settingsTabLabel: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		gap: 7,
+		lineHeight: 1.15,
+		whiteSpace: "normal",
+		textAlign: "left",
+		"& svg": {
+			fontSize: 18,
+			flexShrink: 0
+		}
 	},
 	header: {
 		display: "flex",
@@ -116,24 +190,69 @@ const useStyles = makeStyles(theme => ({
 		borderBottom: `1px solid ${theme.palette.divider}`
 	},
 	navTabs: {
-		marginBottom: theme.spacing(2),
+		marginBottom: 0,
+		minHeight: 60,
+		padding: theme.spacing(0, 3),
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper,
+		position: "sticky",
+		top: 0,
+		zIndex: 4,
+		"& [class*='MuiTabs-indicator']": {
+			height: 3,
+			borderRadius: "3px 3px 0 0",
+			transition: "all 200ms cubic-bezier(0.4, 0, 0.2, 1)"
+		},
+		"& [role='tablist']": {
+			width: "100%"
+		},
+		"& [role='tab']": {
+			minHeight: 60,
+			minWidth: "0 !important",
+			maxWidth: "none",
+			flex: "1 1 0",
+			padding: theme.spacing(1, 0.75),
+			textTransform: "none",
+			fontSize: 12,
+			fontWeight: 650,
+			transition: "color 180ms ease, background-color 180ms ease"
+		},
+		"& .Mui-selected": {
+			background: theme.palette.type === "dark" ? "rgba(96, 165, 250, 0.12)" : "#EFF6FF"
+		},
+		[theme.breakpoints.down("xs")]: {
+			padding: 0,
+			"& [role='tablist']": {
+				width: "auto"
+			},
+			"& [role='tab']": {
+				minWidth: "112px !important",
+				flex: "0 0 auto",
+				padding: theme.spacing(1, 1.25)
+			}
+		}
+	},
+	groupTabs: {
+		display: "inline-flex",
 		minHeight: 44,
-		padding: theme.spacing(0.5),
+		padding: 3,
+		marginBottom: theme.spacing(2),
 		borderRadius: 8,
 		border: `1px solid ${theme.palette.divider}`,
-		background: theme.palette.type === "dark" ? theme.palette.background.paper : "#f8fafc",
+		background: theme.palette.type === "dark" ? theme.palette.background.default : "#F1F5F9",
 		"& .MuiTabs-indicator": {
 			display: "none"
 		},
 		"& .MuiTab-root": {
-			minHeight: 36,
+			minHeight: 38,
+			minWidth: 128,
 			borderRadius: 6,
-			textTransform: "none",
-			fontWeight: 600
+			padding: theme.spacing(0.75, 2),
+			transition: "all 180ms ease"
 		},
 		"& .Mui-selected": {
 			background: theme.palette.background.paper,
-			boxShadow: theme.custom?.cardShadow || "0 1px 3px rgba(15, 23, 42, 0.12)"
+			boxShadow: theme.palette.type === "dark" ? "0 1px 4px rgba(0,0,0,0.35)" : "0 1px 4px rgba(15,23,42,0.12)"
 		}
 	},
 	generalPaper: {
@@ -218,10 +337,97 @@ const useStyles = makeStyles(theme => ({
 		}
 	},
 	contentPaper: {
-		padding: theme.spacing(2),
+		padding: 0,
+		border: 0,
+		boxShadow: "none",
+		background: "transparent"
+	},
+	generalLogoControl: {
+		display: "flex",
+		alignItems: "center",
+		minHeight: 56,
+		[theme.breakpoints.down("xs")]: {
+			minHeight: 0
+		}
+	},
+	uraGrid: {
+		display: "grid !important",
+		gridTemplateColumns: "minmax(250px, 0.8fr) minmax(290px, 0.9fr) minmax(360px, 1.2fr)",
+		gap: 0,
+		width: "100% !important",
+		margin: "0 !important",
+		border: `1px solid ${theme.palette.divider}`,
 		borderRadius: 8,
-		boxShadow: theme.custom?.cardShadow,
-		borderColor: theme.palette.divider
+		overflow: "hidden",
+		background: theme.palette.background.paper,
+		"& > $uraColumn:last-child $uraPane": {
+			borderRight: 0
+		},
+		[theme.breakpoints.down("md")]: {
+			gridTemplateColumns: "minmax(280px, 0.9fr) minmax(360px, 1.1fr)",
+			"& > $uraColumn:last-child": {
+				gridColumn: "1 / -1"
+			}
+		},
+		[theme.breakpoints.down("sm")]: {
+			display: "block !important",
+			border: 0,
+			background: "transparent",
+			"& > $uraColumn": {
+				marginBottom: theme.spacing(1.5)
+			}
+		}
+	},
+	uraTopRow: {
+		gridColumn: "1 / -1",
+		padding: "0 0 16px !important",
+		background: theme.palette.background.default
+	},
+	uraToolbar: {
+		padding: theme.spacing(1.25, 1.5),
+		borderRadius: 8,
+		borderColor: theme.palette.divider,
+		boxShadow: "none"
+	},
+	uraColumn: {
+		padding: "0 !important",
+		minWidth: 0,
+		width: "auto !important",
+		maxWidth: "none !important",
+		flexBasis: "auto !important"
+	},
+	uraPane: {
+		padding: `${theme.spacing(2)}px !important`,
+		height: "calc(100vh - 330px)",
+		minHeight: 520,
+		overflowY: "auto",
+		border: "0 !important",
+		borderRight: `1px solid ${theme.palette.divider} !important`,
+		borderRadius: "0 !important",
+		boxShadow: "none !important",
+		...theme.scrollbarStyles,
+		[theme.breakpoints.down("md")]: {
+			height: "auto",
+			maxHeight: 720,
+			borderBottom: `1px solid ${theme.palette.divider} !important`
+		},
+		[theme.breakpoints.down("sm")]: {
+			minHeight: 0,
+			maxHeight: "none",
+			border: `1px solid ${theme.palette.divider} !important`,
+			borderRadius: "8px !important"
+		}
+	},
+	uraTreeItem: {
+		padding: `${theme.spacing(1.25)}px !important`,
+		borderRadius: "6px !important",
+		boxShadow: "none !important",
+		transition: "border-color 160ms ease, background-color 160ms ease",
+		"& .MuiButton-root": {
+			minWidth: 36,
+			minHeight: 32,
+			padding: theme.spacing(0.5, 1)
+		}
 	},
 	calendarSettingsPanel: {
 		padding: theme.spacing(2),
@@ -246,32 +452,36 @@ const useStyles = makeStyles(theme => ({
 		wordBreak: "break-all"
 	},
 	formBuilderPanel: {
-		padding: theme.spacing(2),
+		padding: theme.spacing(2, 0),
 		height: "100%",
-		borderRadius: 8,
-		borderColor: theme.palette.divider
+		border: 0,
+		borderTop: `1px solid ${theme.palette.divider}`,
+		borderRadius: 0,
+		boxShadow: "none",
+		background: "transparent"
 	},
 	formBuilderStack: {
 		display: "flex",
 		flexDirection: "column",
-		gap: theme.spacing(2)
+		gap: 0
 	},
 	formBuilderCompactPanel: {
-		padding: theme.spacing(2),
-		borderRadius: 8,
-		borderColor: theme.palette.divider
+		padding: theme.spacing(2, 0),
+		border: 0,
+		borderRadius: 0,
+		boxShadow: "none",
+		background: "transparent"
 	},
 	formBuilderToolbar: {
 		display: "flex",
 		justifyContent: "flex-end",
 		alignItems: "center",
 		gap: theme.spacing(1),
-		padding: 0,
-		borderRadius: 8,
-		marginTop: -58,
+		padding: theme.spacing(0, 0, 1.5),
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		marginTop: -62,
 		marginBottom: theme.spacing(2),
 		minHeight: 46,
-		pointerEvents: "none",
 		[theme.breakpoints.down("sm")]: {
 			marginTop: 0,
 			flexDirection: "column",
@@ -282,7 +492,6 @@ const useStyles = makeStyles(theme => ({
 		display: "flex",
 		gap: theme.spacing(1),
 		alignItems: "center",
-		pointerEvents: "auto",
 		[theme.breakpoints.down("sm")]: {
 			flexDirection: "column",
 			alignItems: "stretch"
@@ -370,11 +579,12 @@ const useStyles = makeStyles(theme => ({
 		marginTop: theme.spacing(0.75)
 	},
 	previewBox: {
-		padding: theme.spacing(1.5),
+		padding: theme.spacing(2, 0, 0),
 		marginTop: theme.spacing(1.5),
-		borderRadius: 8,
-		border: `1px solid ${theme.palette.divider}`,
-		background: theme.palette.type === "dark" ? theme.palette.background.default : "#f7fafc"
+		borderRadius: 0,
+		border: 0,
+		borderTop: `1px solid ${theme.palette.divider}`,
+		background: "transparent"
 	},
 	inlineChips: {
 		display: "flex",
@@ -968,6 +1178,21 @@ const groupedSettingsTabs = [
 	},
 	{ label: "Logs de auditoria", type: "resource", resource: getResourceByEndpoint("/audit-logs") }
 ].filter(tab => ["general", "uraTree"].includes(tab.type) || tab.resource || tab.children?.every(child => child.resource || child.type));
+
+const settingsTabIcons = {
+	general: TuneIcon,
+	"/ticket-categories": CategoryOutlinedIcon,
+	"/closing-reasons": CheckCircleOutlineIcon,
+	"/satisfaction-surveys": SentimentSatisfiedAltIcon,
+	"/tags": LabelOutlinedIcon,
+	uraTree: AccountTreeIcon,
+	ia: MemoryIcon,
+	forms: DescriptionOutlinedIcon,
+	"/audit-logs": HistoryIcon
+};
+
+const getSettingsTabIcon = item =>
+	settingsTabIcons[item.groupKey || item.resource?.endpoint || item.type] || TuneIcon;
 
 const supervisorSettingsEndpoints = [
 	"/ticket-categories",
@@ -1680,6 +1905,7 @@ const UraTreePanel = ({ classes }) => {
 		return children.map(option => (
 			<div key={option.id} style={{ marginLeft: level * 18, marginTop: 8 }}>
 				<Paper
+					className={classes.uraTreeItem}
 					variant="outlined"
 					style={{
 						padding: 10,
@@ -1710,9 +1936,9 @@ const UraTreePanel = ({ classes }) => {
 	};
 
 	return (
-		<Grid container spacing={2}>
-			<Grid item xs={12}>
-				<Paper variant="outlined" style={{ padding: 16 }}>
+		<Grid container spacing={2} className={classes.uraGrid}>
+			<Grid item xs={12} className={classes.uraTopRow}>
+				<Paper variant="outlined" className={classes.uraToolbar}>
 					<Grid container spacing={2} alignItems="center">
 						<Grid item xs={12} md={5}>
 							<TextField
@@ -1741,8 +1967,8 @@ const UraTreePanel = ({ classes }) => {
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={4}>
-				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+			<Grid item xs={12} md={4} className={classes.uraColumn}>
+				<Paper variant="outlined" className={classes.uraPane}>
 					<Typography variant="h6">Configuracoes da URA</Typography>
 					<TextField fullWidth margin="dense" variant="outlined" label="Nome da URA" value={textValue(flowForm.name)} onChange={event => setFlowField("name", event.target.value)} />
 					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Descricao" value={textValue(flowForm.description)} onChange={event => setFlowField("description", event.target.value)} />
@@ -1802,8 +2028,8 @@ const UraTreePanel = ({ classes }) => {
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={4}>
-				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+			<Grid item xs={12} md={4} className={classes.uraColumn}>
+				<Paper variant="outlined" className={classes.uraPane}>
 					<Grid container alignItems="center" spacing={1}>
 						<Grid item xs>
 							<Typography variant="h6">Arvore da URA</Typography>
@@ -1821,8 +2047,8 @@ const UraTreePanel = ({ classes }) => {
 				</Paper>
 			</Grid>
 
-			<Grid item xs={12} md={4}>
-				<Paper variant="outlined" style={{ padding: 16, height: "100%" }}>
+			<Grid item xs={12} md={4} className={classes.uraColumn}>
+				<Paper variant="outlined" className={classes.uraPane}>
 					<Typography variant="h6">Editor da opcao</Typography>
 					{!optionForm ? (
 						<Typography variant="body2" color="textSecondary">
@@ -4161,9 +4387,10 @@ const GeneralSettings = ({
 	onChangeSetting,
 	getSettingValue,
 	onUploadLogo,
+	onRemoveLogo,
 	classes
 }) => (
-	<Container maxWidth="md">
+	<Container maxWidth={false} disableGutters>
 		<Typography variant="body2" gutterBottom>
 			{i18n.t("settings.title")}
 		</Typography>
@@ -4184,7 +4411,7 @@ const GeneralSettings = ({
 						variant="outlined"
 					/>
 				</Grid>
-				<Grid item xs={12}>
+				<Grid item xs={12} sm={6} className={classes.generalLogoControl}>
 					<input
 						accept="image/*"
 						id="brand-logo-upload"
@@ -4198,11 +4425,23 @@ const GeneralSettings = ({
 						</Button>
 					</label>
 					{getSettingValue("brandLogo") && (
-						<img
-							src={`${getBackendUrl() || "http://localhost:8085"}${getSettingValue("brandLogo")}`}
-							alt="Logo"
-							style={{ height: 36, marginLeft: 12, verticalAlign: "middle" }}
-						/>
+						<>
+							<img
+								src={`${getBackendUrl() || "http://localhost:8085"}${getSettingValue("brandLogo")}`}
+								alt="Logo"
+								style={{ height: 36, marginLeft: 12, verticalAlign: "middle" }}
+							/>
+							<Button
+								variant="outlined"
+								color="secondary"
+								size="small"
+								startIcon={<DeleteOutlineIcon />}
+								onClick={onRemoveLogo}
+								style={{ marginLeft: 12 }}
+							>
+								Remover logo
+							</Button>
+						</>
 					)}
 				</Grid>
 				<BrandLogoAdjustments
@@ -5045,6 +5284,7 @@ const ResourcePanel = ({ resource, classes }) => {
 
 const Settings = () => {
 	const classes = useStyles();
+	const isMobile = useMediaQuery(theme => theme.breakpoints.down("xs"));
 	const { user } = useContext(AuthContext);
 	const isAdmin = user?.profile === "admin";
 	const isSupervisor = user?.profile === "supervisor";
@@ -5139,6 +5379,28 @@ const Settings = () => {
 		}
 	};
 
+	const handleRemoveLogo = async () => {
+		if (!window.confirm("Remover o logo atual do sistema?")) return;
+
+		try {
+			const { data } = await api.delete("/settings/logo");
+			const updatedSettings = Array.isArray(data) ? data : [data];
+			setSettings(prevState => {
+				const next = [...prevState];
+				updatedSettings.forEach(setting => {
+					if (!setting?.key) return;
+					const index = next.findIndex(item => item.key === setting.key);
+					if (index !== -1) next[index] = setting;
+					else next.push(setting);
+				});
+				return next;
+			});
+			toast.success("Logo removido.");
+		} catch (err) {
+			toastError(err);
+		}
+	};
+
 	const getSettingValue = key => {
 		const setting = settings.find(s => s.key === key);
 		return setting ? setting.value : "";
@@ -5153,10 +5415,14 @@ const Settings = () => {
 		<Container maxWidth={false} className={classes.root}>
 			<div className={classes.pageHeader}>
 				<div>
-					<Typography variant="h5">Configurações</Typography>
-					<Typography variant="body2" className={classes.sectionSubtitle}>
-						Cadastros administrativos, URA, IA, etiquetas e personalização visual.
-					</Typography>
+					<div className={classes.pageBreadcrumb}>
+						Administração <span>/ Configurações</span>
+					</div>
+					<div className={classes.pageTitleRow}>
+						<Typography variant="h4" className={classes.pageTitle}>Configurações</Typography>
+						<span className={classes.pageTitleDivider} />
+						<Typography className={classes.activeSection}>{activeTab?.label || "Sem acesso"}</Typography>
+					</div>
 				</div>
 			</div>
 			<Tabs
@@ -5165,15 +5431,27 @@ const Settings = () => {
 				textColor="primary"
 				onChange={(event, value) => setTab(value)}
 				className={classes.navTabs}
-				variant="scrollable"
-				scrollButtons="auto"
+				variant={isMobile ? "scrollable" : "fullWidth"}
+				scrollButtons={isMobile ? "auto" : "off"}
 			>
-				{visibleSettingsTabs.map(item => (
-					<Tab key={item.label} label={item.label} />
-				))}
+				{visibleSettingsTabs.map(item => {
+					const Icon = getSettingsTabIcon(item);
+					return (
+						<Tab
+							key={item.label}
+							label={(
+								<span className={classes.settingsTabLabel}>
+									<Icon />
+									<span>{item.label}</span>
+								</span>
+							)}
+						/>
+					);
+				})}
 			</Tabs>
 
-			<Paper className={classes.contentPaper} variant="outlined">
+			<div className={classes.settingsWorkspace}>
+			<div className={classes.contentPaper}>
 				{!activeTab ? (
 					<Typography variant="body2" color="textSecondary">
 						Nenhuma permissao especial de configuracao foi habilitada para este usuario.
@@ -5183,6 +5461,7 @@ const Settings = () => {
 						onChangeSetting={handleChangeSetting}
 						getSettingValue={getSettingValue}
 						onUploadLogo={handleUploadLogo}
+						onRemoveLogo={handleRemoveLogo}
 						classes={classes}
 					/>
 				) : activeTab.type === "uraTree" ? (
@@ -5196,7 +5475,7 @@ const Settings = () => {
 							onChange={(event, value) => {
 								setGroupTabs(prev => ({ ...prev, [activeTab.groupKey]: value }));
 							}}
-							className={classes.navTabs}
+							className={classes.groupTabs}
 							variant="scrollable"
 							scrollButtons="auto"
 						>
@@ -5233,7 +5512,8 @@ const Settings = () => {
 						<ResourcePanel resource={activeResource} classes={classes} />
 					</>
 				)}
-			</Paper>
+			</div>
+			</div>
 		</Container>
 	);
 };

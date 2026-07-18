@@ -23,16 +23,21 @@ import Title from "../../components/Title";
 import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
-import { DeleteOutline, Edit } from "@material-ui/icons";
+import { DeleteOutline, Edit, AccountTree } from "@material-ui/icons";
 import QueueModal from "../../components/QueueModal";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/ConfirmationModal";
+import { EmptyState } from "../../components/ExecutiveLayout";
 
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
-    padding: theme.spacing(1),
+    padding: 0,
     overflowY: "scroll",
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
     ...theme.scrollbarStyles,
   },
   customTableCell: {
@@ -188,7 +193,7 @@ const Queues = () => {
         queueId={selectedQueue?.id}
       />
       <MainHeader>
-        <Title>{i18n.t("queues.title")}</Title>
+        <Title subtitle="Organize filas, distribuicao e limites operacionais por equipe.">{i18n.t("queues.title")}</Title>
         <MainHeaderButtonsWrapper>
           <Button
             variant="contained"
@@ -261,6 +266,19 @@ const Queues = () => {
                 </TableRow>
               ))}
               {loading && <TableRowSkeleton columns={4} />}
+              {!loading && queues.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4}>
+                    <EmptyState
+                      icon={AccountTree}
+                      title="Nenhuma fila cadastrada"
+                      description="Crie uma fila para organizar atendimentos, GLPI, IA e distribuicao da equipe."
+                      actionLabel={i18n.t("queues.buttons.add")}
+                      onAction={handleOpenQueueModal}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
             </>
           </TableBody>
         </Table>

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import CssBaseline from "@material-ui/core/CssBaseline";
 
 import App from "./App";
+import { registerServiceWorker } from "./pwa";
 
 ReactDOM.render(
 	<CssBaseline>
@@ -10,6 +11,8 @@ ReactDOM.render(
 	</CssBaseline>,
 	document.getElementById("root")
 );
+
+registerServiceWorker();
 
 // ReactDOM.render(
 // 	<React.StrictMode>

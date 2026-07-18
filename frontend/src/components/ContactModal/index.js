@@ -29,8 +29,20 @@ const useStyles = makeStyles(theme => ({
 		flexWrap: "wrap",
 	},
 	textField: {
-		marginRight: theme.spacing(1),
-		flex: 1,
+		width: "100%",
+	},
+	formGrid: {
+		display: "grid",
+		gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+		gap: theme.spacing(1, 2),
+		[theme.breakpoints.down("xs")]: {
+			gridTemplateColumns: "1fr",
+		},
+	},
+	sectionTitle: {
+		marginTop: theme.spacing(2),
+		paddingTop: theme.spacing(2),
+		borderTop: `1px solid ${theme.palette.divider}`,
 	},
 
 	extraAttr: {
@@ -152,7 +164,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
 	return (
 		<div className={classes.root}>
-			<Dialog open={open} onClose={handleClose} maxWidth="lg" scroll="paper">
+			<Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth scroll="paper">
 				<DialogTitle id="form-dialog-title">
 					{contactId
 						? `${i18n.t("contactModal.title.edit")}`
@@ -175,6 +187,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 								<Typography variant="subtitle1" gutterBottom>
 									{i18n.t("contactModal.form.mainInfo")}
 								</Typography>
+								<div className={classes.formGrid}>
 								<Field
 									as={TextField}
 									label={i18n.t("contactModal.form.name")}
@@ -185,6 +198,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 									variant="outlined"
 									margin="dense"
 									className={classes.textField}
+									fullWidth
 								/>
 								<Field
 									as={TextField}
@@ -195,9 +209,9 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 									placeholder="5513912344321"
 									variant="outlined"
 									margin="dense"
+									fullWidth
 								/>
-								<div>
-									<Field
+								<Field
 										as={TextField}
 										label={i18n.t("contactModal.form.email")}
 										name="email"
@@ -207,16 +221,19 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										fullWidth
 										margin="dense"
 										variant="outlined"
+								/>
+								<div>
+									<TagCheckboxPicker
+										tags={tags}
+										selectedIds={values.tagIds}
+										label="Etiquetas"
+										onChange={tagIds => setFieldValue("tagIds", tagIds)}
 									/>
 								</div>
-								<TagCheckboxPicker
-									tags={tags}
-									selectedIds={values.tagIds}
-									label="Etiquetas"
-									onChange={tagIds => setFieldValue("tagIds", tagIds)}
-								/>
+								</div>
 								<Typography
-									style={{ marginBottom: 8, marginTop: 12 }}
+									className={classes.sectionTitle}
+									style={{ marginBottom: 8 }}
 									variant="subtitle1"
 								>
 									{i18n.t("contactModal.form.extraInfo")}

@@ -25,7 +25,7 @@ import { makeStyles } from "@material-ui/core/styles";
 
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import rocketLogo from "../../assets/rocketservice-logo.png";
+import rocketLoginLogo from "../../assets/rocketservice-logo-login.png";
 
 const useStyles = makeStyles(theme => ({
   page: {
@@ -34,19 +34,23 @@ const useStyles = makeStyles(theme => ({
     overflowX: "hidden",
     overflowY: "auto",
     display: "flex",
+    flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    padding: theme.spacing(2.5, 3),
-    color: "#F8FAFC",
-    background:
-      "linear-gradient(135deg, #020817 0%, #061633 46%, #020817 100%)",
+    padding: theme.spacing(2, 2.5),
+    color: theme.palette.type === "dark" ? "#F8FAFC" : "#0F172A",
+    background: theme.palette.type === "dark"
+      ? "linear-gradient(135deg, #020817 0%, #061633 46%, #020817 100%)"
+      : "linear-gradient(135deg, #F8FAFC 0%, #EDF4FF 48%, #FFFFFF 100%)",
     "&:before": {
       content: '""',
       position: "absolute",
       inset: 0,
-      opacity: 0.42,
+      opacity: theme.palette.type === "dark" ? 0.42 : 0.28,
       backgroundImage:
-        "linear-gradient(rgba(56,189,248,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.08) 1px, transparent 1px)",
+        theme.palette.type === "dark"
+          ? "linear-gradient(rgba(56,189,248,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(56,189,248,0.08) 1px, transparent 1px)"
+          : "linear-gradient(rgba(37,99,235,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.08) 1px, transparent 1px)",
       backgroundSize: "72px 72px",
       transform: "perspective(900px) rotateX(62deg) translateY(28%) scale(1.25)",
       transformOrigin: "bottom center"
@@ -65,66 +69,72 @@ const useStyles = makeStyles(theme => ({
       }
     },
     "@media (max-height: 820px)": {
-      alignItems: "flex-start"
+      paddingTop: theme.spacing(1),
+      paddingBottom: theme.spacing(1)
     }
   },
   shell: {
     position: "relative",
     zIndex: 1,
     width: "100%",
-    maxWidth: 1360,
+    maxWidth: 1120,
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1fr) minmax(360px, 480px)",
-    gap: theme.spacing(5),
+    gridTemplateColumns: "minmax(380px, 1fr) minmax(290px, 340px)",
+    gap: theme.spacing(4),
     alignItems: "center",
-    padding: theme.spacing(1, 0, 5),
+    padding: 0,
     [theme.breakpoints.down("md")]: {
-      maxWidth: 980,
-      gridTemplateColumns: "minmax(0, 1fr) minmax(360px, 460px)",
-      gap: theme.spacing(4)
+      maxWidth: "calc(100vw - 32px)",
+      gridTemplateColumns: "minmax(360px, 1fr) minmax(280px, 330px)",
+      gap: theme.spacing(3)
     },
     [theme.breakpoints.down("sm")]: {
+      gridTemplateColumns: "minmax(330px, 1fr) minmax(270px, 310px)",
+      gap: theme.spacing(2),
+      maxWidth: "calc(100vw - 24px)"
+    },
+    "@media (max-width: 900px) and (pointer: coarse)": {
       gridTemplateColumns: "1fr",
-      gap: theme.spacing(3),
-      maxWidth: 560,
-      padding: theme.spacing(1, 0, 2)
+      maxWidth: 500,
+      gap: theme.spacing(2),
+      justifyItems: "center"
     }
   },
   brandPanel: {
     position: "relative",
     paddingLeft: 0,
     minWidth: 0,
-    maxWidth: 520,
-    minHeight: 650,
+    maxWidth: 620,
+    minHeight: 590,
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     textAlign: "center",
-    transform: "translateX(-38px)",
+    transform: "none",
     "&:before": {
       content: '""',
       position: "absolute",
       zIndex: -1,
-      width: 760,
-      height: 760,
+      width: 620,
+      height: 620,
       left: "50%",
       top: "50%",
       transform: "translate(-50%, -50%)",
       borderRadius: "50%",
-      border: "1px solid rgba(37,99,235,0.2)",
-      boxShadow:
-        "0 0 0 52px rgba(37,99,235,0.04), 0 0 0 112px rgba(56,189,248,0.028)",
+      border: theme.palette.type === "dark" ? "1px solid rgba(37,99,235,0.2)" : "1px solid rgba(37,99,235,0.16)",
+      boxShadow: theme.palette.type === "dark"
+        ? "0 0 0 44px rgba(37,99,235,0.04), 0 0 0 92px rgba(56,189,248,0.028)"
+        : "0 0 0 44px rgba(37,99,235,0.05), 0 0 0 92px rgba(56,189,248,0.05)",
       pointerEvents: "none"
     },
     [theme.breakpoints.down("md")]: {
       paddingLeft: 0,
-      maxWidth: 460,
-      minHeight: 610,
-      transform: "translateX(-16px)",
+      maxWidth: 540,
+      minHeight: 540,
       "&:before": {
-        width: 680,
-        height: 680
+        width: 560,
+        height: 560
       }
     },
     [theme.breakpoints.down("sm")]: {
@@ -135,10 +145,20 @@ const useStyles = makeStyles(theme => ({
       "&:before": {
         display: "none"
       }
+    },
+    "@media (max-width: 900px) and (pointer: coarse)": {
+      display: "none"
+    },
+    "@media (max-height: 760px) and (min-width: 901px)": {
+      minHeight: 520,
+      "&:before": {
+        width: 550,
+        height: 550
+      }
     }
   },
   heroLogo: {
-    width: "min(420px, 100%)",
+    width: "min(260px, 70%)",
     display: "block",
     marginLeft: "auto",
     marginRight: "auto",
@@ -146,7 +166,7 @@ const useStyles = makeStyles(theme => ({
     filter: "drop-shadow(0 18px 32px rgba(0, 178, 255, 0.28))",
     objectFit: "contain",
     [theme.breakpoints.down("md")]: {
-      maxWidth: 350,
+      maxWidth: 235,
       marginBottom: theme.spacing(1.5)
     },
     [theme.breakpoints.down("sm")]: {
@@ -155,8 +175,8 @@ const useStyles = makeStyles(theme => ({
     }
   },
   headline: {
-    maxWidth: 460,
-    fontSize: 34,
+    maxWidth: 400,
+    fontSize: 25,
     lineHeight: 1.08,
     fontWeight: 800,
     letterSpacing: 0,
@@ -164,20 +184,20 @@ const useStyles = makeStyles(theme => ({
     marginBottom: theme.spacing(1.25),
     "& span": {
       display: "block",
-      color: "#38BDF8"
+      color: theme.palette.type === "dark" ? "#38BDF8" : "#2563EB"
     },
     [theme.breakpoints.down("sm")]: {
       margin: "0 auto 10px",
-      fontSize: 28
+      fontSize: 24
     },
     [theme.breakpoints.down("xs")]: {
       fontSize: 26
     }
   },
   subtitle: {
-    maxWidth: 420,
-    color: "#CBD5E1",
-    fontSize: 16,
+    maxWidth: 360,
+    color: theme.palette.type === "dark" ? "#CBD5E1" : "#475569",
+    fontSize: 13,
     lineHeight: 1.55,
     textAlign: "center",
     marginBottom: theme.spacing(2),
@@ -191,7 +211,7 @@ const useStyles = makeStyles(theme => ({
   },
   benefits: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(96px, 118px))",
+    gridTemplateColumns: "repeat(3, minmax(78px, 100px))",
     justifyContent: "center",
     width: "100%",
     gap: theme.spacing(2),
@@ -212,38 +232,51 @@ const useStyles = makeStyles(theme => ({
   },
   benefit: {
     textAlign: "center",
-    color: "#D9E7FF",
-    fontSize: 13,
+    color: theme.palette.type === "dark" ? "#D9E7FF" : "#334155",
+    fontSize: 11,
     lineHeight: 1.32
   },
   benefitIcon: {
-    width: 48,
-    height: 48,
-    margin: "0 auto 8px",
+    width: 38,
+    height: 38,
+    margin: "0 auto 7px",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 12,
     color: "#38BDF8",
-    border: "1px solid rgba(56,189,248,0.35)",
-    background:
-      "linear-gradient(180deg, rgba(37,99,235,0.22), rgba(2,8,23,0.38))",
-    boxShadow: "0 16px 28px rgba(37,99,235,0.18)"
+    border: theme.palette.type === "dark" ? "1px solid rgba(56,189,248,0.35)" : "1px solid rgba(37,99,235,0.18)",
+    background: theme.palette.type === "dark"
+      ? "linear-gradient(180deg, rgba(37,99,235,0.22), rgba(2,8,23,0.38))"
+      : "linear-gradient(180deg, #FFFFFF, #EAF3FF)",
+    boxShadow: theme.palette.type === "dark"
+      ? "0 16px 28px rgba(37,99,235,0.18)"
+      : "0 12px 24px rgba(37,99,235,0.12)"
   },
   loginCard: {
     width: "100%",
-    maxWidth: 480,
+    maxWidth: 340,
     justifySelf: "end",
-    padding: theme.spacing(3.5, 4),
-    borderRadius: 24,
-    border: "1px solid rgba(56,189,248,0.48)",
-    background:
-      "linear-gradient(180deg, rgba(15, 34, 68, 0.78), rgba(2, 8, 23, 0.82))",
-    boxShadow:
-      "0 0 0 1px rgba(37,99,235,0.14), 0 28px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12)",
+    padding: theme.spacing(3),
+    borderRadius: 16,
+    border: theme.palette.type === "dark" ? "1px solid rgba(56,189,248,0.48)" : "1px solid #DCE5F2",
+    background: theme.palette.type === "dark"
+      ? "linear-gradient(180deg, rgba(15, 34, 68, 0.78), rgba(2, 8, 23, 0.82))"
+      : "rgba(255, 255, 255, 0.92)",
+    boxShadow: theme.palette.type === "dark"
+      ? "0 0 0 1px rgba(37,99,235,0.14), 0 28px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.12)"
+      : "0 28px 70px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255,255,255,0.9)",
     backdropFilter: "blur(18px)",
     [theme.breakpoints.down("md")]: {
-      padding: theme.spacing(4)
+      padding: theme.spacing(2.75)
+    },
+    "@media (max-width: 900px) and (pointer: coarse)": {
+      justifySelf: "center",
+      maxWidth: 380
+    },
+    "@media (max-height: 760px) and (min-width: 901px)": {
+      padding: theme.spacing(2.25),
+      maxWidth: 340
     },
     [theme.breakpoints.down("sm")]: {
       justifySelf: "center"
@@ -254,53 +287,69 @@ const useStyles = makeStyles(theme => ({
     }
   },
   cardLogo: {
-    width: 225,
+    width: 150,
     maxWidth: "90%",
     display: "block",
-    margin: "0 auto 16px",
+    margin: "0 auto 18px",
     filter: "drop-shadow(0 12px 22px rgba(0, 178, 255, 0.24))",
     objectFit: "contain",
     [theme.breakpoints.down("xs")]: {
-      width: 220,
+      width: 160,
       marginBottom: theme.spacing(2)
+    },
+    "@media (max-height: 760px)": {
+      width: 130,
+      marginBottom: theme.spacing(1)
     }
   },
   title: {
     textAlign: "center",
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: 800,
     lineHeight: 1.15,
     letterSpacing: 0,
     marginBottom: theme.spacing(0.75),
     [theme.breakpoints.down("xs")]: {
-      fontSize: 26
+      fontSize: 23
+    },
+    "@media (max-height: 760px)": {
+      fontSize: 22
     }
   },
   description: {
     textAlign: "center",
-    color: "#CBD5E1",
-    marginBottom: theme.spacing(2.5),
+    color: theme.palette.text.secondary,
+    marginBottom: theme.spacing(2),
+    fontSize: 13,
     [theme.breakpoints.down("xs")]: {
       marginBottom: theme.spacing(2.5)
+    },
+    "@media (max-height: 760px)": {
+      marginBottom: theme.spacing(1)
     }
   },
   form: {
     width: "100%"
   },
   fieldLabel: {
-    color: "#F8FAFC",
+    color: theme.palette.text.primary,
     fontWeight: 700,
-    marginTop: theme.spacing(1.5),
-    marginBottom: theme.spacing(0.75)
+    marginTop: theme.spacing(1.25),
+    marginBottom: theme.spacing(0.5),
+    fontSize: 12,
+    "@media (max-height: 760px)": {
+      marginTop: theme.spacing(0.75),
+      marginBottom: theme.spacing(0.5)
+    }
   },
   textField: {
     "& .MuiOutlinedInput-root": {
-      height: 56,
-      color: "#F8FAFC",
+      height: 42,
+      color: theme.palette.text.primary,
       borderRadius: 10,
-      background: "rgba(2, 8, 23, 0.42)",
+      background: theme.palette.type === "dark" ? "rgba(2, 8, 23, 0.42)" : "#FFFFFF",
       "& fieldset": {
-        borderColor: "rgba(148,163,184,0.28)"
+        borderColor: theme.palette.type === "dark" ? "rgba(148,163,184,0.28)" : "#CBD5E1"
       },
       "&:hover fieldset": {
         borderColor: "rgba(56,189,248,0.52)"
@@ -311,11 +360,21 @@ const useStyles = makeStyles(theme => ({
       }
     },
     "& .MuiInputBase-input::placeholder": {
-      color: "#94A3B8",
+      color: theme.palette.text.secondary,
       opacity: 1
     },
     "& .MuiSvgIcon-root": {
       color: "#94A3B8"
+    },
+    "& .MuiInputBase-input": {
+      fontSize: 13,
+      paddingTop: 11,
+      paddingBottom: 11
+    },
+    "@media (max-height: 760px)": {
+      "& .MuiOutlinedInput-root": {
+        height: 40
+      }
     }
   },
   row: {
@@ -323,8 +382,8 @@ const useStyles = makeStyles(theme => ({
     alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing(2),
-    marginTop: theme.spacing(2),
-    color: "#E2E8F0",
+    marginTop: theme.spacing(1.5),
+    color: theme.palette.text.secondary,
     "& .MuiCheckbox-root": {
       color: "#38BDF8",
       padding: 6
@@ -333,49 +392,35 @@ const useStyles = makeStyles(theme => ({
       alignItems: "flex-start",
       flexDirection: "column",
       gap: theme.spacing(0.5)
+    },
+    "& .MuiFormControlLabel-label": {
+      fontSize: 13
+    },
+    "@media (max-height: 760px)": {
+      marginTop: theme.spacing(1)
     }
   },
   submit: {
-    height: 54,
-    marginTop: theme.spacing(2.5),
+    height: 42,
+    marginTop: theme.spacing(1.75),
     borderRadius: 10,
     color: "#FFFFFF",
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 800,
     textTransform: "none",
     background: "linear-gradient(90deg, #1663FF 0%, #14D9E8 100%)",
     boxShadow: "0 18px 34px rgba(20, 217, 232, 0.22)",
     "&:hover": {
       background: "linear-gradient(90deg, #0F56E8 0%, #10C8D9 100%)"
+    },
+    "@media (max-height: 760px)": {
+      height: 40,
+      marginTop: theme.spacing(1.25),
+      fontSize: 13
     }
   },
   footer: {
-    position: "absolute",
-    left: "50%",
-    bottom: 14,
-    transform: "translateX(-50%)",
-    zIndex: 1,
-    width: "min(860px, calc(100% - 32px))",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: theme.spacing(3),
-    color: "#94A3B8",
-    fontSize: 14,
-    [theme.breakpoints.down("md")]: {
-      display: "none"
-    },
-    "@media (max-height: 820px)": {
-      position: "relative",
-      left: "auto",
-      bottom: "auto",
-      transform: "none",
-      marginTop: theme.spacing(1),
-      marginBottom: theme.spacing(2)
-    },
-    [theme.breakpoints.down("sm")]: {
-      display: "none"
-    }
+    display: "none"
   }
 }));
 
@@ -402,7 +447,7 @@ const Login = () => {
       <CssBaseline />
       <div className={classes.shell}>
         <section className={classes.brandPanel}>
-          <img src={rocketLogo} alt="RocketService" className={classes.heroLogo} />
+          <img src={rocketLoginLogo} alt="Rocket Service" className={classes.heroLogo} />
           <Typography component="h1" className={classes.headline}>
             Atendimento inteligente,
             <span>rapido e organizado</span>
@@ -434,7 +479,7 @@ const Login = () => {
         </section>
 
         <section className={classes.loginCard}>
-          <img src={rocketLogo} alt="RocketService" className={classes.cardLogo} />
+          <img src={rocketLoginLogo} alt="Rocket Service" className={classes.cardLogo} />
           <Typography component="h2" className={classes.title}>
             Entrar na plataforma
           </Typography>

@@ -30,7 +30,7 @@ import openSocket from "../services/socket-io";
 const useStyles = makeStyles(theme => ({
   root: {
     padding: theme.spacing(1.25, 1.5, 2),
-    background: "#08111F",
+    background: theme.custom.sidebar,
     color: "#FFFFFF",
   },
   rootCollapsed: {
@@ -54,7 +54,7 @@ const useStyles = makeStyles(theme => ({
     borderLeft: "3px solid transparent",
     overflow: "hidden",
     "&:hover": {
-      background: "rgba(37, 99, 235, 0.12)",
+      background: "rgba(255, 255, 255, 0.10)",
       color: "#FFFFFF",
     },
     "& .MuiListItemIcon-root": {
@@ -104,7 +104,7 @@ const useStyles = makeStyles(theme => ({
     lineHeight: 1.15,
   },
   activeItem: {
-    background: "#12306A",
+    background: theme.palette.type === "dark" ? "#12306A" : "rgba(255, 255, 255, 0.16)",
     color: "#FFFFFF",
     borderLeftColor: "#38BDF8",
     boxShadow: "inset 0 0 0 1px rgba(96, 165, 250, 0.08)",

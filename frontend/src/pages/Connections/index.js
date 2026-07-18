@@ -16,6 +16,8 @@ import {
 	Tooltip,
 	Typography,
 	CircularProgress,
+	Grid,
+	Chip,
 } from "@material-ui/core";
 import {
 	Edit,
@@ -25,6 +27,7 @@ import {
 	SignalCellular4Bar,
 	CropFree,
 	DeleteOutline,
+	WhatsApp,
 } from "@material-ui/icons";
 
 import MainContainer from "../../components/MainContainer";
@@ -41,6 +44,7 @@ import { i18n } from "../../translate/i18n";
 import { WhatsAppsContext } from "../../context/WhatsApp/WhatsAppsContext";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
+import { EmptyState } from "../../components/ExecutiveLayout";
 
 const useStyles = makeStyles(theme => ({
 	mainPaper: {
@@ -48,6 +52,84 @@ const useStyles = makeStyles(theme => ({
 		padding: theme.spacing(1),
 		overflowY: "scroll",
 		...theme.scrollbarStyles,
+	},
+	connectionGrid: {
+		paddingBottom: theme.spacing(1),
+	},
+	connectionCard: {
+		height: "100%",
+		padding: theme.spacing(2),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.paper,
+		boxShadow: theme.custom?.cardShadow,
+		display: "flex",
+		flexDirection: "column",
+		gap: theme.spacing(1.5),
+	},
+	connectionCardHeader: {
+		display: "flex",
+		alignItems: "flex-start",
+		justifyContent: "space-between",
+		gap: theme.spacing(1.5),
+	},
+	connectionIdentity: {
+		display: "flex",
+		alignItems: "center",
+		gap: theme.spacing(1.25),
+		minWidth: 0,
+	},
+	connectionIcon: {
+		width: 44,
+		height: 44,
+		borderRadius: 8,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		color: "#16A34A",
+		background: theme.palette.type === "dark" ? "rgba(34, 197, 94, 0.12)" : "#DCFCE7",
+		flexShrink: 0,
+	},
+	connectionName: {
+		fontWeight: 800,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+	},
+	connectionMeta: {
+		display: "grid",
+		gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+		gap: theme.spacing(1),
+		[theme.breakpoints.down("xs")]: {
+			gridTemplateColumns: "1fr",
+		},
+	},
+	metaItem: {
+		padding: theme.spacing(1),
+		borderRadius: 8,
+		border: `1px solid ${theme.palette.divider}`,
+		background: theme.palette.background.default,
+	},
+	metaLabel: {
+		fontSize: 11,
+		fontWeight: 800,
+		textTransform: "uppercase",
+		color: theme.palette.text.secondary,
+	},
+	metaValue: {
+		fontSize: 13,
+		fontWeight: 700,
+		color: theme.palette.text.primary,
+		marginTop: 2,
+	},
+	connectionActions: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "space-between",
+		gap: theme.spacing(1),
+		flexWrap: "wrap",
+		paddingTop: theme.spacing(1),
+		borderTop: `1px solid ${theme.palette.divider}`,
 	},
 	customTableCell: {
 		display: "flex",
@@ -335,7 +417,7 @@ const Connections = () => {
 				whatsAppId={!qrModalOpen && selectedWhatsApp?.id}
 			/>
 			<MainHeader>
-				<Title>{i18n.t("connections.title")}</Title>
+				<Title subtitle="Monitore sessoes, QR codes e a saude das conexoes de atendimento.">{i18n.t("connections.title")}</Title>
 				{isAdmin && (
 					<MainHeaderButtonsWrapper>
 						<Button
@@ -348,83 +430,80 @@ const Connections = () => {
 					</MainHeaderButtonsWrapper>
 				)}
 			</MainHeader>
-			<Paper className={classes.mainPaper} variant="outlined">
-				<Table size="small">
-					<TableHead>
-						<TableRow>
-							<TableCell align="center">
-								{i18n.t("connections.table.name")}
-							</TableCell>
-							<TableCell align="center">
-								{i18n.t("connections.table.status")}
-							</TableCell>
-							<TableCell align="center">
-								{i18n.t("connections.table.session")}
-							</TableCell>
-							<TableCell align="center">
-								{i18n.t("connections.table.lastUpdate")}
-							</TableCell>
-							<TableCell align="center">
-								{i18n.t("connections.table.default")}
-							</TableCell>
-							<TableCell align="center">
-								{i18n.t("connections.table.actions")}
-							</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{loading ? (
-							<TableRowSkeleton />
-						) : (
-							<>
-								{whatsApps?.length > 0 &&
-									whatsApps.map(whatsApp => (
-										<TableRow key={whatsApp.id}>
-											<TableCell align="center">{whatsApp.name}</TableCell>
-											<TableCell align="center">
-												{renderStatusToolTips(whatsApp)}
-											</TableCell>
-											<TableCell align="center">
-												{renderActionButtons(whatsApp)}
-											</TableCell>
-											<TableCell align="center">
-												{format(parseISO(whatsApp.updatedAt), "dd/MM/yy HH:mm")}
-											</TableCell>
-											<TableCell align="center">
-												{whatsApp.isDefault && (
-													<div className={classes.customTableCell}>
-														<CheckCircle style={{ color: green[500] }} />
-													</div>
-												)}
-											</TableCell>
-											<TableCell align="center">
-												{isAdmin && (
-													<>
-														<IconButton
-															size="small"
-															onClick={() => handleEditWhatsApp(whatsApp)}
-														>
-															<Edit />
-														</IconButton>
-
-														<IconButton
-															size="small"
-															onClick={e => {
-																handleOpenConfirmationModal("delete", whatsApp.id);
-															}}
-														>
-															<DeleteOutline />
-														</IconButton>
-													</>
-												)}
-											</TableCell>
-										</TableRow>
-									))}
-							</>
-						)}
-					</TableBody>
-				</Table>
-			</Paper>
+			{loading ? (
+				<Paper className={classes.mainPaper} variant="outlined">
+					<Table size="small">
+						<TableHead>
+							<TableRow>
+								<TableCell>{i18n.t("connections.table.name")}</TableCell>
+								<TableCell>{i18n.t("connections.table.status")}</TableCell>
+								<TableCell>{i18n.t("connections.table.actions")}</TableCell>
+							</TableRow>
+						</TableHead>
+						<TableBody>
+							<TableRowSkeleton columns={3} />
+						</TableBody>
+					</Table>
+				</Paper>
+			) : whatsApps?.length ? (
+				<Grid container spacing={2} className={classes.connectionGrid}>
+					{whatsApps.map(whatsApp => (
+						<Grid item xs={12} md={6} xl={4} key={whatsApp.id}>
+							<Paper variant="outlined" className={classes.connectionCard}>
+								<div className={classes.connectionCardHeader}>
+									<div className={classes.connectionIdentity}>
+										<div className={classes.connectionIcon}>
+											<WhatsApp />
+										</div>
+										<div>
+											<Typography className={classes.connectionName}>{whatsApp.name}</Typography>
+											<Typography variant="body2" color="textSecondary">
+												Conexao #{whatsApp.id}
+											</Typography>
+										</div>
+									</div>
+									{whatsApp.isDefault && (
+										<Chip size="small" color="primary" label="Padrao" />
+									)}
+								</div>
+								<div className={classes.connectionMeta}>
+									<div className={classes.metaItem}>
+										<Typography className={classes.metaLabel}>Status</Typography>
+										<div className={classes.metaValue}>{renderStatusToolTips(whatsApp)}</div>
+									</div>
+									<div className={classes.metaItem}>
+										<Typography className={classes.metaLabel}>Ultima atualizacao</Typography>
+										<Typography className={classes.metaValue}>
+											{format(parseISO(whatsApp.updatedAt), "dd/MM/yy HH:mm")}
+										</Typography>
+									</div>
+								</div>
+								<div className={classes.connectionActions}>
+									<div>{renderActionButtons(whatsApp)}</div>
+									{isAdmin && (
+										<div>
+											<IconButton size="small" onClick={() => handleEditWhatsApp(whatsApp)}>
+												<Edit />
+											</IconButton>
+											<IconButton size="small" onClick={() => handleOpenConfirmationModal("delete", whatsApp.id)}>
+												<DeleteOutline />
+											</IconButton>
+										</div>
+									)}
+								</div>
+							</Paper>
+						</Grid>
+					))}
+				</Grid>
+			) : (
+				<EmptyState
+					icon={WhatsApp}
+					title="Nenhuma conexao cadastrada"
+					description="Cadastre uma conexao WhatsApp para iniciar recebimento e envio de mensagens."
+					actionLabel={isAdmin ? i18n.t("connections.buttons.add") : undefined}
+					onAction={isAdmin ? handleOpenWhatsAppModal : undefined}
+				/>
+			)}
 		</MainContainer>
 	);
 };

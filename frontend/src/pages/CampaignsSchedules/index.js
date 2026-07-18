@@ -14,8 +14,6 @@ import {
   LinearProgress,
   MenuItem,
   Paper,
-  Tab,
-  Tabs,
   Table,
   TableBody,
   TableCell,
@@ -37,6 +35,7 @@ import ListAltIcon from "@material-ui/icons/ListAlt";
 import ReplayIcon from "@material-ui/icons/Replay";
 import SendIcon from "@material-ui/icons/Send";
 import ScheduleIcon from "@material-ui/icons/Schedule";
+import DeleteIcon from "@material-ui/icons/Delete";
 import { toast } from "react-toastify";
 
 import api from "../../services/api";
@@ -44,11 +43,12 @@ import toastError from "../../errors/toastError";
 import MessageTemplateField from "../../components/MessageTemplateField";
 import TagCheckboxPicker from "../../components/TagCheckboxPicker";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { ListToolbar } from "../../components/ExecutiveLayout";
 
 const useStyles = makeStyles(theme => ({
   root: {
     flex: 1,
-    padding: theme.spacing(2),
+    padding: theme.spacing(2, 3, 3),
     overflowY: "auto",
     background: theme.palette.background.default,
     ...theme.scrollbarStyles
@@ -57,7 +57,10 @@ const useStyles = makeStyles(theme => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: theme.spacing(2)
+    minHeight: 68,
+    marginBottom: 0,
+    paddingBottom: theme.spacing(1.5),
+    borderBottom: `1px solid ${theme.palette.divider}`
   },
   tabs: {
     marginBottom: theme.spacing(2),
@@ -146,6 +149,144 @@ const useStyles = makeStyles(theme => ({
     flexWrap: "wrap",
     gap: theme.spacing(0.25),
     flexShrink: 0,
+  },
+  compactTable: {
+    minWidth: 980,
+    "& th": {
+      color: theme.palette.text.secondary,
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: 0,
+      textTransform: "uppercase",
+      background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
+      borderBottom: `1px solid ${theme.palette.divider}`,
+      padding: theme.spacing(1, 1.25),
+    },
+    "& td": {
+      borderBottom: `1px solid ${theme.palette.divider}`,
+      padding: theme.spacing(0.9, 1.25),
+      verticalAlign: "middle",
+    },
+    "& tbody tr:hover": {
+      background: theme.palette.type === "dark" ? "rgba(56,189,248,0.06)" : "#F8FBFF",
+    },
+  },
+  compactNameCell: {
+    minWidth: 280,
+    maxWidth: 420,
+  },
+  itemIdentity: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    minWidth: 0,
+  },
+  compactIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: theme.palette.primary.main,
+    background: theme.palette.type === "dark" ? "rgba(56,189,248,0.12)" : "#EAF4FF",
+    flexShrink: 0,
+    "& svg": {
+      fontSize: 18,
+    },
+  },
+  itemText: {
+    minWidth: 0,
+  },
+  itemName: {
+    display: "block",
+    fontWeight: 700,
+    lineHeight: 1.25,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  itemSubline: {
+    display: "block",
+    marginTop: 2,
+    color: theme.palette.text.secondary,
+    fontSize: 12,
+    lineHeight: 1.25,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  statusChip: {
+    height: 24,
+    minWidth: 96,
+    fontSize: 11,
+    fontWeight: 700,
+    borderRadius: 6,
+    border: "1px solid transparent",
+  },
+  statusScheduled: {
+    color: theme.palette.type === "dark" ? "#93C5FD" : "#1D4ED8",
+    background: theme.palette.type === "dark" ? "rgba(37,99,235,0.18)" : "#DBEAFE",
+    borderColor: theme.palette.type === "dark" ? "rgba(147,197,253,0.28)" : "#BFDBFE",
+  },
+  statusRunning: {
+    color: theme.palette.type === "dark" ? "#67E8F9" : "#0E7490",
+    background: theme.palette.type === "dark" ? "rgba(6,182,212,0.16)" : "#CFFAFE",
+    borderColor: theme.palette.type === "dark" ? "rgba(103,232,249,0.28)" : "#A5F3FC",
+  },
+  statusPaused: {
+    color: theme.palette.type === "dark" ? "#FCD34D" : "#92400E",
+    background: theme.palette.type === "dark" ? "rgba(245,158,11,0.16)" : "#FEF3C7",
+    borderColor: theme.palette.type === "dark" ? "rgba(252,211,77,0.30)" : "#FDE68A",
+  },
+  statusCompleted: {
+    color: theme.palette.type === "dark" ? "#86EFAC" : "#166534",
+    background: theme.palette.type === "dark" ? "rgba(34,197,94,0.16)" : "#DCFCE7",
+    borderColor: theme.palette.type === "dark" ? "rgba(134,239,172,0.28)" : "#BBF7D0",
+  },
+  statusError: {
+    color: theme.palette.type === "dark" ? "#FDA4AF" : "#BE123C",
+    background: theme.palette.type === "dark" ? "rgba(244,63,94,0.16)" : "#FFE4E6",
+    borderColor: theme.palette.type === "dark" ? "rgba(253,164,175,0.28)" : "#FECDD3",
+  },
+  statusCanceled: {
+    color: theme.palette.text.secondary,
+    background: theme.palette.type === "dark" ? "rgba(148,163,184,0.12)" : "#F1F5F9",
+    borderColor: theme.palette.divider,
+  },
+  typeChip: {
+    height: 22,
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 600,
+    background: theme.palette.type === "dark" ? "#111A2E" : "#F1F5F9",
+  },
+  dateCell: {
+    whiteSpace: "nowrap",
+    color: theme.palette.text.primary,
+    fontSize: 13,
+  },
+  mutedCell: {
+    whiteSpace: "nowrap",
+    color: theme.palette.text.secondary,
+    fontSize: 13,
+  },
+  progressCell: {
+    minWidth: 150,
+  },
+  progressLine: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    borderRadius: 999,
+  },
+  emptyState: {
+    padding: theme.spacing(3),
+    textAlign: "center",
   },
   helper: {
     marginBottom: theme.spacing(2)
@@ -492,13 +633,14 @@ const ContactPicker = ({
 const CampaignsSchedules = () => {
   const classes = useStyles();
   const { user } = useContext(AuthContext);
+  const isAdmin = user?.profile === "admin";
   const canManageAutomationItem = item =>
-    user?.profile === "admin" ||
+    isAdmin ||
     Number(item?.userId) === Number(user?.id) ||
     user?.specialPermissions?.manageOtherCampaigns === true;
-  const [tab, setTab] = useState(0);
   const [campaigns, setCampaigns] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [tags, setTags] = useState([]);
   const [whatsapps, setWhatsapps] = useState([]);
@@ -541,6 +683,7 @@ const CampaignsSchedules = () => {
       setContacts(contactData.contacts || []);
       setWhatsapps(whatsappData || []);
       setTags(tagData || []);
+      setSelectedItemIds([]);
     } catch (err) {
       toastError(err);
     }
@@ -815,6 +958,16 @@ const CampaignsSchedules = () => {
     canceled: "default",
     finished: "primary"
   }[status] || "default");
+
+  const getStatusChipClass = status => {
+    if (["scheduled", "draft"].includes(status)) return classes.statusScheduled;
+    if (status === "running") return classes.statusRunning;
+    if (status === "paused") return classes.statusPaused;
+    if (["completed", "sent", "finished"].includes(status)) return classes.statusCompleted;
+    if (["failed", "error", "completed_with_errors"].includes(status)) return classes.statusError;
+    if (status === "canceled") return classes.statusCanceled;
+    return classes.statusCanceled;
+  };
 
   const formatDateTime = value => {
     if (!value) return "-";
@@ -1141,6 +1294,25 @@ const CampaignsSchedules = () => {
     }
   };
 
+  const getAutomationDeleteUrl = item =>
+    item.source === "campaign"
+      ? `/campaigns/${item.raw.id}`
+      : `/scheduled-messages/${item.raw.id}`;
+
+  const deleteAutomationItem = async item => {
+    if (!isAdmin) return;
+    const confirmed = window.confirm(`Excluir "${item.name}"? Esta acao nao pode ser desfeita.`);
+    if (!confirmed) return;
+
+    try {
+      await api.delete(getAutomationDeleteUrl(item));
+      toast.success("Agendamento excluido.");
+      loadData();
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const updateScheduleStatus = async (schedule, status) => {
     try {
       await api.put(`/scheduled-messages/${schedule.id}`, { status });
@@ -1235,6 +1407,12 @@ const CampaignsSchedules = () => {
             icon: <ListAltIcon />,
             onClick: () => openCampaignLogs(campaign)
           })}
+          {isAdmin && renderIconAction({
+            title: "Excluir",
+            icon: <DeleteIcon />,
+            color: "secondary",
+            onClick: () => deleteAutomationItem(item)
+          })}
         </div>
       );
     }
@@ -1274,17 +1452,55 @@ const CampaignsSchedules = () => {
           icon: <ListAltIcon />,
           onClick: () => openScheduleLogs(schedule)
         })}
+        {isAdmin && renderIconAction({
+          title: "Excluir",
+          icon: <DeleteIcon />,
+          color: "secondary",
+          onClick: () => deleteAutomationItem(item)
+        })}
       </div>
     );
   };
 
   const automationItems = buildAutomationItems();
+  const selectedAutomationItems = automationItems.filter(item => selectedItemIds.includes(item.id));
+  const allVisibleSelected = automationItems.length > 0 && selectedAutomationItems.length === automationItems.length;
+  const someVisibleSelected = selectedAutomationItems.length > 0 && !allVisibleSelected;
+
+  const toggleSelectItem = itemId => {
+    setSelectedItemIds(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const toggleSelectAllVisible = () => {
+    setSelectedItemIds(allVisibleSelected ? [] : automationItems.map(item => item.id));
+  };
+
+  const deleteSelectedAutomationItems = async () => {
+    if (!isAdmin || !selectedAutomationItems.length) return;
+    const confirmed = window.confirm(
+      `Excluir ${selectedAutomationItems.length} item(ns) selecionado(s)? Esta acao nao pode ser desfeita.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await Promise.all(selectedAutomationItems.map(item => api.delete(getAutomationDeleteUrl(item))));
+      toast.success(`${selectedAutomationItems.length} item(ns) excluido(s).`);
+      setSelectedItemIds([]);
+      loadData();
+    } catch (err) {
+      toastError(err);
+    }
+  };
 
   return (
     <Container maxWidth={false} className={classes.root}>
       <div className={classes.header}>
         <div>
-          <Typography variant="h6">Mensagens programadas</Typography>
+          <Typography variant="h5">Mensagens programadas</Typography>
           <Typography variant="body2" className={classes.helper}>
             Centralize mensagens agendadas, campanhas por etiqueta e envios recorrentes em uma unica area.
           </Typography>
@@ -1299,13 +1515,9 @@ const CampaignsSchedules = () => {
           </Button>
         </div>
       </div>
-      <Tabs value={0} indicatorColor="primary" textColor="primary" className={classes.tabs}>
-        <Tab label="Todos" />
-      </Tabs>
-
-      <Paper className={classes.paper} variant="outlined" style={{ marginBottom: 16 }}>
+      <ListToolbar>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={isAdmin && selectedAutomationItems.length ? 3 : 4}>
             <TextField
               fullWidth
               margin="dense"
@@ -1322,14 +1534,14 @@ const CampaignsSchedules = () => {
               }}
             />
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={isAdmin && selectedAutomationItems.length ? 3 : 4}>
             <TextField select fullWidth margin="dense" variant="outlined" label="Tipo" value={filterType} onChange={event => setFilterType(event.target.value)}>
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="schedule">Mensagem programada</MenuItem>
               <MenuItem value="campaign">Campanha</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={12} sm={4}>
+          <Grid item xs={12} sm={isAdmin && selectedAutomationItems.length ? 3 : 4}>
             <TextField select fullWidth margin="dense" variant="outlined" label="Status" value={filterStatus} onChange={event => setFilterStatus(event.target.value)}>
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="scheduled">Agendado</MenuItem>
@@ -1342,69 +1554,121 @@ const CampaignsSchedules = () => {
               <MenuItem value="canceled">Cancelado</MenuItem>
             </TextField>
           </Grid>
+          {isAdmin && selectedAutomationItems.length > 0 && (
+            <Grid item xs={12} sm={3}>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="secondary"
+                startIcon={<DeleteIcon />}
+                onClick={deleteSelectedAutomationItems}
+              >
+                Excluir selecionados ({selectedAutomationItems.length})
+              </Button>
+            </Grid>
+          )}
         </Grid>
-      </Paper>
+      </ListToolbar>
 
       <Paper className={classes.paper} variant="outlined">
-        <div className={classes.playlist}>
-          {automationItems.map(item => {
-            const percent = getProgressPercent(item.progress);
-            const isCampaign = item.source === "campaign";
+        <Table size="small" className={classes.compactTable}>
+          <TableHead>
+            <TableRow>
+              {isAdmin && (
+                <TableCell padding="checkbox">
+                  <Checkbox
+                    color="primary"
+                    indeterminate={someVisibleSelected}
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                    inputProps={{ "aria-label": "Selecionar todos os agendamentos visiveis" }}
+                  />
+                </TableCell>
+              )}
+              <TableCell>Envio</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Recorrencia</TableCell>
+              <TableCell>Proxima</TableCell>
+              <TableCell>Ultima</TableCell>
+              <TableCell>Progresso</TableCell>
+              <TableCell align="right">Acoes</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {automationItems.map(item => {
+              const percent = getProgressPercent(item.progress);
+              const isCampaign = item.source === "campaign";
 
-            return (
-              <div className={classes.automationCard} key={item.id}>
-                <div className={classes.automationHeader}>
-                  <div className={classes.automationTitle}>
-                    <div className={classes.automationIcon}>
-                      {isCampaign ? <SendIcon /> : <ScheduleIcon />}
-                    </div>
-                    <div style={{ minWidth: 0 }}>
-                      <Typography className={classes.automationName}>{item.name}</Typography>
-                      <div className={classes.automationMeta}>
-                        <Chip size="small" label={item.typeLabel} />
-                        <Chip size="small" color={getStatusColor(item.status)} label={item.statusLabel} />
-                        <Chip size="small" label={item.recurrenceLabel} />
-                        <Chip size="small" label={`WhatsApp: ${item.whatsappName}`} />
+              return (
+                <TableRow key={item.id} hover>
+                  {isAdmin && (
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        color="primary"
+                        checked={selectedItemIds.includes(item.id)}
+                        onChange={() => toggleSelectItem(item.id)}
+                        inputProps={{ "aria-label": `Selecionar ${item.name}` }}
+                      />
+                    </TableCell>
+                  )}
+                  <TableCell className={classes.compactNameCell}>
+                    <div className={classes.itemIdentity}>
+                      <div className={classes.compactIcon}>
+                        {isCampaign ? <SendIcon /> : <ScheduleIcon />}
+                      </div>
+                      <div className={classes.itemText}>
+                        <Typography component="span" className={classes.itemName}>
+                          {item.name}
+                        </Typography>
+                        <Typography component="span" className={classes.itemSubline}>
+                          {item.message || "Sem previa da mensagem"}
+                        </Typography>
                       </div>
                     </div>
-                  </div>
-                  {renderAutomationActions(item)}
-                </div>
-
-                <div className={classes.automationStats}>
-                  <div className={classes.statBox}>
-                    <Typography variant="caption" color="textSecondary">Proxima execucao</Typography>
-                    <Typography variant="body2" className={classes.statValue}>{formatDateTime(item.nextRunAt)}</Typography>
-                  </div>
-                  <div className={classes.statBox}>
-                    <Typography variant="caption" color="textSecondary">Ultima execucao</Typography>
-                    <Typography variant="body2" className={classes.statValue}>{formatDateTime(item.lastRunAt)}</Typography>
-                  </div>
-                  <div className={classes.statBox}>
-                    <Typography variant="caption" color="textSecondary">Enviados</Typography>
-                    <Typography variant="body2" className={classes.statValue}>{item.progress.sent} / {item.progress.total}</Typography>
-                  </div>
-                  <div className={classes.statBox}>
-                    <Typography variant="caption" color="textSecondary">Pendentes / erros</Typography>
-                    <Typography variant="body2" className={classes.statValue}>{item.progress.pending} pend. / {item.progress.failed} erro(s)</Typography>
-                  </div>
-                </div>
-
-                <div className={classes.progressArea}>
-                  <LinearProgress variant="determinate" value={percent} />
-                  <Typography variant="caption" color="textSecondary">
-                    {percent}% concluido
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      size="small"
+                      label={item.statusLabel}
+                      className={`${classes.statusChip} ${getStatusChipClass(item.status)}`}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Chip size="small" label={item.typeLabel} className={classes.typeChip} />
+                    <Typography className={classes.itemSubline} component="span">
+                      {item.recurrenceLabel}
+                    </Typography>
+                  </TableCell>
+                  <TableCell className={classes.dateCell}>{formatDateTime(item.nextRunAt)}</TableCell>
+                  <TableCell className={classes.mutedCell}>{formatDateTime(item.lastRunAt)}</TableCell>
+                  <TableCell className={classes.progressCell}>
+                    <div className={classes.progressLine}>
+                      <LinearProgress className={classes.progressBar} variant="determinate" value={percent} />
+                      <Typography variant="caption" color="textSecondary">
+                        {percent}%
+                      </Typography>
+                    </div>
+                    <Typography variant="caption" color="textSecondary">
+                      {item.progress.sent}/{item.progress.total} enviados · {item.progress.pending} pend. · {item.progress.failed} erro(s)
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    {renderAutomationActions(item)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {!automationItems.length && (
+              <TableRow>
+                <TableCell colSpan={isAdmin ? 8 : 7} className={classes.emptyState}>
+                  <Typography variant="body2" color="textSecondary">
+                    Nenhuma campanha ou agendamento encontrado para este filtro.
                   </Typography>
-                </div>
-              </div>
-            );
-          })}
-          {!automationItems.length && (
-            <Typography variant="body2" color="textSecondary">
-              Nenhuma campanha ou agendamento encontrado para este filtro.
-            </Typography>
-          )}
-        </div>
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </Paper>
 
       <Dialog open={scheduleModalOpen} onClose={closeScheduleModal} maxWidth="lg" fullWidth>

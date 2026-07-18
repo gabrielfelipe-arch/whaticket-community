@@ -15,7 +15,7 @@ import {
   TextField,
   Chip,
 } from "@material-ui/core";
-import { Edit, DeleteOutline } from "@material-ui/icons";
+import { Edit, DeleteOutline, Forum } from "@material-ui/icons";
 import SearchIcon from "@material-ui/icons/Search";
 
 import MainContainer from "../../components/MainContainer";
@@ -31,6 +31,7 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { EmptyState, ListToolbar } from "../../components/ExecutiveLayout";
 
 const asBoolean = value =>
   value === true || value === "true" || value === "1" || value === 1;
@@ -87,8 +88,12 @@ const reducer = (state, action) => {
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
-    padding: theme.spacing(1),
+    padding: 0,
     overflowY: "scroll",
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
     ...theme.scrollbarStyles,
   },
 }));
@@ -238,21 +243,8 @@ const QuickAnswers = () => {
         quickAnswerId={selectedQuickAnswers && selectedQuickAnswers.id}
       ></QuickAnswersModal>
       <MainHeader>
-        <Title>{i18n.t("quickAnswers.title")}</Title>
+        <Title subtitle="Padronize respostas frequentes e reduza tempo de atendimento.">{i18n.t("quickAnswers.title")}</Title>
         <MainHeaderButtonsWrapper>
-          <TextField
-            placeholder={i18n.t("quickAnswers.searchPlaceholder")}
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon style={{ color: "gray" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
           <Button
             variant="contained"
             color="primary"
@@ -262,6 +254,23 @@ const QuickAnswers = () => {
           </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
+      <ListToolbar>
+        <TextField
+          variant="outlined"
+          size="small"
+          placeholder={i18n.t("quickAnswers.searchPlaceholder")}
+          type="search"
+          value={searchParam}
+          onChange={handleSearch}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon color="action" />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </ListToolbar>
       <Paper
         className={classes.mainPaper}
         variant="outlined"
@@ -328,6 +337,19 @@ const QuickAnswers = () => {
                 </TableRow>
               ))}
               {loading && <TableRowSkeleton columns={5} />}
+              {!loading && quickAnswers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5}>
+                    <EmptyState
+                      icon={Forum}
+                      title="Nenhuma resposta rapida encontrada"
+                      description="Cadastre atalhos para mensagens usadas com frequencia pela equipe."
+                      actionLabel={i18n.t("quickAnswers.buttons.add")}
+                      onAction={handleOpenQuickAnswersModal}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
             </>
           </TableBody>
         </Table>

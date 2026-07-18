@@ -22,5 +22,6 @@ settingRoutes.post(
   upload.single("logo"),
   SettingController.uploadLogo
 );
+settingRoutes.delete("/settings/logo", isAuth, SettingController.removeLogo);
 
 export default settingRoutes;

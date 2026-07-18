@@ -4,6 +4,7 @@ import openSocket from "../../services/socket-io";
 import { makeStyles } from "@material-ui/core/styles";
 import List from "@material-ui/core/List";
 import Paper from "@material-ui/core/Paper";
+import ForumIcon from "@material-ui/icons/Forum";
 
 import TicketListItem from "../TicketListItem";
 import TicketsListSkeleton from "../TicketsListSkeleton";
@@ -11,6 +12,7 @@ import TicketsListSkeleton from "../TicketsListSkeleton";
 import useTickets from "../../hooks/useTickets";
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { EmptyState } from "../ExecutiveLayout";
 
 const useStyles = makeStyles(theme => ({
 	ticketsListWrapper: {
@@ -66,8 +68,8 @@ const useStyles = makeStyles(theme => ({
 
 	noTicketsDiv: {
 		display: "flex",
-		height: "100px",
-		margin: 40,
+		minHeight: "220px",
+		margin: theme.spacing(2),
 		flexDirection: "column",
 		alignItems: "center",
 		justifyContent: "center",
@@ -203,7 +205,7 @@ const reducer = (state, action) => {
 
 		const shouldUpdateTicket = ticket => !searchParam &&
 			belongsToThisPanel(ticket) &&
-			(!ticket.userId || ticket.userId === user?.id || showAll) &&
+			(!ticket.userId || Number(ticket.userId) === Number(user?.id) || showAll) &&
 			(!ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1);
 
 		const notBelongsToUserQueues = ticket =>
@@ -315,12 +317,11 @@ const reducer = (state, action) => {
 			<List style={{ paddingTop: 0 }}>
 					{ticketsList.length === 0 && !loading ? (
 						<div className={classes.noTicketsDiv}>
-							<span className={classes.noTicketsTitle}>
-								{i18n.t("ticketsList.noTicketsTitle")}
-							</span>
-							<p className={classes.noTicketsText}>
-								{i18n.t("ticketsList.noTicketsMessage")}
-							</p>
+							<EmptyState
+								icon={ForumIcon}
+								title={i18n.t("ticketsList.noTicketsTitle")}
+								description={i18n.t("ticketsList.noTicketsMessage")}
+							/>
 						</div>
 					) : (
 						<>

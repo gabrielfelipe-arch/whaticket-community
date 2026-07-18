@@ -219,11 +219,16 @@ const dispatchScheduledMessage = async (schedule: ScheduledMessage) => {
       executedAt: new Date()
     });
 
+    const sentAt = new Date();
+    const returnWindowMinutes = Math.max(1, Number(schedule.returnWindowMinutes || 1440));
+
     await schedule.update({
       status: nextRecurringRun ? "scheduled" : "completed",
-      sentAt: new Date(),
-      lastRunAt: new Date(),
+      sentAt,
+      lastRunAt: sentAt,
       nextRunAt: nextRecurringRun,
+      returnWindowExpiresAt: addSeconds(sentAt, returnWindowMinutes * 60),
+      returnHandledAt: null,
       runCount: (schedule.runCount || 0) + 1,
       errorMessage: null
     });

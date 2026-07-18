@@ -17,10 +17,23 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
+          "react-vendor": [
+            "react",
+            "react-dom",
+            "react-router-dom",
+          ],
           "material-ui": [
             "@material-ui/core",
             "@material-ui/icons",
             "@material-ui/lab",
+          ],
+          "charts": [
+            "recharts",
+          ],
+          "realtime-audio": [
+            "socket.io-client",
+            "emoji-mart",
+            "use-sound",
           ],
         },
       },

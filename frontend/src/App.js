@@ -6,7 +6,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import { ptBR } from "@material-ui/core/locale";
 import { CssBaseline } from "@material-ui/core";
-import { BrandingProvider } from "./context/Branding";
+import { BrandingProvider, defaultBranding } from "./context/Branding";
 import { getBackendUrl } from "./config";
 import openSocket from "./services/socket-io";
 
@@ -28,21 +28,7 @@ const brandingKeys = [
 
 const App = () => {
   const [locale, setLocale] = useState();
-  const [branding, setBranding] = useState({
-    brandName: "WhaTicket",
-    brandLogo: "",
-    brandLogoFit: "contain",
-    brandLogoPositionX: "50",
-    brandLogoPositionY: "50",
-    brandLogoScale: "1",
-    companyFantasyName: "",
-    companyLegalName: "",
-    companyCnpj: "",
-    companyAddress: "",
-    companyPhone: "",
-    companyEmail: "",
-    companyWebsite: ""
-  });
+  const [branding, setBranding] = useState(defaultBranding);
 
   const theme = createTheme(
     {

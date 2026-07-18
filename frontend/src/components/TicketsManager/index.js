@@ -37,7 +37,11 @@ const useStyles = makeStyles((theme) => ({
     flex: "none",
     backgroundColor: theme.palette.background.paper,
     borderBottom: `1px solid ${theme.palette.divider}`,
-    padding: theme.spacing(0.75, 1),
+    padding: theme.spacing(1.25, 1.25, 0.75),
+    "& .MuiTabs-indicator": {
+      height: 3,
+      borderRadius: 999,
+    },
   },
   settingsIcon: {
     alignSelf: "center",
@@ -47,17 +51,22 @@ const useStyles = makeStyles((theme) => ({
   tab: {
     minWidth: 120,
     width: 120,
-    minHeight: 50,
+    minHeight: 46,
     borderRadius: 8,
+    fontSize: 12,
   },
   ticketOptionsBox: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     background: theme.palette.background.paper,
-    padding: theme.spacing(1.25),
+    padding: theme.spacing(1.25, 1.5),
     borderBottom: `1px solid ${theme.palette.divider}`,
     gap: theme.spacing(1),
+    [theme.breakpoints.down("xs")]: {
+      alignItems: "stretch",
+      flexDirection: "column",
+    },
   },
   serachInputWrapper: {
     flex: 1,
@@ -67,6 +76,9 @@ const useStyles = makeStyles((theme) => ({
     border: `1px solid ${theme.palette.divider}`,
     padding: theme.spacing(0.5, 1),
     marginRight: theme.spacing(1),
+    [theme.breakpoints.down("xs")]: {
+      marginRight: 0,
+    },
   },
   searchIcon: {
     color: theme.palette.text.secondary,

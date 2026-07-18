@@ -16,7 +16,7 @@ const useStyles = makeStyles((theme) => ({
     height: `calc(100% - 64px)`,
     overflowY: "hidden",
     backgroundColor: theme.palette.background.default,
-    padding: theme.spacing(2),
+    padding: theme.spacing(2.5),
     [theme.breakpoints.down("sm")]: {
       padding: 0,
       height: `calc(100% - 56px)`,
@@ -30,7 +30,9 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.background.paper,
     border: `1px solid ${theme.palette.divider}`,
     borderRadius: 8,
-    boxShadow: theme.custom?.cardShadow,
+    boxShadow: theme.palette.type === "dark"
+      ? "0 22px 60px rgba(0,0,0,0.34)"
+      : "0 22px 60px rgba(15,23,42,0.10)",
   },
 
   contactsWrapper: {

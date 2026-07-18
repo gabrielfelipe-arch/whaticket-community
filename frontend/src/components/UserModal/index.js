@@ -45,8 +45,14 @@ const useStyles = makeStyles(theme => ({
 	},
 	multFieldLine: {
 		display: "flex",
-		"& > *:not(:last-child)": {
-			marginRight: theme.spacing(1),
+		gap: theme.spacing(2),
+		"& > *": {
+			flex: "1 1 0",
+			minWidth: 0,
+		},
+		[theme.breakpoints.down("xs")]: {
+			flexDirection: "column",
+			gap: 0,
 		},
 	},
 
@@ -63,15 +69,16 @@ const useStyles = makeStyles(theme => ({
 		marginLeft: -12,
 	},
 	formControl: {
-		margin: theme.spacing(1),
-		minWidth: 120,
+		marginTop: theme.spacing(1),
+		marginBottom: theme.spacing(1),
+		minWidth: 0,
 	},
 	permissionsBox: {
 		marginTop: theme.spacing(1),
 		padding: theme.spacing(1.5),
-		border: "1px solid #d8dee9",
+		border: `1px solid ${theme.palette.divider}`,
 		borderRadius: 8,
-		background: "#f8fafc",
+		background: theme.palette.type === "dark" ? theme.palette.background.default : "#f8fafc",
 	},
 	permissionsGrid: {
 		display: "grid",

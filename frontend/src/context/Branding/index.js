@@ -1,7 +1,18 @@
 import React, { createContext, useContext } from "react";
 
-export const BrandingContext = createContext({
-  brandName: "WhaTicket",
+export const DEFAULT_BRAND_NAME = "Rocket Service";
+
+export const normalizeBrandName = value => {
+  const brandName = String(value || "").trim();
+  if (!brandName || brandName.toLowerCase() === "whaticket") {
+    return DEFAULT_BRAND_NAME;
+  }
+
+  return brandName;
+};
+
+export const defaultBranding = {
+  brandName: DEFAULT_BRAND_NAME,
   brandLogo: "",
   brandLogoFit: "contain",
   brandLogoPositionX: "50",
@@ -16,10 +27,18 @@ export const BrandingContext = createContext({
   companyPhone: "",
   companyEmail: "",
   companyWebsite: ""
+};
+
+export const normalizeBranding = value => ({
+  ...defaultBranding,
+  ...(value || {}),
+  brandName: normalizeBrandName(value?.brandName)
 });
 
+export const BrandingContext = createContext(defaultBranding);
+
 export const BrandingProvider = ({ value, children }) => (
-  <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>
+  <BrandingContext.Provider value={normalizeBranding(value)}>{children}</BrandingContext.Provider>
 );
 
 export const useBranding = () => useContext(BrandingContext);

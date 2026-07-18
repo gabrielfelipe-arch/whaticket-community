@@ -90,6 +90,10 @@ class Queue extends Model<Queue> {
   @Column
   sendQueuePositionMessage: boolean;
 
+  @Default(24)
+  @Column
+  scheduledReturnWindowHours: number;
+
   @Column(DataType.TEXT)
   queuePositionMessage: string;
 

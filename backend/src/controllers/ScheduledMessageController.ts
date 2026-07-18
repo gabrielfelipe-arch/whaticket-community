@@ -10,6 +10,7 @@ import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
 import ScheduledMessageExecution from "../models/ScheduledMessageExecution";
+import Queue from "../models/Queue";
 
 const include = [
   { model: Contact, as: "contact", attributes: ["id", "name", "number", "isGroup"] },
@@ -63,6 +64,19 @@ const parseDateOptional = (value: any): Date | null => {
   const date = new Date(hasTimezone ? rawValue : `${rawValue}-03:00`);
   if (Number.isNaN(date.getTime())) return null;
   return date;
+};
+
+const DEFAULT_RETURN_WINDOW_HOURS = 24;
+
+const resolveReturnWindowMinutes = async (queueId?: number | null): Promise<number> => {
+  if (!queueId) return DEFAULT_RETURN_WINDOW_HOURS * 60;
+
+  const queue = await Queue.findByPk(queueId, {
+    attributes: ["id", "scheduledReturnWindowHours"]
+  });
+  const hours = Math.max(1, Number(queue?.scheduledReturnWindowHours || DEFAULT_RETURN_WINDOW_HOURS));
+
+  return hours * 60;
 };
 
 const mediaDataFromRequest = (req: Request) => {
@@ -289,7 +303,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     intervalPattern = "60:50:55:52:51:53:61",
     pauseAfter = 20,
     pauseSeconds = 300,
-    pauseMinutes
+    pauseMinutes,
+    sourceTicketId,
+    returnQueueId,
+    returnContext
   } = req.body;
 
   if (!message || (!scheduledAt && !["weekly", "interval"].includes(recurrenceType))) {
@@ -345,12 +362,18 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const parsedReturnQueueId = returnQueueId ? Number(returnQueueId) : null;
+  const parsedReturnWindowMinutes = await resolveReturnWindowMinutes(parsedReturnQueueId);
 
   const schedules = await ScheduledMessage.bulkCreate(
     filteredContacts.map((contact, index) => ({
       contactId: contact.id,
       whatsappId: whatsappId || null,
       userId: Number(req.user.id),
+      sourceTicketId: sourceTicketId ? Number(sourceTicketId) : null,
+      returnQueueId: parsedReturnQueueId,
+      returnContext: returnContext || null,
+      returnWindowMinutes: parsedReturnWindowMinutes,
       batchId,
       sendType: ["scheduled", "campaign"].includes(sendType) ? sendType : "scheduled",
       tagIds: selectedTagIds,

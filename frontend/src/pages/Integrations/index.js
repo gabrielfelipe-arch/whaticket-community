@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 
 import {
   Button,
+  Chip,
   Checkbox,
   Container,
   Dialog,
@@ -38,13 +39,74 @@ import toastError from "../../errors/toastError";
 const useStyles = makeStyles(theme => ({
   root: {
     flex: 1,
-    padding: theme.spacing(2),
+    padding: 0,
     overflowY: "auto",
     backgroundColor: theme.palette.background.default,
     ...theme.scrollbarStyles
   },
   pageHeader: {
-    marginBottom: theme.spacing(2)
+	minHeight: 86,
+	padding: theme.spacing(1.5, 3),
+	background: theme.palette.background.paper,
+    borderBottom: `1px solid ${theme.palette.divider}`
+  },
+  pageEyebrow: {
+    color: theme.palette.primary.main,
+    fontSize: 12,
+    fontWeight: 800,
+    letterSpacing: 0.5,
+	textTransform: "none",
+    marginBottom: theme.spacing(0.5)
+  },
+  pageTitle: {
+    fontWeight: 800,
+	letterSpacing: 0,
+	fontSize: 26
+  },
+  statusStrip: {
+	display: "grid",
+	gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+	padding: theme.spacing(1.25, 3),
+	borderBottom: `1px solid ${theme.palette.divider}`,
+	background: theme.palette.background.paper,
+	[theme.breakpoints.down("sm")]: {
+		gridTemplateColumns: "repeat(2, minmax(0, 1fr))"
+	},
+	[theme.breakpoints.down("xs")]: {
+		gridTemplateColumns: "1fr",
+		padding: theme.spacing(1, 1.5)
+	}
+  },
+  statusItem: {
+	minWidth: 0,
+	padding: theme.spacing(0.5, 1.5),
+	borderRight: `1px solid ${theme.palette.divider}`,
+	"&:last-child": {
+		borderRight: 0
+	},
+	[theme.breakpoints.down("xs")]: {
+		borderRight: 0,
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		padding: theme.spacing(1, 0),
+		"&:last-child": {
+			borderBottom: 0
+		}
+	}
+  },
+  summaryLabel: {
+    color: theme.palette.text.secondary,
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: 0.3
+  },
+  summaryValue: {
+	fontSize: 15,
+    fontWeight: 800,
+    color: theme.palette.text.primary
+  },
+  summaryHelper: {
+    color: theme.palette.text.secondary
   },
   glpiHeader: {
     display: "flex",
@@ -75,32 +137,31 @@ const useStyles = makeStyles(theme => ({
     borderBottom: `1px solid ${theme.palette.divider}`
   },
   navTabs: {
-    marginBottom: theme.spacing(2),
-    minHeight: 44,
-    padding: theme.spacing(0.5),
-    borderRadius: 8,
-    border: `1px solid ${theme.palette.divider}`,
-    background: theme.palette.type === "dark" ? theme.palette.background.paper : "#f8fafc",
-    "& .MuiTabs-indicator": {
-      display: "none"
-    },
-    "& .MuiTab-root": {
-      minHeight: 36,
-      borderRadius: 6,
-      textTransform: "none",
-      fontWeight: 600
-    },
-    "& .Mui-selected": {
-      background: theme.palette.background.paper,
-      boxShadow: theme.custom?.cardShadow || "0 1px 3px rgba(15, 23, 42, 0.12)"
-    }
+	marginBottom: 0,
+	minHeight: 48,
+	padding: theme.spacing(0, 3),
+	borderBottom: `1px solid ${theme.palette.divider}`,
+	background: theme.palette.background.paper,
+	"& .MuiTab-root": {
+		minHeight: 48,
+		minWidth: 140,
+		textTransform: "none",
+		fontWeight: 700,
+		transition: "color 180ms ease, background-color 180ms ease"
+	},
+	"& .Mui-selected": {
+		background: theme.palette.type === "dark" ? "rgba(96,165,250,.12)" : "#EFF6FF"
+	}
   },
   contentPaper: {
-    padding: theme.spacing(2),
-    borderRadius: 8,
-    boxShadow: theme.custom?.cardShadow,
-    borderColor: theme.palette.divider,
-    background: theme.palette.background.paper
+	padding: theme.spacing(2, 3, 3),
+	border: 0,
+	borderRadius: 0,
+	boxShadow: "none",
+	background: "transparent",
+	[theme.breakpoints.down("xs")]: {
+		padding: theme.spacing(1.5)
+	}
   },
   sectionTitle: {
     marginBottom: theme.spacing(1)
@@ -751,6 +812,11 @@ const Integrations = () => {
   const showWhatsappProgress = !!updatingWhatsapp || !!whatsappMaintenance?.active || !!whatsappMaintenance?.steps?.length;
   const whatsappProgressPercent = Math.max(0, Math.min(100, Number(whatsappMaintenance?.percent || 0)));
   const whatsappMaintenanceFinished = !!whatsappMaintenance?.steps?.length && !whatsappMaintenance?.active && whatsappProgressPercent >= 100;
+  const glpiActive = settings.glpiEnabled !== "disabled";
+  const selectedConfiguration = glpiConfigurations.find(item => Number(item.id) === Number(selectedGlpiConfigurationId));
+  const selectedConfigurationName = selectedConfiguration?.name || settings.glpiConfigurationName || "Nenhuma configuracao";
+  const syncedCatalogsCount = (catalogs.categories?.length || 0) + (catalogs.entities?.length || 0) + (catalogs.locations?.length || 0);
+  const whatsappProviderLabel = whatsappProviderSettings.providerLabel || whatsappProviderSettings.labels?.[whatsappProviderSettings.provider] || whatsappProviderSettings.provider || "Nao definido";
 
   useEffect(() => {
     if (!updatingWhatsapp || !whatsappMaintenance?.steps?.length || whatsappMaintenance.active) return;
@@ -1146,11 +1212,43 @@ const Integrations = () => {
   return (
     <Container maxWidth={false} className={classes.root}>
       <div className={classes.pageHeader}>
-        <Typography variant="h5">Integracoes</Typography>
+		<Typography className={classes.pageEyebrow}>Administração / Integrações</Typography>
+		<Typography variant="h4" className={classes.pageTitle}>Integracoes</Typography>
         <Typography variant="body2" color="textSecondary">
-          Configure integracoes externas usadas pelo atendimento.
+          Configure GLPI, provedores de WhatsApp e automacoes usadas pelo atendimento.
         </Typography>
       </div>
+
+      <div className={classes.statusStrip}>
+		<div className={classes.statusItem}>
+			<Typography className={classes.summaryLabel}>GLPI</Typography>
+			<Typography className={classes.summaryValue}>
+			  {glpiActive ? "Ativo" : "Desativado"}
+			</Typography>
+			<Typography variant="caption" className={classes.summaryHelper}>{glpiActive ? "Automacao disponivel" : "Sem abertura automatica"}</Typography>
+		</div>
+		<div className={classes.statusItem}>
+			<Typography className={classes.summaryLabel}>Configuracao</Typography>
+			<Typography className={classes.summaryValue}>{selectedConfigurationName}</Typography>
+			<Typography variant="caption" className={classes.summaryHelper}>
+			  {selectedGlpiConfigurationId ? "Perfil GLPI selecionado" : "Crie ou selecione uma configuracao"}
+			</Typography>
+		</div>
+		<div className={classes.statusItem}>
+			<Typography className={classes.summaryLabel}>Catalogos</Typography>
+			<Typography className={classes.summaryValue}>{syncedCatalogsCount}</Typography>
+			<Typography variant="caption" className={classes.summaryHelper}>
+			  Categorias, entidades e localizacoes sincronizadas.
+			</Typography>
+		</div>
+		<div className={classes.statusItem}>
+			<Typography className={classes.summaryLabel}>WhatsApp</Typography>
+			<Typography className={classes.summaryValue}>{whatsappProviderLabel}</Typography>
+			<Typography variant="caption" className={classes.summaryHelper}>
+			  Provedor padrao de envio e recebimento.
+			</Typography>
+		</div>
+	  </div>
 
       <Tabs value={tab} onChange={(event, value) => setTab(value)} indicatorColor="primary" textColor="primary" className={classes.navTabs}>
         <Tab label="GLPI" />

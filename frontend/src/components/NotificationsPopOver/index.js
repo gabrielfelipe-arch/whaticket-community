@@ -80,10 +80,10 @@ const useStyles = makeStyles(theme => ({
 		boxShadow: "none !important",
 	},
 	iconButton: {
-		color: "#FFFFFF",
+		color: theme.palette.text.primary,
 		"& .MuiSvgIcon-root": {
-			color: "#FFFFFF",
-			fill: "#FFFFFF",
+			color: theme.palette.text.primary,
+			fill: "currentColor",
 		},
 	},
 	notificationButton: {
@@ -147,8 +147,6 @@ const NotificationsPopOver = ({ className }) => {
 
 		if (!("Notification" in window)) {
 			console.log("This browser doesn't support notifications");
-		} else {
-			Notification.requestPermission();
 		}
 	}, [play]);
 
@@ -246,8 +244,23 @@ const NotificationsPopOver = ({ className }) => {
 		};
 	}, [user]);
 
-	const handleNotifications = data => {
+	const ensureNotificationPermission = async () => {
+		if (!("Notification" in window)) return false;
+		if (Notification.permission === "granted") return true;
+		if (Notification.permission !== "default") return false;
+
+		const permission = await Notification.requestPermission();
+		return permission === "granted";
+	};
+
+	const handleNotifications = async data => {
 		const { message, contact, ticket } = data;
+		const canNotify = await ensureNotificationPermission();
+
+		if (!canNotify) {
+			soundAlertRef.current();
+			return;
+		}
 
 		const options = {
 			body: `${message.body} - ${format(new Date(), "HH:mm")}`,
@@ -283,6 +296,7 @@ const NotificationsPopOver = ({ className }) => {
 
 	const handleClick = () => {
 		setIsOpen(prevState => !prevState);
+		ensureNotificationPermission();
 	};
 
 	const handleClickAway = () => {

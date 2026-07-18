@@ -6,9 +6,12 @@ import Container from "@material-ui/core/Container";
 const useStyles = makeStyles((theme) => ({
   mainContainer: {
     flex: 1,
-    padding: theme.spacing(2),
+    padding: theme.spacing(2, 3, 3),
     height: "100%",
     background: theme.palette.background.default,
+    [theme.breakpoints.down("sm")]: {
+      padding: theme.spacing(1.5, 2, 2),
+    },
     [theme.breakpoints.down("xs")]: {
       padding: theme.spacing(1),
     },
@@ -19,6 +22,7 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "auto",
     display: "flex",
     flexDirection: "column",
+    gap: theme.spacing(2),
     ...theme.scrollbarStyles,
   },
 }));

@@ -1,8 +1,11 @@
 import { Request, Response } from "express";
+import path from "path";
+import { unlink } from "fs/promises";
 
 import { getIO } from "../libs/socket";
 import AppError from "../errors/AppError";
 import Setting from "../models/Setting";
+import uploadConfig from "../config/upload";
 
 import {
   encryptCalendarToken
@@ -218,4 +221,47 @@ export const uploadLogo = async (
   });
 
   return res.status(200).json(setting);
+};
+
+export const removeLogo = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  if (req.user.profile !== "admin") {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const beforeSetting = await Setting.findOne({ where: { key: "brandLogo" } });
+  const previousLogo = beforeSetting?.value || "";
+  const updates = await Promise.all([
+    UpdateSettingService({ key: "brandLogo", value: "" }),
+    UpdateSettingService({ key: "brandLogoFit", value: "contain" }),
+    UpdateSettingService({ key: "brandLogoPositionX", value: "50" }),
+    UpdateSettingService({ key: "brandLogoPositionY", value: "50" }),
+    UpdateSettingService({ key: "brandLogoScale", value: "1" })
+  ]);
+
+  if (previousLogo) {
+    const filename = path.basename(previousLogo);
+    await unlink(path.join(uploadConfig.directory, filename)).catch(() => {});
+  }
+
+  await CreateAuditLogService({
+    req,
+    action: "delete",
+    resource: "settings",
+    resourceId: "brandLogo",
+    beforeData: beforeSetting?.toJSON(),
+    afterData: updates[0]?.toJSON()
+  });
+
+  const io = getIO();
+  updates.forEach(setting => {
+    io.emit("settings", {
+      action: "update",
+      setting
+    });
+  });
+
+  return res.status(200).json(updates);
 };

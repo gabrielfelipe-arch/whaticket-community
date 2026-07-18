@@ -7,9 +7,9 @@ import { i18n } from "../../translate/i18n";
 
 const useStyles = makeStyles(theme => ({
 	avatar: {
-		width: 42,
-		height: 42,
-		border: "3px solid #E0F2FE",
+		width: 44,
+		height: 44,
+		border: `2px solid ${theme.palette.type === "dark" ? "#1E293B" : "#E0F2FE"}`,
 	},
 	aiChip: {
 		marginLeft: 8,
@@ -23,6 +23,11 @@ const useStyles = makeStyles(theme => ({
 		alignItems: "center",
 		gap: theme.spacing(0.5),
 		minWidth: 0,
+		fontWeight: 800,
+	},
+	subheader: {
+		color: theme.palette.text.secondary,
+		fontSize: 12,
 	},
 }));
 
@@ -34,7 +39,7 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
 			onClick={onClick}
 			style={{ cursor: "pointer" }}
 			titleTypographyProps={{ noWrap: true }}
-			subheaderTypographyProps={{ noWrap: true }}
+			subheaderTypographyProps={{ noWrap: true, className: classes.subheader }}
 			avatar={<Avatar src={contact.profilePicUrl} alt="contact_image" className={classes.avatar} />}
 			title={
 				<span className={classes.title}>

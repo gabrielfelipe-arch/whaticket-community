@@ -23,6 +23,8 @@ import InputAdornment from "@material-ui/core/InputAdornment";
 import Chip from "@material-ui/core/Chip";
 import Typography from "@material-ui/core/Typography";
 import CloudUploadIcon from "@material-ui/icons/CloudUpload";
+import PersonAddIcon from "@material-ui/icons/PersonAdd";
+import PeopleAltIcon from "@material-ui/icons/PeopleAlt";
 
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
@@ -42,6 +44,7 @@ import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
 import TagCheckboxPicker from "../../components/TagCheckboxPicker";
+import { EmptyState, ListToolbar } from "../../components/ExecutiveLayout";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -90,8 +93,12 @@ const reducer = (state, action) => {
 const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
-    padding: theme.spacing(1),
+    padding: 0,
     overflowY: "scroll",
+    borderRadius: 8,
+    border: `1px solid ${theme.palette.divider}`,
+    boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
     ...theme.scrollbarStyles,
   },
   filters: {
@@ -103,6 +110,19 @@ const useStyles = makeStyles((theme) => ({
   tagFilter: {
     width: 280,
     maxWidth: "100%",
+  },
+  toolbarActions: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: theme.spacing(1),
+    flexWrap: "wrap",
+    [theme.breakpoints.down("xs")]: {
+      justifyContent: "flex-start",
+      "& .MuiButton-root": {
+        flex: "1 1 auto",
+      },
+    },
   },
   tagChips: {
     display: "flex",
@@ -359,10 +379,23 @@ const Contacts = () => {
         </DialogActions>
       </Dialog>
       <MainHeader>
-        <Title>{i18n.t("contacts.title")}</Title>
+        <Title subtitle="Gerencie contatos, etiquetas e abertura rapida de atendimentos.">{i18n.t("contacts.title")}</Title>
         <MainHeaderButtonsWrapper>
-          <div className={classes.filters}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={handleOpenContactModal}
+          >
+            {i18n.t("contacts.buttons.add")}
+          </Button>
+        </MainHeaderButtonsWrapper>
+      </MainHeader>
+      <ListToolbar>
+        <div className={classes.filters}>
             <TextField
+              variant="outlined"
+              size="small"
               placeholder={i18n.t("contacts.searchPlaceholder")}
               type="search"
               value={searchParam}
@@ -383,7 +416,8 @@ const Contacts = () => {
                 onChange={setTagFilterIds}
               />
             </div>
-          </div>
+        </div>
+        <div className={classes.toolbarActions}>
           {canImportSpreadsheet && (
             <>
               <input
@@ -405,21 +439,15 @@ const Contacts = () => {
             </>
           )}
           <Button
-            variant="contained"
+            variant="outlined"
             color="primary"
+            startIcon={<CloudUploadIcon />}
             onClick={(e) => setConfirmOpen(true)}
           >
             {i18n.t("contacts.buttons.import")}
           </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenContactModal}
-          >
-            {i18n.t("contacts.buttons.add")}
-          </Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
+        </div>
+      </ListToolbar>
       <Paper
         className={classes.mainPaper}
         variant="outlined"
@@ -496,6 +524,19 @@ const Contacts = () => {
                 </TableRow>
               ))}
               {loading && <TableRowSkeleton avatar columns={3} />}
+              {!loading && contacts.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <EmptyState
+                      icon={PeopleAltIcon}
+                      title="Nenhum contato encontrado"
+                      description="Ajuste os filtros ou cadastre um novo contato para iniciar atendimento."
+                      actionLabel={i18n.t("contacts.buttons.add")}
+                      onAction={handleOpenContactModal}
+                    />
+                  </TableCell>
+                </TableRow>
+              )}
             </>
           </TableBody>
         </Table>

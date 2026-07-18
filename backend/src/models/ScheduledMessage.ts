@@ -13,6 +13,8 @@ import {
 } from "sequelize-typescript";
 
 import Contact from "./Contact";
+import Queue from "./Queue";
+import Ticket from "./Ticket";
 import Whatsapp from "./Whatsapp";
 import User from "./User";
 
@@ -43,6 +45,33 @@ class ScheduledMessage extends Model<ScheduledMessage> {
 
   @BelongsTo(() => User)
   user: User;
+
+  @ForeignKey(() => Ticket)
+  @Column
+  sourceTicketId: number;
+
+  @BelongsTo(() => Ticket, "sourceTicketId")
+  sourceTicket: Ticket;
+
+  @ForeignKey(() => Queue)
+  @Column
+  returnQueueId: number;
+
+  @BelongsTo(() => Queue, "returnQueueId")
+  returnQueue: Queue;
+
+  @Column(DataType.TEXT)
+  returnContext: string;
+
+  @Default(1440)
+  @Column
+  returnWindowMinutes: number;
+
+  @Column
+  returnWindowExpiresAt: Date;
+
+  @Column
+  returnHandledAt: Date;
 
   @Column
   batchId: string;

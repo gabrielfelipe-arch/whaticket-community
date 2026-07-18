@@ -9,13 +9,30 @@ const useStyles = makeStyles(theme => ({
 		display: "flex",
 		alignItems: "center",
 		gap: theme.spacing(1),
+		flexWrap: "wrap",
+		justifyContent: "flex-end",
 		"& > *": {
 			margin: 0,
 		},
-		[theme.breakpoints.down("xs")]: {
+		"& .MuiTextField-root": {
+			minWidth: 240,
+		},
+		[theme.breakpoints.down("sm")]: {
 			marginLeft: 0,
 			width: "100%",
-			flexWrap: "wrap",
+			justifyContent: "flex-start",
+			"& .MuiTextField-root": {
+				minWidth: 220,
+			},
+		},
+		[theme.breakpoints.down("xs")]: {
+			"& .MuiTextField-root": {
+				width: "100%",
+				minWidth: "100%",
+			},
+			"& .MuiButton-root": {
+				flex: "1 1 auto",
+			},
 		},
 	},
 }));

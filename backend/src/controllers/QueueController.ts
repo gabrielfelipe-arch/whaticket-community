@@ -47,6 +47,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     balanceAction,
     overflowAction,
     sendQueuePositionMessage,
+    scheduledReturnWindowHours,
     queuePositionMessage,
     blockIfUserHasStalledTicket,
     stalledTicketMinutes,
@@ -68,6 +69,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     balanceAction,
     overflowAction,
     sendQueuePositionMessage: sendQueuePositionMessage === true || sendQueuePositionMessage === "true",
+    scheduledReturnWindowHours:
+      scheduledReturnWindowHours !== undefined && scheduledReturnWindowHours !== ""
+        ? Number(scheduledReturnWindowHours)
+        : 24,
     queuePositionMessage,
     blockIfUserHasStalledTicket: blockIfUserHasStalledTicket === true || blockIfUserHasStalledTicket === "true",
     stalledTicketMinutes: stalledTicketMinutes ? Number(stalledTicketMinutes) : null,
@@ -116,6 +121,10 @@ export const update = async (
     businessHoursMode: req.body.businessHoursMode || (req.body.businessHoursEnabled === true || req.body.businessHoursEnabled === "true" ? "custom" : "always"),
     maxActiveTicketsPerUser: req.body.maxActiveTicketsPerUser ? Number(req.body.maxActiveTicketsPerUser) : null,
     sendQueuePositionMessage: req.body.sendQueuePositionMessage === true || req.body.sendQueuePositionMessage === "true",
+    scheduledReturnWindowHours:
+      req.body.scheduledReturnWindowHours !== undefined && req.body.scheduledReturnWindowHours !== ""
+        ? Number(req.body.scheduledReturnWindowHours)
+        : undefined,
     blockIfUserHasStalledTicket: req.body.blockIfUserHasStalledTicket === true || req.body.blockIfUserHasStalledTicket === "true",
     stalledTicketMinutes: req.body.stalledTicketMinutes ? Number(req.body.stalledTicketMinutes) : null,
     glpiEnabled: req.body.glpiEnabled === true || req.body.glpiEnabled === "true",

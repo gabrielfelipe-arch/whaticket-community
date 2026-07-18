@@ -19,6 +19,7 @@ interface QueueData {
   balanceAction?: string;
   overflowAction?: string;
   sendQueuePositionMessage?: boolean;
+  scheduledReturnWindowHours?: number | null;
   queuePositionMessage?: string | null;
   blockIfUserHasStalledTicket?: boolean;
   stalledTicketMinutes?: number | null;
@@ -115,9 +116,14 @@ const CreateQueueService = async (queueData: QueueData): Promise<Queue> => {
   queueData.balanceAction = queueData.balanceAction || "ignore";
   queueData.overflowAction = queueData.overflowAction || "keep_waiting";
   queueData.stalledTicketAction = queueData.stalledTicketAction || "ignore";
+  queueData.scheduledReturnWindowHours = Number(queueData.scheduledReturnWindowHours ?? 24);
 
   if (queueData.maxActiveTicketsPerUser !== null && queueData.maxActiveTicketsPerUser !== undefined && Number(queueData.maxActiveTicketsPerUser) < 1) {
     throw new AppError("O limite máximo por atendente deve ser maior que zero.", 400);
+  }
+
+  if (Number(queueData.scheduledReturnWindowHours) < 1) {
+    throw new AppError("A janela de retorno de mensagem agendada deve ser maior que zero.", 400);
   }
 
   if (queueData.blockIfUserHasStalledTicket && !queueData.stalledTicketMinutes) {

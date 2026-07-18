@@ -45,12 +45,12 @@ const useStyles = makeStyles((theme) => ({
     backgroundImage:
       theme.palette.type === "dark"
         ? "none"
-        : `linear-gradient(rgba(245, 247, 251, 0.82), rgba(245, 247, 251, 0.82)), url(${whatsBackground})`,
-    backgroundColor: theme.palette.type === "dark" ? "#0B1220" : "#F5F7FB",
+        : `linear-gradient(rgba(248, 250, 252, 0.92), rgba(244, 247, 251, 0.94)), url(${whatsBackground})`,
+    backgroundColor: theme.palette.type === "dark" ? "#0B1220" : "#F6F8FB",
     display: "flex",
     flexDirection: "column",
     flexGrow: 1,
-    padding: "24px",
+    padding: "26px 28px",
     overflowY: "scroll",
     [theme.breakpoints.down("sm")]: {
       paddingBottom: "90px",
@@ -86,14 +86,11 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "#ffffff",
     color: "#303030",
     alignSelf: "flex-start",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingTop: 7,
-    paddingBottom: 2,
+    borderRadius: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
+    paddingTop: 8,
+    paddingBottom: 3,
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: theme.palette.type === "dark"
       ? "0 10px 24px rgba(0,0,0,0.18)"
@@ -143,14 +140,11 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.type === "dark" ? "#0F2A24" : "#DCFCE7",
     color: theme.palette.type === "dark" ? "#E2E8F0" : "#0F172A",
     alignSelf: "flex-end",
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingTop: 7,
-    paddingBottom: 2,
+    borderRadius: 10,
+    paddingLeft: 10,
+    paddingRight: 10,
+    paddingTop: 8,
+    paddingBottom: 3,
     border: "1px solid rgba(34, 197, 94, 0.24)",
     boxShadow: theme.palette.type === "dark"
       ? "0 10px 24px rgba(0,0,0,0.18)"
@@ -295,7 +289,7 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    marginBottom: 14,
+    marginBottom: 18,
     padding: "8px 12px",
     borderRadius: 8,
     backgroundColor: theme.palette.type === "dark" ? "#111A2E" : "#FFFFFF",
@@ -325,6 +319,58 @@ const useStyles = makeStyles((theme) => ({
     fontSize: 11,
     fontWeight: 400,
     color: theme.palette.text.secondary,
+  },
+  scheduledReturnCard: {
+    alignSelf: "center",
+    width: "min(640px, 100%)",
+    margin: "8px 0 14px",
+    padding: "12px 14px 10px 14px",
+    borderRadius: 8,
+    border: theme.palette.type === "dark"
+      ? "1px solid rgba(251, 146, 60, 0.34)"
+      : "1px solid #FED7AA",
+    borderLeft: "5px solid #F97316",
+    background: theme.palette.type === "dark"
+      ? "rgba(154, 52, 18, 0.22)"
+      : "#FFF7ED",
+    color: theme.palette.type === "dark" ? "#FFEDD5" : "#7C2D12",
+    boxShadow: theme.palette.type === "dark"
+      ? "0 12px 26px rgba(0,0,0,0.22)"
+      : "0 10px 24px rgba(124,45,18,0.08)",
+    position: "relative",
+  },
+  scheduledReturnTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    fontWeight: 800,
+    marginBottom: 8,
+  },
+  scheduledReturnDot: {
+    width: 10,
+    height: 10,
+    borderRadius: "50%",
+    background: "#F97316",
+    boxShadow: "0 0 0 4px rgba(249, 115, 22, 0.14)",
+    flexShrink: 0,
+  },
+  scheduledReturnLine: {
+    fontSize: 13,
+    lineHeight: 1.45,
+    marginTop: 4,
+    whiteSpace: "pre-wrap",
+    overflowWrap: "break-word",
+  },
+  scheduledReturnLabel: {
+    fontWeight: 800,
+  },
+  scheduledReturnTimestamp: {
+    display: "block",
+    marginTop: 8,
+    textAlign: "right",
+    fontSize: 11,
+    color: theme.palette.type === "dark" ? "#FDBA74" : "#9A3412",
   },
 }));
 
@@ -720,11 +766,64 @@ const MessagesList = ({ ticketId, isGroup }) => {
     );
   };
 
+  const isScheduledReturnContext = message =>
+    message.senderType === "system" &&
+    String(message.body || "").startsWith("Retorno de mensagem agendada.");
+
+  const renderScheduledReturnContext = message => {
+    const lines = String(message.body || "")
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+    const title = lines[0] || "Retorno de mensagem agendada.";
+    const details = lines.slice(1);
+
+    return (
+      <div className={classes.scheduledReturnCard}>
+        <div className={classes.scheduledReturnTitle}>
+          <span className={classes.scheduledReturnDot} />
+          <strong>{title}</strong>
+        </div>
+        {details.map((line, index) => {
+          const separatorIndex = line.indexOf(":");
+          const hasLabel = separatorIndex > 0;
+
+          return (
+            <div className={classes.scheduledReturnLine} key={`${message.id}-return-${index}`}>
+              {hasLabel ? (
+                <>
+                  <span className={classes.scheduledReturnLabel}>
+                    {line.slice(0, separatorIndex + 1)}
+                  </span>{" "}
+                  <span>{line.slice(separatorIndex + 1).trim()}</span>
+                </>
+              ) : (
+                <strong>{line}</strong>
+              )}
+            </div>
+          );
+        })}
+        <span className={classes.scheduledReturnTimestamp}>
+          {format(parseISO(message.createdAt), "HH:mm")}
+        </span>
+      </div>
+    );
+  };
+
   const renderMessagesForList = (list, options = {}) => {
     const { readOnly = false, keyPrefix = "message", useLastRef = false } = options;
 
     if (list.length > 0) {
       const viewMessagesList = list.map((message, index) => {
+        if (isScheduledReturnContext(message)) {
+          return (
+            <React.Fragment key={`${keyPrefix}-${message.id}`}>
+              {renderDailyTimestamps(message, index, list, useLastRef)}
+              {renderScheduledReturnContext(message)}
+            </React.Fragment>
+          );
+        }
+
         if (!message.fromMe) {
           return (
             <React.Fragment key={`${keyPrefix}-${message.id}`}>

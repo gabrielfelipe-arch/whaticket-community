@@ -20,6 +20,10 @@ import {
 } from "@material-ui/core";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import GetAppIcon from "@material-ui/icons/GetApp";
+import AssignmentTurnedInIcon from "@material-ui/icons/AssignmentTurnedIn";
+import ChatBubbleOutlineIcon from "@material-ui/icons/ChatBubbleOutline";
+import DoneAllIcon from "@material-ui/icons/DoneAll";
+import HourglassEmptyIcon from "@material-ui/icons/HourglassEmpty";
 import PictureAsPdfIcon from "@material-ui/icons/PictureAsPdf";
 import SearchIcon from "@material-ui/icons/Search";
 import VisibilityIcon from "@material-ui/icons/Visibility";
@@ -43,11 +47,12 @@ import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { useBranding } from "../../context/Branding";
 import { getBackendUrl } from "../../config";
+import { EmptyState, MetricCard, SectionPanel } from "../../components/ExecutiveLayout";
 
 const useStyles = makeStyles(theme => ({
   root: {
     flex: 1,
-    paddingTop: theme.spacing(2),
+    paddingTop: theme.spacing(2.5),
     paddingBottom: theme.spacing(3),
     overflowY: "auto",
     ...theme.scrollbarStyles
@@ -55,15 +60,44 @@ const useStyles = makeStyles(theme => ({
   header: {
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+	alignItems: "center",
     gap: theme.spacing(2),
-    marginBottom: theme.spacing(2)
+	marginBottom: theme.spacing(2),
+    paddingBottom: theme.spacing(1.5),
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    [theme.breakpoints.down("sm")]: {
+      flexDirection: "column"
+    }
+  },
+  headerEyebrow: {
+    color: theme.palette.primary.main,
+    fontSize: 12,
+    fontWeight: 800,
+    letterSpacing: 0.5,
+	textTransform: "none",
+    marginBottom: theme.spacing(0.5)
+  },
+  headerTitle: {
+    fontWeight: 800,
+    letterSpacing: 0,
+	marginBottom: theme.spacing(0.5),
+	fontSize: 26
+  },
+  headerSubtitle: {
+    maxWidth: 720,
+    color: theme.palette.text.secondary
   },
   filters: {
     display: "flex",
     gap: theme.spacing(1),
     alignItems: "center",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
+	padding: 0,
+    [theme.breakpoints.down("sm")]: {
+      width: "100%",
+      justifyContent: "flex-start"
+    }
   },
   metric: {
     padding: theme.spacing(2),
@@ -91,6 +125,7 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 8,
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
   },
   panelHeader: {
     display: "flex",
@@ -103,6 +138,7 @@ const useStyles = makeStyles(theme => ({
     borderRadius: 8,
     border: `1px solid ${theme.palette.divider}`,
     boxShadow: theme.custom?.cardShadow,
+    background: theme.palette.background.paper,
   },
   history: {
     overflowX: "auto",
@@ -532,10 +568,34 @@ const Dashboard = () => {
   };
 
   const metrics = [
-    { label: "Atendimentos", value: dashboard.summary.total, color: "#2563eb" },
-    { label: "Em atendimento", value: dashboard.summary.open, color: "#16a34a" },
-    { label: "Aguardando", value: dashboard.summary.pending, color: "#f59e0b" },
-    { label: "Resolvidos", value: dashboard.summary.closed, color: "#7c3aed" }
+    {
+      label: "Atendimentos",
+      value: dashboard.summary.total,
+      helper: "Volume total no periodo selecionado.",
+      tone: "primary",
+      icon: AssignmentTurnedInIcon
+    },
+    {
+      label: "Em atendimento",
+      value: dashboard.summary.open,
+      helper: "Conversas sob responsabilidade da equipe.",
+      tone: "success",
+      icon: ChatBubbleOutlineIcon
+    },
+    {
+      label: "Aguardando",
+      value: dashboard.summary.pending,
+      helper: "Demandas pendentes de primeira acao.",
+      tone: "warning",
+      icon: HourglassEmptyIcon
+    },
+    {
+      label: "Resolvidos",
+      value: dashboard.summary.closed,
+      helper: "Atendimentos finalizados no periodo.",
+      tone: "purple",
+      icon: DoneAllIcon
+    }
   ];
 
   const attendantStatusLabels = {
@@ -579,9 +639,10 @@ const Dashboard = () => {
     <Container maxWidth={false} className={classes.root}>
       <div className={`${classes.header} ${classes.noPrint}`}>
         <div>
-          <Typography variant="h5">Dashboard operacional</Typography>
-          <Typography variant="body2" color="textSecondary">
-            Relatórios consolidados por categoria, motivo, atendente e período.
+		  <Typography className={classes.headerEyebrow}>Gestão / Painel</Typography>
+          <Typography variant="h4" className={classes.headerTitle}>Dashboard operacional</Typography>
+          <Typography variant="body2" className={classes.headerSubtitle}>
+            Acompanhe demanda, produtividade, satisfacao e historico de atendimentos em um unico painel.
           </Typography>
         </div>
         <div className={classes.filters}>
@@ -614,21 +675,23 @@ const Dashboard = () => {
       <Grid container spacing={2}>
         {metrics.map(metric => (
           <Grid item xs={12} sm={6} md={3} key={metric.label}>
-            <Paper className={classes.metric} style={{ borderLeftColor: metric.color }}>
-              <Typography className={classes.metricLabel}>{metric.label}</Typography>
-              <Typography variant="h3" className={classes.metricValue}>
-                {metric.value}
-              </Typography>
-            </Paper>
+            <MetricCard
+              label={metric.label}
+              value={metric.value}
+              helper={metric.helper}
+              icon={metric.icon}
+              tone={metric.tone}
+            />
           </Grid>
         ))}
 
         <Grid item xs={12} md={7}>
-          <Paper className={classes.panel}>
-            <div className={classes.panelHeader}>
-              <Typography variant="h6">Atendimentos por dia</Typography>
-              <Chip size="small" label={`${startDate} a ${endDate}`} />
-            </div>
+          <SectionPanel
+            title="Atendimentos por dia"
+            description="Evolucao diaria do volume recebido no periodo."
+            dense
+            action={<Chip size="small" label={`${startDate} a ${endDate}`} />}
+          >
             <ResponsiveContainer width="100%" height={260}>
               <LineChart data={dashboard.byDay} margin={{ top: 10, right: 20, left: -18, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, .35)" />
@@ -638,34 +701,31 @@ const Dashboard = () => {
                 <Line type="monotone" dataKey="total" stroke="#2563eb" strokeWidth={3} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
-          </Paper>
+          </SectionPanel>
         </Grid>
 
         <Grid item xs={12} md={5}>
-          <Paper className={classes.panel}>
-            <Typography variant="h6">Por categoria</Typography>
+          <SectionPanel title="Por categoria" description="Distribuicao das demandas registradas." dense>
             {dashboard.byCategory.length ? renderPieChart(dashboard.byCategory) : (
-              <Typography color="textSecondary">Sem dados no período.</Typography>
+              <EmptyState title="Sem dados no periodo" description="Nenhum atendimento foi encontrado para os filtros atuais." />
             )}
-          </Paper>
+          </SectionPanel>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper className={classes.panel}>
-            <Typography variant="h6">Por motivo de fechamento</Typography>
+          <SectionPanel title="Por motivo de fechamento" description="Principais motivos de conclusao dos atendimentos." dense>
             {dashboard.byReason.length ? renderBarChart(dashboard.byReason) : (
-              <Typography color="textSecondary">Sem dados no período.</Typography>
+              <EmptyState title="Sem dados no periodo" description="Os atendimentos finalizados aparecerao aqui." />
             )}
-          </Paper>
+          </SectionPanel>
         </Grid>
 
         <Grid item xs={12} md={6}>
-          <Paper className={classes.panel}>
-            <Typography variant="h6">Detalhamento por categoria</Typography>
+          <SectionPanel title="Detalhamento por categoria" description="Volume consolidado por tipo de demanda." dense>
             {dashboard.byCategory.length ? renderBarChart(dashboard.byCategory) : (
-              <Typography color="textSecondary">Sem dados no período.</Typography>
+              <EmptyState title="Sem dados no periodo" description="A distribuicao por categoria sera exibida apos novos atendimentos." />
             )}
-          </Paper>
+          </SectionPanel>
         </Grid>
 
         <Grid item xs={12} md={6}>

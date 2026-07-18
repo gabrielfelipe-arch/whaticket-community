@@ -8,16 +8,19 @@ const useStyles = makeStyles(theme => ({
 		alignItems: "center",
 		justifyContent: "space-between",
 		gap: theme.spacing(2),
-		padding: theme.spacing(0.5, 0, 2, 0),
+		minHeight: 68,
+		padding: theme.spacing(1, 0, 1.5, 0),
 		borderBottom: `1px solid ${theme.palette.divider}`,
-		marginBottom: theme.spacing(2),
+		marginBottom: 0,
 		"& h5, & h6": {
 			fontWeight: 800,
 			color: theme.palette.text.primary,
+			marginBottom: 0,
 		},
-		[theme.breakpoints.down("xs")]: {
+		[theme.breakpoints.down("sm")]: {
 			alignItems: "flex-start",
 			flexDirection: "column",
+			paddingBottom: theme.spacing(1.25),
 		},
 	},
 }));

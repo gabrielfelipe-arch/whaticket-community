@@ -43,7 +43,7 @@ module.exports = {
     }).catch(() => {});
 
     await queryInterface.bulkInsert("Settings", [
-      { key: "brandName", value: "WhaTicket", createdAt: new Date(), updatedAt: new Date() },
+      { key: "brandName", value: "Rocket Service", createdAt: new Date(), updatedAt: new Date() },
       { key: "brandLogo", value: "", createdAt: new Date(), updatedAt: new Date() },
       { key: "primaryColor", value: "#2576d2", createdAt: new Date(), updatedAt: new Date() },
       { key: "secondaryColor", value: "#f50057", createdAt: new Date(), updatedAt: new Date() }

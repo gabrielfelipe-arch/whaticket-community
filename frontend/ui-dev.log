@@ -1,0 +1,48 @@
+
+> frontend@0.1.0 dev
+> vite --host 127.0.0.1 --port 4173
+
+
+  [32m[1mVITE[22m v4.5.14[39m  [2mready in [0m[1m734[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m4173[22m/[39m
+[2m21:26:28[22m [36m[1m[vite][22m[39m [32m✨ new dependencies optimized: [33m@material-ui/icons/CloudOff, @material-ui/icons/SystemUpdateAlt, @material-ui/icons/Warning, @material-ui/icons/MoreHoriz[32m[39m
+[2m21:26:28[22m [36m[1m[vite][22m[39m [32m✨ optimized dependencies changed. reloading[39m
+[2m21:35:20[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m21:42:26[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m21:42:41[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m21:46:49[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m21:54:13[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m22:48:12[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m22:48:20[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/PwaStatus/index.js[22m
+[2m22:49:25[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m22:49:33[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m22:52:14[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m22:53:12[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m22:53:20[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:01:08[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m23:01:13[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m23:02:05[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:02:12[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:06:23[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m23:07:33[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:10:00[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/pages/Login/index.js[22m
+[2m23:10:54[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:11:04[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:49:58[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:50:06[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:52:32[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m23:52:40[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:06:30[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:06:36[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:25:38[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:35:55[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:36:01[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:47:54[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:48:01[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:52:37[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m00:52:44[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m01:08:09[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m01:08:16[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m01:26:23[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
+[2m01:26:30[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2mbuild/index.html[22m
