@@ -53,7 +53,8 @@ const useStyles = makeStyles((theme) => ({
     padding: "26px 28px",
     overflowY: "scroll",
     [theme.breakpoints.down("sm")]: {
-      paddingBottom: "90px",
+      padding: "18px 12px",
+      paddingBottom: "calc(156px + env(safe-area-inset-bottom))",
     },
     ...theme.scrollbarStyles,
   },

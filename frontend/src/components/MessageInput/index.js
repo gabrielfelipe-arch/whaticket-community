@@ -67,8 +67,14 @@ const useStyles = makeStyles(theme => ({
     borderTop: `1px solid ${theme.palette.divider}`,
     [theme.breakpoints.down("sm")]: {
       position: "fixed",
-      bottom: 0,
+      left: 0,
+      right: 0,
+      bottom: "calc(64px + env(safe-area-inset-bottom))",
       width: "100%",
+      zIndex: theme.zIndex.appBar + 1,
+      boxShadow: theme.palette.type === "dark"
+        ? "0 -12px 28px rgba(0, 0, 0, 0.28)"
+        : "0 -10px 24px rgba(15, 23, 42, 0.10)",
     },
   },
 
@@ -78,6 +84,10 @@ const useStyles = makeStyles(theme => ({
     display: "flex",
     padding: theme.spacing(1.25),
     alignItems: "center",
+    [theme.breakpoints.down("sm")]: {
+      padding: theme.spacing(0.75, 0.75),
+      minHeight: 58,
+    },
   },
 
   messageInputWrapper: {
@@ -89,12 +99,20 @@ const useStyles = makeStyles(theme => ({
     flex: 1,
     position: "relative",
     border: `1px solid ${theme.palette.divider}`,
+    [theme.breakpoints.down("sm")]: {
+      marginRight: 4,
+      padding: theme.spacing(0.5, 0.75),
+    },
   },
 
   messageInput: {
     paddingLeft: 10,
     flex: 1,
     border: "none",
+    [theme.breakpoints.down("sm")]: {
+      fontSize: 15,
+      lineHeight: 1.35,
+    },
   },
 
   sendMessageIcons: {
@@ -113,6 +131,10 @@ const useStyles = makeStyles(theme => ({
     alignItems: "center",
     backgroundColor: theme.palette.background.paper,
     borderTop: `1px solid ${theme.palette.divider}`,
+    [theme.breakpoints.down("sm")]: {
+      padding: theme.spacing(0.75, 1),
+      bottom: "calc(64px + env(safe-area-inset-bottom))",
+    },
   },
 
   mediaPreviewContent: {

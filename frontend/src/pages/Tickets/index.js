@@ -19,7 +19,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(2.5),
     [theme.breakpoints.down("sm")]: {
       padding: 0,
-      height: `calc(100% - 56px)`,
+      height: "100%",
     },
   },
 
