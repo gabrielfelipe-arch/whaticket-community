@@ -3,18 +3,27 @@ import {
   Button,
   Checkbox,
   CssBaseline,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   InputAdornment,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
   TextField,
   Typography
 } from "@material-ui/core";
 
 import {
   ArrowForward,
-  EmailOutlined,
+  CheckCircle,
   FlashOn,
   LockOutlined,
+  RadioButtonUnchecked,
   SecurityOutlined,
   TrendingUp,
   Visibility,
@@ -25,6 +34,7 @@ import { makeStyles } from "@material-ui/core/styles";
 
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { getErrorMessage } from "../../errors/toastError";
 import rocketLoginLogo from "../../assets/rocketservice-logo-login.png";
 
 const useStyles = makeStyles(theme => ({
@@ -331,6 +341,18 @@ const useStyles = makeStyles(theme => ({
   form: {
     width: "100%"
   },
+  loginError: {
+    marginTop: theme.spacing(1.5),
+    marginBottom: theme.spacing(1),
+    padding: theme.spacing(1.25, 1.5),
+    borderRadius: 10,
+    color: theme.palette.type === "dark" ? "#FECACA" : "#991B1B",
+    background: theme.palette.type === "dark" ? "rgba(127, 29, 29, 0.28)" : "#FEF2F2",
+    border: theme.palette.type === "dark" ? "1px solid rgba(248, 113, 113, 0.32)" : "1px solid #FECACA",
+    fontSize: 13,
+    fontWeight: 700,
+    lineHeight: 1.4
+  },
   fieldLabel: {
     color: theme.palette.text.primary,
     fontWeight: 700,
@@ -421,25 +443,103 @@ const useStyles = makeStyles(theme => ({
   },
   footer: {
     display: "none"
+  },
+  changeField: {
+    marginBottom: theme.spacing(1.5)
+  },
+  checklist: {
+    paddingTop: 0,
+    paddingBottom: theme.spacing(1),
+    "& .MuiListItem-root": {
+      padding: theme.spacing(0.25, 0)
+    },
+    "& .MuiListItemIcon-root": {
+      minWidth: 28
+    },
+    "& .MuiSvgIcon-root": {
+      fontSize: 18
+    }
+  },
+  validIcon: {
+    color: "#22C55E"
+  },
+  invalidIcon: {
+    color: theme.palette.text.secondary
   }
 }));
+
+const formatCpf = value => {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+
+const getPasswordRules = values => [
+  { key: "length", label: "Minimo de 8 caracteres", valid: values.newPassword.length >= 8 },
+  { key: "letter", label: "Tem pelo menos uma letra", valid: /[A-Za-z]/.test(values.newPassword) },
+  { key: "number", label: "Tem pelo menos um numero", valid: /\d/.test(values.newPassword) },
+  { key: "special", label: "Tem caractere especial", valid: /[^A-Za-z0-9]/.test(values.newPassword) },
+  { key: "confirm", label: "Confirmacao igual a nova senha", valid: values.confirmPassword.length > 0 && values.newPassword === values.confirmPassword }
+];
 
 const Login = () => {
   const classes = useStyles();
 
-  const [user, setUser] = useState({ email: "", password: "" });
+  const [user, setUser] = useState({ cpf: "", password: "" });
+  const [passwordChange, setPasswordChange] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPasswords, setShowNewPasswords] = useState(false);
   const [rememberAccess, setRememberAccess] = useState(true);
+  const [changeSubmitting, setChangeSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState("");
 
-  const { handleLogin } = useContext(AuthContext);
+  const { handleLogin, handleChangePassword, handleLogout, user: loggedUser } = useContext(AuthContext);
+  const passwordRules = getPasswordRules(passwordChange);
+  const canSubmitPasswordChange = passwordRules.every(rule => rule.valid) && passwordChange.currentPassword.length > 0;
 
   const handleChangeInput = e => {
-    setUser({ ...user, [e.target.name]: e.target.value });
+    const { name, value: inputValue } = e.target;
+    const value = name === "cpf" ? formatCpf(inputValue) : inputValue;
+    setUser(current => ({ ...current, [name]: value }));
   };
 
-  const handlSubmit = e => {
+  const handlSubmit = async e => {
     e.preventDefault();
-    handleLogin(user);
+    setLoginError("");
+    try {
+      await handleLogin(user);
+    } catch (err) {
+      setLoginError(getErrorMessage(err));
+    }
+  };
+
+  const handlePasswordChangeInput = event => {
+    const { name, value } = event.target;
+    setPasswordChange(current => ({
+      ...current,
+      [name]: value
+    }));
+  };
+
+  const handlePasswordChangeSubmit = async event => {
+    event.preventDefault();
+    if (!canSubmitPasswordChange) return;
+
+    setChangeSubmitting(true);
+    try {
+      await handleChangePassword({
+        currentPassword: passwordChange.currentPassword,
+        newPassword: passwordChange.newPassword
+      });
+    } finally {
+      setChangeSubmitting(false);
+    }
   };
 
   return (
@@ -488,23 +588,30 @@ const Login = () => {
           </Typography>
 
           <form className={classes.form} noValidate onSubmit={handlSubmit}>
-            <Typography className={classes.fieldLabel}>E-mail</Typography>
+            {loginError && (
+              <Typography role="alert" className={classes.loginError}>
+                {loginError}
+              </Typography>
+            )}
+
+            <Typography className={classes.fieldLabel}>CPF</Typography>
             <TextField
               variant="outlined"
               required
               fullWidth
-              id="email"
-              name="email"
-              value={user.email}
+              id="cpf"
+              name="cpf"
+              value={user.cpf}
               onChange={handleChangeInput}
-              autoComplete="email"
+              onFocus={() => setLoginError("")}
+              autoComplete="username"
               autoFocus
-              placeholder="Digite seu e-mail"
+              placeholder="Digite seu CPF"
               className={classes.textField}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <EmailOutlined />
+                    <SecurityOutlined />
                   </InputAdornment>
                 )
               }}
@@ -519,6 +626,7 @@ const Login = () => {
               id="password"
               value={user.password}
               onChange={handleChangeInput}
+              onFocus={() => setLoginError("")}
               autoComplete="current-password"
               placeholder="Digite sua senha"
               type={showPassword ? "text" : "password"}
@@ -532,6 +640,7 @@ const Login = () => {
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
+                      type="button"
                       aria-label="toggle password visibility"
                       onClick={() => setShowPassword(current => !current)}
                     >
@@ -577,6 +686,106 @@ const Login = () => {
         <span>|</span>
         <span>(c) 2026 RocketService. Todos os direitos reservados.</span>
       </footer>
+      <Dialog
+        open={loggedUser?.mustChangePassword === true}
+        maxWidth="xs"
+        fullWidth
+        disableBackdropClick
+        disableEscapeKeyDown
+      >
+        <form onSubmit={handlePasswordChangeSubmit}>
+          <DialogTitle>Alterar senha</DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 16 }}>
+              Antes de entrar no sistema, defina uma senha pessoal diferente da senha inicial do CPF.
+            </Typography>
+            <TextField
+              className={classes.changeField}
+              label="Senha atual"
+              name="currentPassword"
+              value={passwordChange.currentPassword}
+              onChange={handlePasswordChangeInput}
+              type={showNewPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlined />
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              className={classes.changeField}
+              label="Nova senha"
+              name="newPassword"
+              value={passwordChange.newPassword}
+              onChange={handlePasswordChangeInput}
+              type={showNewPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlined />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton type="button" onClick={() => setShowNewPasswords(current => !current)}>
+                      {showNewPasswords ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              className={classes.changeField}
+              label="Confirmar nova senha"
+              name="confirmPassword"
+              value={passwordChange.confirmPassword}
+              onChange={handlePasswordChangeInput}
+              type={showNewPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+            />
+            <List dense className={classes.checklist}>
+              {passwordRules.map(rule => (
+                <ListItem key={rule.key}>
+                  <ListItemIcon>
+                    {rule.valid ? (
+                      <CheckCircle className={classes.validIcon} />
+                    ) : (
+                      <RadioButtonUnchecked className={classes.invalidIcon} />
+                    )}
+                  </ListItemIcon>
+                  <ListItemText
+                    primary={rule.label}
+                    primaryTypographyProps={{ variant: "caption", color: rule.valid ? "textPrimary" : "textSecondary" }}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleLogout} color="secondary" variant="outlined" disabled={changeSubmitting}>
+              Sair
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              variant="contained"
+              disabled={!canSubmitPasswordChange || changeSubmitting}
+            >
+              Salvar e entrar
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </main>
   );
 };

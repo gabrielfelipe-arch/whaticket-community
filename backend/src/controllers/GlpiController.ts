@@ -18,6 +18,7 @@ import TestGlpiConnectionService from "../services/GlpiServices/TestGlpiConnecti
 import SyncGlpiCatalogService from "../services/GlpiServices/SyncGlpiCatalogService";
 import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
 import { getGlpiConfigurationByWhatsapp, getGlpiSettings, getGlpiSettingsByConfigurationId, isMaskedSecret, maskSecret } from "../services/GlpiServices/GlpiClientService";
+import { assertUserCanAccessTicket } from "../helpers/TicketAccess";
 
 const configKeys = [
   "glpiEnabled",
@@ -331,6 +332,7 @@ export const listLocations = async (req: Request, res: Response): Promise<Respon
 
 export const ticketStatus = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
+  await assertUserCanAccessTicket(req.user.id, req.user.profile, ticketId);
   const ticket = await Ticket.findByPk(ticketId, { include: [{ model: Queue, as: "queue" }] });
   if (!ticket) throw new AppError("Atendimento nao encontrado.", 404);
   const configuration = await getGlpiConfigurationByWhatsapp(ticket.whatsappId);
@@ -386,6 +388,7 @@ export const ticketStatus = async (req: Request, res: Response): Promise<Respons
 
 export const createTicket = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
+  await assertUserCanAccessTicket(req.user.id, req.user.profile, ticketId);
   const link = await CreateGlpiTicketService({
     ticketId: Number(ticketId),
     userId: Number(req.user.id),

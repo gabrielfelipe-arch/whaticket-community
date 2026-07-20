@@ -13,7 +13,7 @@ const aiSetting = (overrides: Record<string, any> = {}): any => ({
   name: "Mari",
   companyName: "Empresa Teste",
   serviceType: "atendimento comercial com catalogo, orcamento, agenda e suporte",
-  allowedTools: JSON.stringify(["calcularOrcamento", "transferirParaFila", "encerrarAtendimento", "consultarAgenda"]),
+  allowedTools: JSON.stringify(["calcularOrcamento", "transferirParaFila", "encerrarAtendimento"]),
   ...overrides
 });
 

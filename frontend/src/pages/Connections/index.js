@@ -181,6 +181,11 @@ const Connections = () => {
 	const { whatsApps, loading } = useContext(WhatsAppsContext);
 	const { user } = useContext(AuthContext);
 	const isAdmin = user?.profile === "admin";
+	const canManageConnections = isAdmin || user?.permissions?.["connections.manage"] === true;
+	const canCreateConnections = isAdmin || user?.permissions?.["connections.create"] === true;
+	const canEditConnections = isAdmin || user?.permissions?.["connections.edit"] === true;
+	const canDeleteConnections = isAdmin || user?.permissions?.["connections.delete"] === true;
+	const canReconnectConnections = isAdmin || user?.permissions?.["connections.reconnect"] === true;
 	const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
 	const [qrModalOpen, setQrModalOpen] = useState(false);
 	const [selectedWhatsApp, setSelectedWhatsApp] = useState(null);
@@ -282,7 +287,7 @@ const Connections = () => {
 	const renderActionButtons = whatsApp => {
 		return (
 			<>
-				{whatsApp.status === "qrcode" && (
+				{canReconnectConnections && whatsApp.status === "qrcode" && (
 					<Button
 						size="small"
 						variant="contained"
@@ -292,7 +297,7 @@ const Connections = () => {
 						{i18n.t("connections.buttons.qrcode")}
 					</Button>
 				)}
-				{whatsApp.status === "DISCONNECTED" && (
+				{canReconnectConnections && whatsApp.status === "DISCONNECTED" && (
 					<>
 						<Button
 							size="small"
@@ -312,7 +317,7 @@ const Connections = () => {
 						</Button>
 					</>
 				)}
-				{isAdmin && (whatsApp.status === "CONNECTED" ||
+				{canReconnectConnections && (whatsApp.status === "CONNECTED" ||
 					whatsApp.status === "PAIRING" ||
 					whatsApp.status === "TIMEOUT") && (
 					<>
@@ -338,7 +343,7 @@ const Connections = () => {
 						)}
 					</>
 				)}
-				{whatsApp.status === "OPENING" && (
+				{canReconnectConnections && whatsApp.status === "OPENING" && (
 					<>
 						<Button size="small" variant="outlined" disabled color="default">
 							{i18n.t("connections.buttons.connecting")}
@@ -418,7 +423,7 @@ const Connections = () => {
 			/>
 			<MainHeader>
 				<Title subtitle="Monitore sessoes, QR codes e a saude das conexoes de atendimento.">{i18n.t("connections.title")}</Title>
-				{isAdmin && (
+				{canCreateConnections && (
 					<MainHeaderButtonsWrapper>
 						<Button
 							variant="contained"
@@ -480,14 +485,18 @@ const Connections = () => {
 								</div>
 								<div className={classes.connectionActions}>
 									<div>{renderActionButtons(whatsApp)}</div>
-									{isAdmin && (
+									{(canEditConnections || canDeleteConnections) && (
 										<div>
-											<IconButton size="small" onClick={() => handleEditWhatsApp(whatsApp)}>
-												<Edit />
-											</IconButton>
-											<IconButton size="small" onClick={() => handleOpenConfirmationModal("delete", whatsApp.id)}>
-												<DeleteOutline />
-											</IconButton>
+											{canEditConnections && (
+												<IconButton size="small" onClick={() => handleEditWhatsApp(whatsApp)}>
+													<Edit />
+												</IconButton>
+											)}
+											{canDeleteConnections && (
+												<IconButton size="small" onClick={() => handleOpenConfirmationModal("delete", whatsApp.id)}>
+													<DeleteOutline />
+												</IconButton>
+											)}
 										</div>
 									)}
 								</div>

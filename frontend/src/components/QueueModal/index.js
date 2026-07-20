@@ -29,6 +29,16 @@ import { Colorize } from "@material-ui/icons";
 import { GithubPicker } from "react-color";
 import MessageTemplateField from "../MessageTemplateField";
 
+const queuePositionTemplateVariables = [
+	{ value: "{{ticketId}}", label: "Numero do atendimento" },
+	{ value: "{{queueName}}", label: "Nome da fila" },
+	{ value: "{{position}}", label: "Posicao na fila" },
+	{ value: "{{contactName}}", label: "Nome do contato" },
+	{ value: "{{nome_contato}}", label: "Nome do contato" },
+	{ value: "{{telefone_contato}}", label: "Telefone do contato" },
+	{ value: "{{data_hora}}", label: "Data e hora" },
+];
+
 const businessWeekdayOptions = [
 	{ value: 1, label: "Seg" },
 	{ value: 2, label: "Ter" },
@@ -691,6 +701,8 @@ const QueueModal = ({ open, onClose, queueId }) => {
 										label="Mensagem de posicao inicial"
 										name="queuePositionMessage"
 										rows={5}
+										variables={queuePositionTemplateVariables}
+										helperText="Digite {{ para inserir ticket, fila, posicao, contato ou data/hora."
 									/>
 								)}
 							</DialogContent>

@@ -1202,6 +1202,47 @@ const supervisorSettingsEndpoints = [
 	"/audit-logs"
 ];
 
+const settingsEndpointPermissions = {
+	"/ticket-categories": "settings.categories.view",
+	"/closing-reasons": "settings.closing_reasons.view",
+	"/satisfaction-surveys": "settings.satisfaction.view",
+	"/tags": "tags.view",
+	"/audit-logs": "settings.audit_logs",
+	"/ai-settings": "settings.ai_agents",
+	"/knowledge-base": "settings.knowledge_base",
+	"/ai-ticket-contexts": "settings.ai_contexts",
+	"/ai-leads": "settings.ai_leads",
+	"/ai-tool-executions": "settings.ai_tools",
+	"/ai-calendar-connections": "settings.ai_calendar",
+	"/qualification-forms": "settings.form_builder",
+	"/qualification-form-questions": "settings.form_builder",
+	"/qualification-form-responses": "settings.form_responses",
+	"/qualification-form-answers": "settings.form_reports"
+};
+
+const resourceActionPermissions = {
+	"/ticket-categories": {
+		create: "settings.categories.create",
+		edit: "settings.categories.edit",
+		delete: "settings.categories.delete"
+	},
+	"/closing-reasons": {
+		create: "settings.closing_reasons.create",
+		edit: "settings.closing_reasons.edit",
+		delete: "settings.closing_reasons.delete"
+	},
+	"/satisfaction-surveys": {
+		create: "settings.satisfaction.create",
+		edit: "settings.satisfaction.edit",
+		delete: "settings.satisfaction.delete"
+	},
+	"/tags": {
+		create: "tags.create",
+		edit: "tags.edit",
+		delete: "tags.delete"
+	}
+};
+
 const buildSpecialSettingsTabs = specialPermissions => groupedSettingsTabs.filter(item => {
 	if (specialPermissions?.accessUra && item.type === "uraTree") return true;
 	if (specialPermissions?.accessAi && item.type === "group" && item.groupKey === "ia") return true;
@@ -1218,6 +1259,38 @@ const uniqueSettingsTabs = tabs => {
 		return true;
 	});
 };
+
+const canUsePermission = (permissions, key) => permissions?.[key] === true;
+
+const buildPermissionSettingsTabs = permissions => groupedSettingsTabs
+	.map(item => {
+		if (item.type === "general") {
+			return canUsePermission(permissions, "settings.manage") ? item : null;
+		}
+		if (item.type === "uraTree") {
+			return canUsePermission(permissions, "settings.ura") ||
+				canUsePermission(permissions, "settings.ura_flows") ||
+				canUsePermission(permissions, "settings.ura_options")
+				? item
+				: null;
+		}
+		if (item.type === "resource") {
+			const permission = settingsEndpointPermissions[item.resource?.endpoint];
+			return permission && canUsePermission(permissions, permission) ? item : null;
+		}
+		if (item.type === "group" && item.children) {
+			const children = item.children.filter(child => {
+				if (child.type === "qualificationForms") {
+					return canUsePermission(permissions, "settings.form_builder");
+				}
+				const permission = settingsEndpointPermissions[child.resource?.endpoint];
+				return permission && canUsePermission(permissions, permission);
+			});
+			return children.length ? { ...item, children } : null;
+		}
+		return null;
+	})
+	.filter(Boolean);
 
 const defaultModelsByProvider = {
 	openai: "gpt-4o-mini",
@@ -4591,6 +4664,15 @@ const GeneralSettings = ({
 );
 
 const ResourcePanel = ({ resource, classes }) => {
+	const { user } = useContext(AuthContext);
+	const permissions = user?.permissions || {};
+	const isAdmin = user?.profile === "admin";
+	const hasPermission = key => permissions[key] === true;
+	const actionPermissions = resourceActionPermissions[resource.endpoint];
+	const canCreate = !resource.readOnly && (isAdmin || !actionPermissions || hasPermission(actionPermissions.create));
+	const canEdit = !resource.readOnly && (isAdmin || !actionPermissions || hasPermission(actionPermissions.edit));
+	const canDelete = !resource.readOnly && (isAdmin || !actionPermissions || hasPermission(actionPermissions.delete));
+	const canWrite = canCreate || canEdit || canDelete;
 	const [rows, setRows] = useState([]);
 	const [relations, setRelations] = useState({});
 	const [modalOpen, setModalOpen] = useState(false);
@@ -4997,7 +5079,7 @@ const ResourcePanel = ({ resource, classes }) => {
 				<Typography variant="h6">{resource.label}</Typography>
 				<div className={classes.formBuilderToolbarActions}>
 					{searchField}
-					{!resource.readOnly && (
+					{canCreate && (
 						<Button variant="contained" color="primary" onClick={openCreate}>
 							Novo
 						</Button>
@@ -5012,7 +5094,7 @@ const ResourcePanel = ({ resource, classes }) => {
 							{resource.columns.map(col => (
 								<TableCell key={col}>{getColumnLabel(resource, col)}</TableCell>
 							))}
-							{!resource.readOnly && <TableCell align="right">Acoes</TableCell>}
+							{canWrite && <TableCell align="right">Acoes</TableCell>}
 						</TableRow>
 					</TableHead>
 
@@ -5022,7 +5104,7 @@ const ResourcePanel = ({ resource, classes }) => {
 								{resource.columns.map(col => (
 									<TableCell key={col}>{renderCell(row, col)}</TableCell>
 								))}
-								{!resource.readOnly && (
+								{canWrite && (
 									<TableCell align="right">
 										{resource.endpoint === "/ai-settings" && (
 											<IconButton
@@ -5043,12 +5125,16 @@ const ResourcePanel = ({ resource, classes }) => {
 												<CloudDownloadIcon />
 											</IconButton>
 										)}
-										<IconButton size="small" onClick={() => openEdit(row)}>
-											<EditIcon />
-										</IconButton>
-										<IconButton size="small" onClick={() => remove(row)}>
-											<DeleteOutlineIcon />
-										</IconButton>
+										{canEdit && (
+											<IconButton size="small" onClick={() => openEdit(row)}>
+												<EditIcon />
+											</IconButton>
+										)}
+										{canDelete && (
+											<IconButton size="small" onClick={() => remove(row)}>
+												<DeleteOutlineIcon />
+											</IconButton>
+										)}
 									</TableCell>
 								)}
 							</TableRow>
@@ -5056,7 +5142,7 @@ const ResourcePanel = ({ resource, classes }) => {
 
 						{visibleRows.length === 0 && (
 							<TableRow>
-								<TableCell colSpan={resource.columns.length + (resource.readOnly ? 0 : 1)}>
+								<TableCell colSpan={resource.columns.length + (canWrite ? 1 : 0)}>
 									Nenhum registro encontrado.
 								</TableCell>
 							</TableRow>
@@ -5288,6 +5374,8 @@ const Settings = () => {
 	const { user } = useContext(AuthContext);
 	const isAdmin = user?.profile === "admin";
 	const isSupervisor = user?.profile === "supervisor";
+	const canManageSettings = isAdmin || user?.permissions?.["settings.manage"] === true;
+	const permissionSettingsTabs = buildPermissionSettingsTabs(user?.permissions);
 	const supervisorBaseTabs = groupedSettingsTabs.filter(item =>
 		item.type === "resource" && supervisorSettingsEndpoints.includes(item.resource?.endpoint)
 	);
@@ -5295,15 +5383,15 @@ const Settings = () => {
 	const visibleSettingsTabs = isAdmin
 		? groupedSettingsTabs
 		: isSupervisor
-		? uniqueSettingsTabs([...supervisorBaseTabs, ...specialSettingsTabs])
-		: specialSettingsTabs;
+		? uniqueSettingsTabs([...supervisorBaseTabs, ...specialSettingsTabs, ...permissionSettingsTabs])
+		: uniqueSettingsTabs([...specialSettingsTabs, ...permissionSettingsTabs]);
 
 	const [settings, setSettings] = useState([]);
 	const [tab, setTab] = useState(0);
 	const [groupTabs, setGroupTabs] = useState({ ura: 0, ia: 0, aiAudit: 0, forms: 0 });
 
 	useEffect(() => {
-		if (!isAdmin) return;
+		if (!canManageSettings) return;
 
 		const fetchSession = async () => {
 			try {
@@ -5314,7 +5402,7 @@ const Settings = () => {
 			}
 		};
 		fetchSession();
-	}, [isAdmin]);
+	}, [canManageSettings]);
 
 	useEffect(() => {
 		const socket = openSocket();

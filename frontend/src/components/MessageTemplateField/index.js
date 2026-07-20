@@ -43,6 +43,7 @@ const MessageTemplateField = ({
 	helperText,
 	error,
 	whatsappToolbar = true,
+	variables = MESSAGE_TEMPLATE_VARIABLES,
 	onMediaChange,
 	mediaName,
 	...rest
@@ -168,7 +169,7 @@ const MessageTemplateField = ({
 						<Typography variant="caption" style={{ display: "block", padding: 8 }}>
 							Inserir campo
 						</Typography>
-						{MESSAGE_TEMPLATE_VARIABLES.map(item => (
+						{variables.map(item => (
 							<MenuItem
 								key={item.value}
 								dense

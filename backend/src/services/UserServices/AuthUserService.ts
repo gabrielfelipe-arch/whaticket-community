@@ -6,18 +6,32 @@ import {
 } from "../../helpers/CreateTokens";
 import { SerializeUser } from "../../helpers/SerializeUser";
 import Queue from "../../models/Queue";
+import UserProfile from "../../models/UserProfile";
 import { updateUserOperationalStatus } from "../QueueService/QueueDistributionService";
+import { assertUserCanAccessNow, normalizeCpf } from "../../helpers/UserAccessRules";
 
 interface SerializedUser {
   id: number;
   name: string;
   email: string;
+  cpf: string;
+  birthDate: string;
+  jobTitle: string;
+  messageSignature: string;
+  mustChangePassword: boolean;
+  workHours: string;
   profile: string;
+  profileId?: number;
+  profileName?: string;
+  permissions?: Record<string, boolean>;
   queues: Queue[];
 }
 
 interface Request {
-  email: string;
+  name?: string;
+  email?: string;
+  cpf?: string;
+  login?: string;
   password: string;
 }
 
@@ -28,12 +42,21 @@ interface Response {
 }
 
 const AuthUserService = async ({
+  cpf,
   email,
+  login,
   password
 }: Request): Promise<Response> => {
+  const identifier = String(cpf || login || email || "").trim();
+  const normalizedCpf = normalizeCpf(identifier);
+
+  if (normalizedCpf.length !== 11) {
+    throw new AppError("ERR_INVALID_CREDENTIALS", 401);
+  }
+
   const user = await User.findOne({
-    where: { email },
-    include: ["queues"]
+    where: { cpf: normalizedCpf },
+    include: ["queues", { model: UserProfile, as: "accessProfile" }]
   });
 
   if (!user) {
@@ -41,8 +64,10 @@ const AuthUserService = async ({
   }
 
   if (user.active === false) {
-    throw new AppError("Usuário inativo. Procure o administrador do sistema.", 403);
+    throw new AppError("Usuario inativo. Procure o administrador do sistema.", 403);
   }
+
+  assertUserCanAccessNow(user);
 
   if (!(await user.checkPassword(password))) {
     throw new AppError("ERR_INVALID_CREDENTIALS", 401);
@@ -53,7 +78,7 @@ const AuthUserService = async ({
     status: "online",
     reason: "login"
   });
-  await user.reload({ include: ["queues"] });
+  await user.reload({ include: ["queues", { model: UserProfile, as: "accessProfile" }] });
 
   const token = createAccessToken(user);
   const refreshToken = createRefreshToken(user);

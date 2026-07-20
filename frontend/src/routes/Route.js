@@ -3,9 +3,18 @@ import { Route as RouterRoute, Redirect } from "react-router-dom";
 
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
+import { getDefaultRoute } from "./defaultRoute";
 
-const Route = ({ component: Component, isPrivate = false, requiredProfile, requiredAnySpecialPermissions = [], ...rest }) => {
+const Route = ({
+  component: Component,
+  isPrivate = false,
+  requiredProfile,
+  requiredAnySpecialPermissions = [],
+  requiredAnyPermissions = [],
+  ...rest
+}) => {
   const { isAuth, loading, user } = useContext(AuthContext);
+  const defaultRoute = getDefaultRoute(user);
 
   if (!isAuth && isPrivate) {
     return (
@@ -16,11 +25,20 @@ const Route = ({ component: Component, isPrivate = false, requiredProfile, requi
     );
   }
 
-  if (isAuth && !isPrivate) {
+  if (isAuth && !isPrivate && !(user?.mustChangePassword && rest.path === "/login")) {
     return (
       <>
         {loading && <BackdropLoading />}
-        <Redirect to={{ pathname: "/", state: { from: rest.location } }} />;
+        <Redirect to={{ pathname: defaultRoute, state: { from: rest.location } }} />;
+      </>
+    );
+  }
+
+  if (isAuth && isPrivate && user?.mustChangePassword) {
+    return (
+      <>
+        {loading && <BackdropLoading />}
+        <Redirect to={{ pathname: "/login", state: { from: rest.location } }} />
       </>
     );
   }
@@ -34,12 +52,21 @@ const Route = ({ component: Component, isPrivate = false, requiredProfile, requi
   const hasSpecialPermission = requiredAnySpecialPermissions.some(permission =>
     user?.specialPermissions?.[permission] === true
   );
+  const hasProfilePermission = requiredAnyPermissions.some(permission =>
+    user?.permissions?.[permission] === true
+  );
 
-  if (isAuth && allowedProfiles.length && !allowedProfiles.includes(user?.profile) && !hasSpecialPermission) {
+  if (
+    isAuth &&
+    (allowedProfiles.length || requiredAnyPermissions.length) &&
+    !allowedProfiles.includes(user?.profile) &&
+    !hasSpecialPermission &&
+    !hasProfilePermission
+  ) {
     return (
       <>
         {loading && <BackdropLoading />}
-        <Redirect to={{ pathname: "/", state: { from: rest.location } }} />
+        <Redirect to={{ pathname: defaultRoute, state: { from: rest.location } }} />
       </>
     );
   }

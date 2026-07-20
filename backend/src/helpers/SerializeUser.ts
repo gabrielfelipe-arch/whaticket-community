@@ -2,13 +2,25 @@ import Queue from "../models/Queue";
 import User from "../models/User";
 import Whatsapp from "../models/Whatsapp";
 import { maskSecret } from "./MaskSecret";
-import { parseSpecialPermissions } from "./ProfilePermissions";
+import {
+  getEffectivePermissions,
+  parseSpecialPermissions
+} from "./ProfilePermissions";
 
 interface SerializedUser {
   id: number;
   name: string;
   email: string;
+  cpf: string;
+  birthDate: string;
+  jobTitle: string;
+  messageSignature: string;
+  mustChangePassword: boolean;
+  workHours: string;
   profile: string;
+  profileId: number;
+  profileName: string;
+  permissions: Record<string, boolean>;
   active: boolean;
   glpiEnabled: boolean;
   glpiUserToken: string;
@@ -27,7 +39,16 @@ export const SerializeUser = (user: User): SerializedUser => {
     id: user.id,
     name: user.name,
     email: user.email,
+    cpf: user.cpf,
+    birthDate: user.birthDate,
+    jobTitle: user.jobTitle,
+    messageSignature: user.messageSignature,
+    mustChangePassword: user.mustChangePassword,
+    workHours: user.workHours,
     profile: user.profile,
+    profileId: user.profileId,
+    profileName: user.accessProfile?.name,
+    permissions: getEffectivePermissions(user),
     active: user.active,
     glpiEnabled: user.glpiEnabled,
     glpiUserToken: maskSecret(user.glpiUserToken),

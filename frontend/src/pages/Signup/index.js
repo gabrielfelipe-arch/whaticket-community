@@ -15,12 +15,10 @@ import {
 	Box,
 	Typography,
 	Container,
-	InputAdornment,
-	IconButton,
 	Link
 } from '@material-ui/core';
 
-import { LockOutlined, Visibility, VisibilityOff } from '@material-ui/icons';
+import { LockOutlined } from '@material-ui/icons';
 
 import { makeStyles } from "@material-ui/core/styles";
 
@@ -67,21 +65,38 @@ const UserSchema = Yup.object().shape({
 		.min(2, "Too Short!")
 		.max(50, "Too Long!")
 		.required("Required"),
-	password: Yup.string().min(5, "Too Short!").max(50, "Too Long!"),
+	cpf: Yup.string()
+		.required("Required")
+		.test("cpf-length", "CPF deve ter 11 digitos", value => String(value || "").replace(/\D/g, "").length === 11),
 	email: Yup.string().email("Invalid email").required("Required"),
+	birthDate: Yup.string().required("Required"),
+	jobTitle: Yup.string().min(2, "Too Short!").required("Required"),
+	messageSignature: Yup.string().min(2, "Too Short!").max(50, "Too Long!").required("Required"),
+	attendanceGreeting: Yup.string(),
 });
 
 const SignUp = () => {
 	const classes = useStyles();
 	const history = useHistory();
 
-	const initialState = { name: "", email: "", password: "" };
-	const [showPassword, setShowPassword] = useState(false);
+	const formatCpf = value => {
+		const digits = String(value || "").replace(/\D/g, "").slice(0, 11);
+		return digits
+			.replace(/^(\d{3})(\d)/, "$1.$2")
+			.replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+			.replace(/\.(\d{3})(\d)/, ".$1-$2");
+	};
+
+	const initialState = { name: "", email: "", cpf: "", birthDate: "", jobTitle: "", messageSignature: "", attendanceGreeting: "" };
 	const [user] = useState(initialState);
 
 	const handleSignUp = async values => {
 		try {
-			await api.post("/auth/signup", values);
+			await api.post("/auth/signup", {
+				...values,
+				cpf: String(values.cpf || "").replace(/\D/g, ""),
+				email: values.email || null
+			});
 			toast.success(i18n.t("signup.toasts.success"));
 			history.push("/login");
 		} catch (err) {
@@ -111,7 +126,7 @@ const SignUp = () => {
 						}, 400);
 					}}
 				>
-					{({ touched, errors, isSubmitting }) => (
+					{({ touched, errors, isSubmitting, setFieldValue }) => (
 						<Form className={classes.form}>
 							<Grid container spacing={2}>
 								<Grid item xs={12}>
@@ -134,8 +149,22 @@ const SignUp = () => {
 										as={TextField}
 										variant="outlined"
 										fullWidth
+										id="cpf"
+										label="CPF"
+										name="cpf"
+										error={touched.cpf && Boolean(errors.cpf)}
+										helperText={touched.cpf && errors.cpf}
+										autoComplete="username"
+										onChange={event => setFieldValue("cpf", formatCpf(event.target.value))}
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<Field
+										as={TextField}
+										variant="outlined"
+										fullWidth
 										id="email"
-										label={i18n.t("signup.form.email")}
+										label="E-mail"
 										name="email"
 										error={touched.email && Boolean(errors.email)}
 										helperText={touched.email && errors.email}
@@ -147,25 +176,51 @@ const SignUp = () => {
 										as={TextField}
 										variant="outlined"
 										fullWidth
-										name="password"
-										id="password"
-										autoComplete="current-password"
-										error={touched.password && Boolean(errors.password)}
-										helperText={touched.password && errors.password}
-										label={i18n.t("signup.form.password")}
-										type={showPassword ? 'text' : 'password'}
-										InputProps={{
-											endAdornment: (
-												<InputAdornment position="end">
-													<IconButton
-														aria-label="toggle password visibility"
-														onClick={() => setShowPassword((e) => !e)}
-													>
-														{showPassword ? <VisibilityOff /> : <Visibility />}
-													</IconButton>
-												</InputAdornment>
-											)
-										}}
+										id="birthDate"
+										label="Data de nascimento"
+										name="birthDate"
+										type="date"
+										error={touched.birthDate && Boolean(errors.birthDate)}
+										helperText={touched.birthDate && errors.birthDate}
+										InputLabelProps={{ shrink: true }}
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<Field
+										as={TextField}
+										variant="outlined"
+										fullWidth
+										id="jobTitle"
+										label="Cargo"
+										name="jobTitle"
+										error={touched.jobTitle && Boolean(errors.jobTitle)}
+										helperText={touched.jobTitle && errors.jobTitle}
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<Field
+										as={TextField}
+										variant="outlined"
+										fullWidth
+										id="messageSignature"
+										label="Assinatura nas mensagens"
+										name="messageSignature"
+										error={touched.messageSignature && Boolean(errors.messageSignature)}
+										helperText={(touched.messageSignature && errors.messageSignature) || "Nome curto exibido quando a mensagem for assinada no atendimento."}
+									/>
+								</Grid>
+								<Grid item xs={12}>
+									<Field
+										as={TextField}
+										variant="outlined"
+										fullWidth
+										id="attendanceGreeting"
+										label="Mensagem de saudacao do atendimento"
+										name="attendanceGreeting"
+										multiline
+										minRows={2}
+										error={touched.attendanceGreeting && Boolean(errors.attendanceGreeting)}
+										helperText={touched.attendanceGreeting && errors.attendanceGreeting}
 									/>
 								</Grid>
 							</Grid>

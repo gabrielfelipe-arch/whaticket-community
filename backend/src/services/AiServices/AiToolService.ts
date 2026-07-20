@@ -1,4 +1,3 @@
-import AiCalendarConnection from "../../models/AiCalendarConnection";
 import AiLead from "../../models/AiLead";
 import AiSetting from "../../models/AiSetting";
 import AiTicketContext from "../../models/AiTicketContext";
@@ -17,9 +16,7 @@ export type AiToolName =
   | "gerarResumoParaAtendente"
   | "calcularOrcamento"
   | "transferirParaFila"
-  | "encerrarAtendimento"
-  | "consultarAgenda"
-  | "criarAgendamento";
+  | "encerrarAtendimento";
 
 interface ExecuteAiToolRequest {
   ticket: Ticket;
@@ -249,110 +246,6 @@ const closeTicket = async (
   };
 };
 
-const getCalendarConnection = async (aiSetting: AiSetting): Promise<AiCalendarConnection> => {
-  const connection = aiSetting.calendarConnectionId
-    ? await AiCalendarConnection.findByPk(aiSetting.calendarConnectionId)
-    : null;
-
-  if (!connection || !connection.active || !connection.accessToken) {
-    throw new Error("Agenda nao configurada ou sem token ativo.");
-  }
-
-  return connection;
-};
-
-const callCalendarApi = async (
-  connection: AiCalendarConnection,
-  path: string,
-  init: any
-): Promise<any> => {
-  const baseUrl = connection.provider === "microsoft"
-    ? "https://graph.microsoft.com/v1.0"
-    : "https://www.googleapis.com/calendar/v3";
-  const response = await fetch(`${baseUrl}${path}`, {
-    ...init,
-    headers: {
-      "Authorization": `Bearer ${connection.accessToken}`,
-      "Content-Type": "application/json",
-      ...(init.headers || {})
-    }
-  });
-
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(data?.error?.message || data?.error_description || `Agenda retornou HTTP ${response.status}`);
-  }
-  return data;
-};
-
-const consultCalendar = async (
-  aiSetting: AiSetting,
-  params: Record<string, any>
-): Promise<AiToolResult> => {
-  const connection = await getCalendarConnection(aiSetting);
-  const start = params.start || params.inicio;
-  const end = params.end || params.fim;
-  if (!start || !end) return { ok: false, errorMessage: "Informe inicio e fim para consultar agenda." };
-
-  const calendarId = connection.calendarId || "primary";
-  const data = connection.provider === "microsoft"
-    ? await callCalendarApi(connection, `/me/calendarView?startDateTime=${encodeURIComponent(start)}&endDateTime=${encodeURIComponent(end)}`, { method: "GET" })
-    : await callCalendarApi(connection, `/freeBusy`, {
-        method: "POST",
-        body: JSON.stringify({ timeMin: start, timeMax: end, items: [{ id: calendarId }] })
-      });
-
-  const busy = connection.provider === "microsoft"
-    ? (data.value || []).length > 0
-    : (data.calendars?.[calendarId]?.busy || []).length > 0;
-
-  return {
-    ok: true,
-    customerMessage: busy
-      ? "Esse horario possui conflito na agenda. Posso verificar outra opcao."
-      : "Esse horario parece livre na agenda. Posso seguir com a confirmacao se voce quiser.",
-    data: { busy, provider: connection.provider, raw: data }
-  };
-};
-
-const createCalendarEvent = async (
-  aiSetting: AiSetting,
-  params: Record<string, any>
-): Promise<AiToolResult> => {
-  const connection = await getCalendarConnection(aiSetting);
-  const start = params.start || params.inicio;
-  const end = params.end || params.fim;
-  const summary = params.summary || params.titulo || "Atendimento agendado";
-  if (!start || !end) return { ok: false, errorMessage: "Informe inicio e fim para criar agendamento." };
-
-  const calendarId = connection.calendarId || "primary";
-  const data = connection.provider === "microsoft"
-    ? await callCalendarApi(connection, `/me/events`, {
-        method: "POST",
-        body: JSON.stringify({
-          subject: summary,
-          body: { contentType: "Text", content: params.description || "" },
-          start: { dateTime: start, timeZone: connection.timezone },
-          end: { dateTime: end, timeZone: connection.timezone }
-        })
-      })
-    : await callCalendarApi(connection, `/calendars/${encodeURIComponent(calendarId)}/events`, {
-        method: "POST",
-        body: JSON.stringify({
-          summary,
-          description: params.description || "",
-          start: { dateTime: start, timeZone: connection.timezone },
-          end: { dateTime: end, timeZone: connection.timezone }
-        })
-      });
-
-  return {
-    ok: true,
-    customerMessage: "Agendamento criado com sucesso.",
-    data: { eventId: data.id, htmlLink: data.htmlLink || data.webLink || null }
-  };
-};
-
 export const ExecuteAiToolService = async ({
   ticket,
   aiSetting,
@@ -369,8 +262,6 @@ export const ExecuteAiToolService = async ({
       toolName === "calcularOrcamento" ? await calculateQuote(ticket, aiSetting, params) :
       toolName === "transferirParaFila" ? await transferToQueue(ticket, aiSetting, params) :
       toolName === "encerrarAtendimento" ? await closeTicket(ticket, params) :
-      toolName === "consultarAgenda" ? await consultCalendar(aiSetting, params) :
-      toolName === "criarAgendamento" ? await createCalendarEvent(aiSetting, params) :
       { ok: false, errorMessage: "Ferramenta desconhecida." };
 
     await AiToolExecution.create({

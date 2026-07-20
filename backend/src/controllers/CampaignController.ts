@@ -5,7 +5,11 @@ import CampaignContact from "../models/CampaignContact";
 import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
-import { isAdminProfile, requestUserHasSpecialPermission } from "../helpers/ProfilePermissions";
+import {
+  isAdminProfile,
+  requestUserHasPermission,
+  requestUserHasSpecialPermission
+} from "../helpers/ProfilePermissions";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
@@ -18,7 +22,21 @@ const include = [
 
 const canManageCampaign = async (req: Request, campaign: Campaign): Promise<boolean> => {
   if (isAdminProfile(req.user.profile)) return true;
-  if (campaign.userId && Number(campaign.userId) === Number(req.user.id)) return true;
+  const canManageAll =
+    await requestUserHasPermission(req.user.id, "campaigns.edit_all") ||
+    await requestUserHasPermission(req.user.id, "campaigns.cancel_all");
+  if (canManageAll) return true;
+
+  if (
+    campaign.userId &&
+    Number(campaign.userId) === Number(req.user.id) &&
+    (
+      await requestUserHasPermission(req.user.id, "campaigns.edit_own") ||
+      await requestUserHasPermission(req.user.id, "campaigns.cancel_own") ||
+      await requestUserHasPermission(req.user.id, "campaigns.clone")
+    )
+  ) return true;
+
   return requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
 };
 
@@ -138,7 +156,15 @@ const parseOptionalScheduledAt = (value: any): Date | null => {
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
+  const canViewAll =
+    isAdminProfile(req.user.profile) ||
+    await requestUserHasPermission(req.user.id, "campaigns.view_all") ||
+    await requestUserHasPermission(req.user.id, "campaigns.edit_all") ||
+    await requestUserHasPermission(req.user.id, "campaigns.cancel_all") ||
+    await requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
+
   const campaigns = await Campaign.findAll({
+    where: canViewAll ? undefined : { userId: Number(req.user.id) },
     include,
     order: [["id", "DESC"]]
   });
@@ -236,13 +262,12 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   if (!campaign) throw new AppError("ERR_CAMPAIGN_NOT_FOUND", 404);
   if (!(await canManageCampaign(req, campaign))) throw new AppError("ERR_NO_PERMISSION", 403);
 
-  if (!["scheduled", "running", "paused", "canceled"].includes(status)) {
+  if (!["scheduled", "running", "canceled"].includes(status)) {
     throw new AppError("ERR_INVALID_CAMPAIGN_STATUS", 400);
   }
 
   const statusData: any = { status };
   if (status === "running") statusData.startedAt = campaign.startedAt || new Date();
-  if (status === "paused") statusData.pausedAt = new Date();
   if (status === "canceled") statusData.canceledAt = new Date();
 
   await campaign.update(statusData);

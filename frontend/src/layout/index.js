@@ -13,15 +13,27 @@ import {
   Switch,
   Chip,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  InputAdornment,
 } from "@material-ui/core";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import AccountCircle from "@material-ui/icons/AccountCircle";
 import Brightness4Icon from "@material-ui/icons/Brightness4";
+import LockOutlinedIcon from "@material-ui/icons/LockOutlined";
+import Visibility from "@material-ui/icons/Visibility";
+import VisibilityOff from "@material-ui/icons/VisibilityOff";
+import CheckCircle from "@material-ui/icons/CheckCircle";
+import RadioButtonUnchecked from "@material-ui/icons/RadioButtonUnchecked";
+import { toast } from "react-toastify";
 
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
-import UserModal from "../components/UserModal";
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
 import { i18n } from "../translate/i18n";
@@ -291,6 +303,32 @@ const useStyles = makeStyles((theme) => ({
       display: "none",
     },
   },
+  passwordField: {
+    marginBottom: theme.spacing(2),
+  },
+  passwordRules: {
+    display: "grid",
+    gap: theme.spacing(0.75),
+    marginTop: theme.spacing(0.5),
+  },
+  passwordRule: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    color: theme.palette.text.secondary,
+    fontSize: 13,
+  },
+  passwordRuleValid: {
+    color: theme.palette.text.primary,
+  },
+  validIcon: {
+    color: "#22C55E",
+    fontSize: 18,
+  },
+  invalidIcon: {
+    color: theme.palette.text.disabled,
+    fontSize: 18,
+  },
 }));
 
 const statusLabels = {
@@ -305,12 +343,29 @@ const statusColors = {
   offline: "#94A3B8",
 };
 
+const initialPasswordChange = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+};
+
+const getPasswordRules = values => [
+  { key: "length", label: "Minimo de 8 caracteres", valid: values.newPassword.length >= 8 },
+  { key: "letter", label: "Tem pelo menos uma letra", valid: /[A-Za-z]/.test(values.newPassword) },
+  { key: "number", label: "Tem pelo menos um numero", valid: /\d/.test(values.newPassword) },
+  { key: "special", label: "Tem caractere especial", valid: /[^A-Za-z0-9]/.test(values.newPassword) },
+  { key: "confirm", label: "Confirmacao igual a nova senha", valid: values.confirmPassword.length > 0 && values.newPassword === values.confirmPassword }
+];
+
 const LoggedInLayout = ({ children }) => {
   const classes = useStyles();
-  const [userModalOpen, setUserModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const { handleLogout, loading } = useContext(AuthContext);
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [passwordChange, setPasswordChange] = useState(initialPasswordChange);
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const { handleLogout, loading, user } = useContext(AuthContext);
   const [drawerOpen, setDrawerOpen] = useState(() => {
     try {
       const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -320,7 +375,6 @@ const LoggedInLayout = ({ children }) => {
     }
   });
   const [drawerVariant, setDrawerVariant] = useState("permanent");
-  const { user } = useContext(AuthContext);
   const { darkMode, toggleTheme } = useThemeContext();
   const branding = useBranding();
   const backendUrl = getBackendUrl() || "http://localhost:8085";
@@ -444,9 +498,47 @@ const LoggedInLayout = ({ children }) => {
     setMenuOpen(false);
   };
 
-  const handleOpenUserModal = () => {
-    setUserModalOpen(true);
+  const handleOpenPasswordModal = () => {
+    setPasswordChange(initialPasswordChange);
+    setPasswordModalOpen(true);
     handleCloseMenu();
+  };
+
+  const handleClosePasswordModal = (force = false) => {
+    if (passwordSubmitting && !force) return;
+    setPasswordModalOpen(false);
+    setPasswordChange(initialPasswordChange);
+    setShowPasswords(false);
+  };
+
+  const handlePasswordChangeInput = event => {
+    const { name, value } = event.target;
+    setPasswordChange(current => ({
+      ...current,
+      [name]: value
+    }));
+  };
+
+  const passwordRules = getPasswordRules(passwordChange);
+  const canSubmitPasswordChange = passwordRules.every(rule => rule.valid) && passwordChange.currentPassword.length > 0;
+
+  const handlePasswordChangeSubmit = async event => {
+    event.preventDefault();
+    if (!canSubmitPasswordChange) return;
+
+    setPasswordSubmitting(true);
+    try {
+      await api.post("/users/change-password", {
+        currentPassword: passwordChange.currentPassword,
+        newPassword: passwordChange.newPassword
+      });
+      toast.success("Senha alterada com sucesso.");
+      handleClosePasswordModal(true);
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setPasswordSubmitting(false);
+    }
   };
 
   const handleClickLogout = () => {
@@ -531,11 +623,6 @@ const LoggedInLayout = ({ children }) => {
           <MainListItems drawerClose={drawerClose} drawerOpen={drawerOpen} />
         </List>
       </Drawer>
-      <UserModal
-        open={userModalOpen}
-        onClose={() => setUserModalOpen(false)}
-        userId={user?.id}
-      />
       <AppBar
         position="absolute"
         className={clsx(
@@ -617,8 +704,8 @@ const LoggedInLayout = ({ children }) => {
               open={menuOpen}
               onClose={handleCloseMenu}
             >
-              <MenuItem onClick={handleOpenUserModal}>
-                {i18n.t("mainDrawer.appBar.user.profile")}
+              <MenuItem onClick={handleOpenPasswordModal}>
+                Alterar senha
               </MenuItem>
               <MenuItem onClick={() => handleChangeStatus("online")}>
                 Status: Online
@@ -633,6 +720,110 @@ const LoggedInLayout = ({ children }) => {
           </div>
         </Toolbar>
       </AppBar>
+      <Dialog
+        open={passwordModalOpen}
+        onClose={handleClosePasswordModal}
+        maxWidth="xs"
+        fullWidth
+      >
+        <form onSubmit={handlePasswordChangeSubmit}>
+          <DialogTitle>Alterar senha</DialogTitle>
+          <DialogContent dividers>
+            <Typography variant="body2" color="textSecondary" style={{ marginBottom: 16 }}>
+              Altere apenas a senha do seu proprio acesso.
+            </Typography>
+            <TextField
+              className={classes.passwordField}
+              label="Senha atual"
+              name="currentPassword"
+              value={passwordChange.currentPassword}
+              onChange={handlePasswordChangeInput}
+              type={showPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              autoComplete="current-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon />
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              className={classes.passwordField}
+              label="Nova senha"
+              name="newPassword"
+              value={passwordChange.newPassword}
+              onChange={handlePasswordChangeInput}
+              type={showPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              autoComplete="new-password"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      type="button"
+                      onClick={() => setShowPasswords(current => !current)}
+                      aria-label="Mostrar ou ocultar senha"
+                    >
+                      {showPasswords ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            <TextField
+              className={classes.passwordField}
+              label="Confirmar nova senha"
+              name="confirmPassword"
+              value={passwordChange.confirmPassword}
+              onChange={handlePasswordChangeInput}
+              type={showPasswords ? "text" : "password"}
+              variant="outlined"
+              fullWidth
+              required
+              autoComplete="new-password"
+            />
+            <div className={classes.passwordRules}>
+              {passwordRules.map(rule => (
+                <div
+                  key={rule.key}
+                  className={clsx(classes.passwordRule, rule.valid && classes.passwordRuleValid)}
+                >
+                  {rule.valid ? (
+                    <CheckCircle className={classes.validIcon} />
+                  ) : (
+                    <RadioButtonUnchecked className={classes.invalidIcon} />
+                  )}
+                  <span>{rule.label}</span>
+                </div>
+              ))}
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleClosePasswordModal} disabled={passwordSubmitting}>
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              variant="contained"
+              disabled={!canSubmitPasswordChange || passwordSubmitting}
+            >
+              Salvar senha
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />
         {children ? children : null}

@@ -2,6 +2,7 @@ import User from "../../models/User";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
 import Whatsapp from "../../models/Whatsapp";
+import UserProfile from "../../models/UserProfile";
 
 const ShowUserService = async (id: string | number): Promise<User> => {
   const user = await User.findByPk(id, {
@@ -9,7 +10,14 @@ const ShowUserService = async (id: string | number): Promise<User> => {
       "name",
       "id",
       "email",
+      "cpf",
+      "birthDate",
+      "jobTitle",
+      "messageSignature",
+      "mustChangePassword",
+      "workHours",
       "profile",
+      "profileId",
       "specialPermissions",
       "active",
       "glpiEnabled",
@@ -24,6 +32,7 @@ const ShowUserService = async (id: string | number): Promise<User> => {
     ],
     include: [
       { model: Queue, as: "queues", attributes: ["id", "name", "color"] },
+      { model: UserProfile, as: "accessProfile", attributes: ["id", "name", "baseRole", "permissions"] },
       { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] }
     ],
     order: [[{ model: Queue, as: "queues" }, "name", "asc"]]

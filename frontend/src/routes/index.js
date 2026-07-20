@@ -17,6 +17,7 @@ const Login = lazy(() => import("../pages/Login/"));
 const Connections = lazy(() => import("../pages/Connections/"));
 const Settings = lazy(() => import("../pages/Settings/"));
 const Users = lazy(() => import("../pages/Users"));
+const UserProfiles = lazy(() => import("../pages/UserProfiles"));
 const Contacts = lazy(() => import("../pages/Contacts/"));
 const QuickAnswers = lazy(() => import("../pages/QuickAnswers/"));
 const Queues = lazy(() => import("../pages/Queues/"));
@@ -34,23 +35,49 @@ const Routes = () => {
               <Route exact path="/signup" component={Signup} />
               <WhatsAppsProvider>
                 <LoggedInLayout>
-                  <Route exact path="/" component={Dashboard} isPrivate />
-                  <Route exact path="/tickets/:ticketId?" component={Tickets} isPrivate />
-                  <Route exact path="/connections" component={Connections} isPrivate requiredProfile={["admin", "supervisor"]} />
-                  <Route exact path="/contacts" component={Contacts} isPrivate />
-                  <Route exact path="/users" component={Users} isPrivate requiredProfile={["admin", "supervisor"]} />
-                  <Route exact path="/quickAnswers" component={QuickAnswers} isPrivate />
+                  <Route exact path="/" component={Dashboard} isPrivate requiredAnyPermissions={["dashboard.view"]} />
+                  <Route exact path="/tickets/:ticketId?" component={Tickets} isPrivate requiredAnyPermissions={["tickets.view"]} />
+                  <Route exact path="/connections" component={Connections} isPrivate requiredAnyPermissions={["connections.view"]} />
+                  <Route exact path="/contacts" component={Contacts} isPrivate requiredAnyPermissions={["contacts.view"]} />
+                  <Route exact path="/users" component={Users} isPrivate requiredAnyPermissions={["users.view"]} />
+                  <Route exact path="/profiles" component={UserProfiles} isPrivate requiredAnyPermissions={["profiles.manage"]} />
+                  <Route exact path="/quickAnswers" component={QuickAnswers} isPrivate requiredAnyPermissions={["quickAnswers.view"]} />
                   <Route
                     exact
                     path="/settings"
                     component={Settings}
                     isPrivate
-                    requiredProfile={["admin", "supervisor"]}
+                    requiredAnyPermissions={[
+                      "settings.view",
+                      "settings.manage",
+                      "settings.categories",
+                      "settings.categories.view",
+                      "settings.closing_reasons",
+                      "settings.closing_reasons.view",
+                      "settings.satisfaction",
+                      "settings.satisfaction.view",
+                      "settings.audit_logs",
+                      "settings.ura",
+                      "settings.ura_flows",
+                      "settings.ura_options",
+                      "settings.forms",
+                      "settings.form_builder",
+                      "settings.form_responses",
+                      "settings.form_reports",
+                      "settings.ai",
+                      "settings.ai_agents",
+                      "settings.knowledge_base",
+                      "settings.ai_contexts",
+                      "settings.ai_leads",
+                      "settings.ai_tools",
+                      "settings.ai_calendar",
+                      "tags.view"
+                    ]}
                     requiredAnySpecialPermissions={["accessUra", "accessForms", "accessAi"]}
                   />
-                  <Route exact path="/integrations" component={Integrations} isPrivate requiredProfile="admin" />
-                  <Route exact path="/queues" component={Queues} isPrivate requiredProfile="admin" />
-                  <Route exact path="/campaigns-schedules" component={CampaignsSchedules} isPrivate />
+                  <Route exact path="/integrations" component={Integrations} isPrivate requiredAnyPermissions={["integrations.view", "glpi.view", "whatsapp_provider.view"]} />
+                  <Route exact path="/queues" component={Queues} isPrivate requiredAnyPermissions={["queues.view"]} />
+                  <Route exact path="/campaigns-schedules" component={CampaignsSchedules} isPrivate requiredAnyPermissions={["campaigns.view", "scheduledMessages.view"]} />
                 </LoggedInLayout>
               </WhatsAppsProvider>
             </Switch>

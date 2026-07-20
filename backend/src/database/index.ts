@@ -50,6 +50,7 @@ import GlpiTicketLink from "../models/GlpiTicketLink";
 import GlpiLog from "../models/GlpiLog";
 import GlpiConfiguration from "../models/GlpiConfiguration";
 import GlpiConfigurationWhatsapp from "../models/GlpiConfigurationWhatsapp";
+import UserProfile from "../models/UserProfile";
 
 
 // eslint-disable-next-line
@@ -59,6 +60,7 @@ const dbConfig = require("../config/database");
 const sequelize = new Sequelize(dbConfig);
 
 const models = [
+  UserProfile,
   User,
   Contact,
   Ticket,

@@ -223,6 +223,7 @@ const Dashboard = () => {
   const theme = useTheme();
   const { user } = useContext(AuthContext);
   const branding = useBranding();
+  const canViewDashboard = user?.permissions?.["dashboard.view"] === true || ["admin", "supervisor"].includes(user?.profile);
   const canViewFullDashboard = ["admin", "supervisor"].includes(user?.profile);
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(today());
@@ -237,6 +238,8 @@ const Dashboard = () => {
   const params = useMemo(() => ({ startDate, endDate }), [startDate, endDate]);
 
   useEffect(() => {
+    if (!canViewDashboard) return;
+
     const loadDashboard = async () => {
       try {
         const [{ data }, satisfactionResponse] = await Promise.all([
@@ -253,7 +256,7 @@ const Dashboard = () => {
     };
 
     loadDashboard();
-  }, [canViewFullDashboard, params, user?.profile]);
+  }, [canViewDashboard, canViewFullDashboard, params, user?.profile]);
 
   const loadHistory = async () => {
     if (!canViewFullDashboard) return;

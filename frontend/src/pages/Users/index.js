@@ -19,6 +19,7 @@ import InputAdornment from "@material-ui/core/InputAdornment";
 
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
+import VpnKeyIcon from "@material-ui/icons/VpnKey";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -123,6 +124,7 @@ const Users = () => {
   const classes = useStyles();
   const { user: loggedInUser } = useContext(AuthContext);
   const isSupervisor = loggedInUser?.profile === "supervisor";
+  const canResetPassword = loggedInUser?.profile === "admin" || loggedInUser?.permissions?.["users.reset_password"] === true;
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -208,6 +210,17 @@ const Users = () => {
     setPageNumber(1);
   };
 
+  const handleResetPassword = async (user) => {
+    if (!window.confirm(`Resetar a senha de ${user.name} para os 6 primeiros digitos do CPF?`)) return;
+
+    try {
+      await api.post(`/users/${user.id}/reset-password`);
+      toast.success("Senha resetada. O usuario devera alterar no proximo acesso.");
+    } catch (err) {
+      toastError(err);
+    }
+  };
+
   const loadMore = () => {
     setPageNumber((prevState) => prevState + 1);
   };
@@ -257,7 +270,7 @@ const Users = () => {
         <TextField
           variant="outlined"
           size="small"
-          placeholder={i18n.t("contacts.searchPlaceholder")}
+          placeholder="Pesquisar por nome, CPF ou e-mail"
           type="search"
           value={searchParam}
           onChange={handleSearch}
@@ -280,10 +293,13 @@ const Users = () => {
             <TableRow>
               <TableCell align="center">{i18n.t("users.table.name")}</TableCell>
               <TableCell align="center">
-                {i18n.t("users.table.email")}
+                CPF / E-mail
               </TableCell>
               <TableCell align="center">
                 {i18n.t("users.table.profile")}
+              </TableCell>
+              <TableCell align="center">
+                Cargo
               </TableCell>
               <TableCell align="center">
                 Acesso
@@ -304,8 +320,14 @@ const Users = () => {
               {users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell align="center">{user.name}</TableCell>
-                  <TableCell align="center">{user.email}</TableCell>
-                  <TableCell align="center">{profileLabels[user.profile] || user.profile}</TableCell>
+                  <TableCell align="center">
+                    <div>{user.cpf || "-"}</div>
+                    {user.email && (
+                      <small style={{ color: "#64748B" }}>{user.email}</small>
+                    )}
+                  </TableCell>
+                  <TableCell align="center">{user.profileName || profileLabels[user.profile] || user.profile}</TableCell>
+                  <TableCell align="center">{user.jobTitle || "-"}</TableCell>
                   <TableCell align="center">
                     <Chip
                       size="small"
@@ -339,6 +361,16 @@ const Users = () => {
                       </IconButton>
                     )}
 
+                    {canResetPassword && !(loggedInUser?.profile !== "admin" && user.profile === "admin") && (
+                      <IconButton
+                        size="small"
+                        onClick={() => handleResetPassword(user)}
+                        title="Resetar senha"
+                      >
+                        <VpnKeyIcon />
+                      </IconButton>
+                    )}
+
                     {!(isSupervisor && (user.profile === "admin" || Number(user.id) === Number(loggedInUser?.id))) && (
                       <IconButton
                         size="small"
@@ -353,10 +385,10 @@ const Users = () => {
                   </TableCell>
                 </TableRow>
               ))}
-              {loading && <TableRowSkeleton columns={7} />}
+              {loading && <TableRowSkeleton columns={8} />}
               {!loading && users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7}>
+                  <TableCell colSpan={8}>
                     <EmptyState
                       icon={SupervisorAccountIcon}
                       title="Nenhum usuario encontrado"

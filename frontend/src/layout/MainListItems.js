@@ -12,6 +12,7 @@ import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import SyncAltIcon from "@material-ui/icons/SyncAlt";
 import SettingsOutlinedIcon from "@material-ui/icons/SettingsOutlined";
 import PeopleAltOutlinedIcon from "@material-ui/icons/PeopleAltOutlined";
+import AssignmentIndOutlinedIcon from "@material-ui/icons/AssignmentIndOutlined";
 import ContactPhoneOutlinedIcon from "@material-ui/icons/ContactPhoneOutlined";
 import AccountTreeOutlinedIcon from "@material-ui/icons/AccountTreeOutlined";
 import QuestionAnswerOutlinedIcon from "@material-ui/icons/QuestionAnswerOutlined";
@@ -190,12 +191,63 @@ const MainListItems = (props) => {
   const ticketsBadgeCount = unreadTicketIds.size;
   const isAdmin = user?.profile === "admin";
   const isSupervisor = user?.profile === "supervisor";
+  const hasPermission = permission => user?.permissions?.[permission] === true;
   const hasSpecialSettingsAccess = Boolean(
     user?.specialPermissions?.accessUra ||
     user?.specialPermissions?.accessForms ||
     user?.specialPermissions?.accessAi
   );
-  const canSeeAdminSection = isAdmin || isSupervisor || hasSpecialSettingsAccess;
+  const hasSettingsPermission = [
+    "settings.view",
+    "settings.manage",
+    "settings.logo",
+    "settings.categories",
+    "settings.categories.view",
+    "settings.categories.create",
+    "settings.categories.edit",
+    "settings.categories.delete",
+    "settings.closing_reasons",
+    "settings.closing_reasons.view",
+    "settings.closing_reasons.create",
+    "settings.closing_reasons.edit",
+    "settings.closing_reasons.delete",
+    "settings.satisfaction",
+    "settings.satisfaction.view",
+    "settings.satisfaction.create",
+    "settings.satisfaction.edit",
+    "settings.satisfaction.delete",
+    "settings.audit_logs",
+    "settings.ura",
+    "settings.ura_flows",
+    "settings.ura_options",
+    "settings.forms",
+    "settings.form_builder",
+    "settings.form_responses",
+    "settings.form_reports",
+    "settings.ai",
+    "settings.ai_agents",
+    "settings.knowledge_base",
+    "settings.ai_contexts",
+    "settings.ai_leads",
+    "settings.ai_tools",
+    "settings.ai_calendar",
+    "tags.view",
+    "tags.create",
+    "tags.edit",
+    "tags.delete"
+  ].some(hasPermission);
+  const canSeeTickets = hasPermission("tickets.view") || isAdmin || isSupervisor || user?.profile === "user";
+  const canSeeContacts = hasPermission("contacts.view") || isAdmin || isSupervisor || user?.profile === "user";
+  const canSeeDashboard = hasPermission("dashboard.view") || isAdmin || isSupervisor;
+  const canSeeQuickAnswers = hasPermission("quickAnswers.view") || isAdmin || isSupervisor || user?.profile === "user";
+  const canSeeSchedules = hasPermission("scheduledMessages.view") || hasPermission("campaigns.view") || isAdmin || isSupervisor;
+  const canSeeConnections = hasPermission("connections.view") || isAdmin || isSupervisor;
+  const canSeeUsers = hasPermission("users.view") || isAdmin || isSupervisor;
+  const canSeeQueues = hasPermission("queues.view") || isAdmin;
+  const canSeeSettings = hasSettingsPermission || isAdmin || isSupervisor || hasSpecialSettingsAccess;
+  const canSeeIntegrations = hasPermission("integrations.view") || hasPermission("glpi.view") || hasPermission("whatsapp_provider.view") || isAdmin;
+  const canSeeProfiles = hasPermission("profiles.manage") || isAdmin;
+  const canSeeAdminSection = canSeeSettings || canSeeConnections || canSeeUsers || canSeeQueues || canSeeIntegrations || canSeeProfiles;
 
   useEffect(() => {
     setUnreadTicketIds(new Set(unreadTickets.map(ticket => Number(ticket.id))));
@@ -258,56 +310,66 @@ const MainListItems = (props) => {
   return (
     <div onClick={drawerClose} className={`${classes.root} ${!drawerOpen ? classes.rootCollapsed : ""}`}>
       {drawerOpen && <Typography className={classes.groupLabel}>ATENDIMENTO</Typography>}
-      <ListItemLink
-        to="/tickets"
-        primary="Atendimentos"
-        icon={<WhatsAppIcon />}
-        className={classes.item}
-        activeClassName={classes.activeItem}
-        collapsed={!drawerOpen}
-        collapsedClassName={classes.itemCollapsed}
-        badgeContent={ticketsBadgeCount}
-      />
-      <ListItemLink
-        to="/contacts"
-        primary={i18n.t("mainDrawer.listItems.contacts")}
-        icon={<ContactPhoneOutlinedIcon />}
-        className={classes.item}
-        activeClassName={classes.activeItem}
-        collapsed={!drawerOpen}
-        collapsedClassName={classes.itemCollapsed}
-      />
+      {canSeeTickets && (
+        <ListItemLink
+          to="/tickets"
+          primary="Atendimentos"
+          icon={<WhatsAppIcon />}
+          className={classes.item}
+          activeClassName={classes.activeItem}
+          collapsed={!drawerOpen}
+          collapsedClassName={classes.itemCollapsed}
+          badgeContent={ticketsBadgeCount}
+        />
+      )}
+      {canSeeContacts && (
+        <ListItemLink
+          to="/contacts"
+          primary={i18n.t("mainDrawer.listItems.contacts")}
+          icon={<ContactPhoneOutlinedIcon />}
+          className={classes.item}
+          activeClassName={classes.activeItem}
+          collapsed={!drawerOpen}
+          collapsedClassName={classes.itemCollapsed}
+        />
+      )}
 
       {drawerOpen && <Typography className={classes.groupLabel}>GESTAO</Typography>}
-      <ListItemLink
-        to="/"
-        primary="Painel"
-        icon={<DashboardOutlinedIcon />}
-        className={classes.item}
-        activeClassName={classes.activeItem}
-        collapsed={!drawerOpen}
-        collapsedClassName={classes.itemCollapsed}
-      />
+      {canSeeDashboard && (
+        <ListItemLink
+          to="/"
+          primary="Painel"
+          icon={<DashboardOutlinedIcon />}
+          className={classes.item}
+          activeClassName={classes.activeItem}
+          collapsed={!drawerOpen}
+          collapsedClassName={classes.itemCollapsed}
+        />
+      )}
 
       {drawerOpen && <Typography className={classes.groupLabel}>AUTOMACAO</Typography>}
-      <ListItemLink
-        to="/quickAnswers"
-        primary="Respostas rápidas"
-        icon={<QuestionAnswerOutlinedIcon />}
-        className={classes.item}
-        activeClassName={classes.activeItem}
-        collapsed={!drawerOpen}
-        collapsedClassName={classes.itemCollapsed}
-      />
-      <ListItemLink
-        to="/campaigns-schedules"
-        primary={<span className={classes.twoLineLabel}>Mensagens<br />programadas</span>}
-        icon={<EventNoteOutlinedIcon />}
-        className={`${classes.item} ${classes.itemTwoLine}`}
-        activeClassName={classes.activeItem}
-        collapsed={!drawerOpen}
-        collapsedClassName={classes.itemCollapsed}
-      />
+      {canSeeQuickAnswers && (
+        <ListItemLink
+          to="/quickAnswers"
+          primary="Respostas rapidas"
+          icon={<QuestionAnswerOutlinedIcon />}
+          className={classes.item}
+          activeClassName={classes.activeItem}
+          collapsed={!drawerOpen}
+          collapsedClassName={classes.itemCollapsed}
+        />
+      )}
+      {canSeeSchedules && (
+        <ListItemLink
+          to="/campaigns-schedules"
+          primary={<span className={classes.twoLineLabel}>Mensagens<br />programadas</span>}
+          icon={<EventNoteOutlinedIcon />}
+          className={`${classes.item} ${classes.itemTwoLine}`}
+          activeClassName={classes.activeItem}
+          collapsed={!drawerOpen}
+          collapsedClassName={classes.itemCollapsed}
+        />
+      )}
       {canSeeAdminSection && (
           <>
             {drawerOpen && <Typography className={classes.groupLabel}>CONFIGURACOES</Typography>}
@@ -332,33 +394,37 @@ const MainListItems = (props) => {
               unmountOnExit
               className={`${classes.submenu} ${!drawerOpen ? classes.submenuCollapsed : ""}`}
             >
-              {(isAdmin || isSupervisor) && (
+              {(canSeeUsers || canSeeConnections) && (
                 <>
-                  <ListItemLink
-                    to="/connections"
-                    primary={i18n.t("mainDrawer.listItems.connections")}
-                    icon={
-                      <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
-                        <SyncAltIcon />
-                      </Badge>
-                    }
-                    className={classes.item}
-                    activeClassName={classes.activeItem}
-                    collapsed={!drawerOpen}
-                    collapsedClassName={classes.itemCollapsed}
-                  />
-                  <ListItemLink
-                    to="/users"
-                    primary={i18n.t("mainDrawer.listItems.users")}
-                    icon={<PeopleAltOutlinedIcon />}
-                    className={classes.item}
-                    activeClassName={classes.activeItem}
-                    collapsed={!drawerOpen}
-                    collapsedClassName={classes.itemCollapsed}
-                  />
+                  {canSeeConnections && (
+                    <ListItemLink
+                      to="/connections"
+                      primary={i18n.t("mainDrawer.listItems.connections")}
+                      icon={
+                        <Badge badgeContent={connectionWarning ? "!" : 0} color="error">
+                          <SyncAltIcon />
+                        </Badge>
+                      }
+                      className={classes.item}
+                      activeClassName={classes.activeItem}
+                      collapsed={!drawerOpen}
+                      collapsedClassName={classes.itemCollapsed}
+                    />
+                  )}
+                  {canSeeUsers && (
+                    <ListItemLink
+                      to="/users"
+                      primary={i18n.t("mainDrawer.listItems.users")}
+                      icon={<PeopleAltOutlinedIcon />}
+                      className={classes.item}
+                      activeClassName={classes.activeItem}
+                      collapsed={!drawerOpen}
+                      collapsedClassName={classes.itemCollapsed}
+                    />
+                  )}
                 </>
               )}
-              {isAdmin && (
+              {canSeeQueues && (
                 <ListItemLink
                   to="/queues"
                   primary={i18n.t("mainDrawer.listItems.queues")}
@@ -369,16 +435,29 @@ const MainListItems = (props) => {
                   collapsedClassName={classes.itemCollapsed}
                 />
               )}
-              <ListItemLink
-                to="/settings"
-                primary={i18n.t("mainDrawer.listItems.settings")}
-                icon={<SettingsOutlinedIcon />}
-                className={classes.item}
-                activeClassName={classes.activeItem}
-                collapsed={!drawerOpen}
-                collapsedClassName={classes.itemCollapsed}
-              />
-              {isAdmin && (
+              {canSeeProfiles && (
+                <ListItemLink
+                  to="/profiles"
+                  primary="Perfis"
+                  icon={<AssignmentIndOutlinedIcon />}
+                  className={classes.item}
+                  activeClassName={classes.activeItem}
+                  collapsed={!drawerOpen}
+                  collapsedClassName={classes.itemCollapsed}
+                />
+              )}
+              {canSeeSettings && (
+                <ListItemLink
+                  to="/settings"
+                  primary={i18n.t("mainDrawer.listItems.settings")}
+                  icon={<SettingsOutlinedIcon />}
+                  className={classes.item}
+                  activeClassName={classes.activeItem}
+                  collapsed={!drawerOpen}
+                  collapsedClassName={classes.itemCollapsed}
+                />
+              )}
+              {canSeeIntegrations && (
                 <ListItemLink
                   to="/integrations"
                   primary="Integrações"

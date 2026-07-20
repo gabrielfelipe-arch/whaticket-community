@@ -1,8 +1,9 @@
-import { useState, useEffect, useReducer } from "react";
+import { useContext, useEffect, useMemo, useReducer, useState } from "react";
 import openSocket from "../../services/socket-io";
 import toastError from "../../errors/toastError";
 
 import api from "../../services/api";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const reducer = (state, action) => {
 	if (action.type === "LOAD_WHATSAPPS") {
@@ -56,8 +57,25 @@ const reducer = (state, action) => {
 const useWhatsApps = () => {
 	const [whatsApps, dispatch] = useReducer(reducer, []);
 	const [loading, setLoading] = useState(true);
+	const { user } = useContext(AuthContext);
+	const canViewWhatsApps = useMemo(() => {
+		const permissions = user?.permissions || {};
+		return (
+			user?.profile === "admin" ||
+			user?.profile === "supervisor" ||
+			permissions["connections.view"] === true ||
+			permissions["whatsapp_provider.view"] === true ||
+			permissions["whatsapp_updates.manage"] === true
+		);
+	}, [user]);
 
 	useEffect(() => {
+		if (!canViewWhatsApps) {
+			dispatch({ type: "RESET" });
+			setLoading(false);
+			return;
+		}
+
 		setLoading(true);
 		const fetchSession = async () => {
 			try {
@@ -70,9 +88,11 @@ const useWhatsApps = () => {
 			}
 		};
 		fetchSession();
-	}, []);
+	}, [canViewWhatsApps]);
 
 	useEffect(() => {
+		if (!canViewWhatsApps) return;
+
 		const socket = openSocket();
 
 		socket.on("whatsapp", data => {
@@ -96,7 +116,7 @@ const useWhatsApps = () => {
 		return () => {
 			socket.disconnect();
 		};
-	}, []);
+	}, [canViewWhatsApps]);
 
 	return { whatsApps, loading };
 };

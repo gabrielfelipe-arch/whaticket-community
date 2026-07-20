@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import isAuth from "../middleware/isAuth";
+import requirePermission from "../middleware/requirePermission";
 import uploadConfig from "../config/upload";
 
 import * as ContactController from "../controllers/ContactController";
@@ -12,26 +13,28 @@ const upload = multer(uploadConfig);
 contactRoutes.post(
   "/contacts/import",
   isAuth,
+  requirePermission("contacts.import_phone"),
   ImportPhoneContactsController.store
 );
 
 contactRoutes.post(
   "/contacts/import-spreadsheet",
   isAuth,
+  requirePermission("contacts.import"),
   upload.single("file"),
   ContactController.importSpreadsheet
 );
 
-contactRoutes.get("/contacts", isAuth, ContactController.index);
+contactRoutes.get("/contacts", isAuth, requirePermission("contacts.view"), ContactController.index);
 
-contactRoutes.get("/contacts/:contactId", isAuth, ContactController.show);
+contactRoutes.get("/contacts/:contactId", isAuth, requirePermission("contacts.view"), ContactController.show);
 
-contactRoutes.post("/contacts", isAuth, ContactController.store);
+contactRoutes.post("/contacts", isAuth, requirePermission("contacts.create"), ContactController.store);
 
-contactRoutes.post("/contact", isAuth, ContactController.getContact);
+contactRoutes.post("/contact", isAuth, requirePermission("contacts.view"), ContactController.getContact);
 
-contactRoutes.put("/contacts/:contactId", isAuth, ContactController.update);
+contactRoutes.put("/contacts/:contactId", isAuth, requirePermission("contacts.edit"), ContactController.update);
 
-contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
+contactRoutes.delete("/contacts/:contactId", isAuth, requirePermission("contacts.delete"), ContactController.remove);
 
 export default contactRoutes;

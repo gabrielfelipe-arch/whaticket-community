@@ -7,10 +7,12 @@ import { RefreshTokenService } from "../services/AuthServices/RefreshTokenServic
 import { updateUserOperationalStatus } from "../services/QueueService/QueueDistributionService";
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { email, password } = req.body;
+  const { cpf, email, login, password } = req.body;
 
   const { token, serializedUser, refreshToken } = await AuthUserService({
+    cpf,
     email,
+    login,
     password
   });
 

@@ -5,8 +5,8 @@ import Dialog from "@material-ui/core/Dialog";
 import DialogActions from "@material-ui/core/DialogActions";
 import DialogContent from "@material-ui/core/DialogContent";
 import DialogTitle from "@material-ui/core/DialogTitle";
-import MenuItem from "@material-ui/core/MenuItem";
 import Menu from "@material-ui/core/Menu";
+import MenuItem from "@material-ui/core/MenuItem";
 import TextField from "@material-ui/core/TextField";
 import { toast } from "react-toastify";
 
@@ -24,6 +24,8 @@ const toDateTimeLocalValue = date => {
 	const offset = next.getTimezoneOffset();
 	return new Date(next.getTime() - offset * 60000).toISOString().slice(0, 16);
 };
+
+const getFieldValue = event => event && event.target ? event.target.value : "";
 
 const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 	const [confirmationOpen, setConfirmationOpen] = useState(false);
@@ -50,12 +52,12 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 		}
 	};
 
-	const handleOpenConfirmationModal = e => {
+	const handleOpenConfirmationModal = () => {
 		setConfirmationOpen(true);
 		handleClose();
 	};
 
-	const handleOpenTransferModal = e => {
+	const handleOpenTransferModal = () => {
 		setTransferTicketModalOpen(true);
 		handleClose();
 	};
@@ -193,8 +195,8 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 						type="datetime-local"
 						variant="outlined"
 						margin="dense"
-						value={scheduleAt}
-						onChange={event => setScheduleAt(event.target.value)}
+						value={scheduleAt || ""}
+						onChange={event => setScheduleAt(getFieldValue(event))}
 						InputLabelProps={{ shrink: true }}
 						fullWidth
 					/>
@@ -202,8 +204,8 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 						label="Mensagem"
 						variant="outlined"
 						margin="dense"
-						value={scheduleMessage}
-						onChange={event => setScheduleMessage(event.target.value)}
+						value={scheduleMessage || ""}
+						onChange={event => setScheduleMessage(getFieldValue(event))}
 						multiline
 						rows={4}
 						fullWidth
@@ -212,9 +214,9 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 						label="Contexto do retorno"
 						variant="outlined"
 						margin="dense"
-						value={returnContext}
-						onChange={event => setReturnContext(event.target.value)}
-						placeholder="Ex: Retornar sobre orçamento enviado e confirmar se deseja falar com a equipe."
+						value={returnContext || ""}
+						onChange={event => setReturnContext(getFieldValue(event))}
+						placeholder="Ex: Retornar sobre orcamento enviado e confirmar se deseja falar com a equipe."
 						multiline
 						rows={3}
 						helperText="Anotacao interna para a equipe quando o cliente responder dentro da janela definida na fila."

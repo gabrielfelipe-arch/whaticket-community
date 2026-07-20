@@ -1,6 +1,7 @@
 import { Sequelize, Op } from "sequelize";
 import Queue from "../../models/Queue";
 import User from "../../models/User";
+import UserProfile from "../../models/UserProfile";
 import Whatsapp from "../../models/Whatsapp";
 
 interface Request {
@@ -27,7 +28,8 @@ const ListUsersService = async ({
           `%${searchParam.toLowerCase()}%`
         )
       },
-      { email: { [Op.like]: `%${searchParam.toLowerCase()}%` } }
+      { email: { [Op.like]: `%${searchParam.toLowerCase()}%` } },
+      { cpf: { [Op.like]: `%${searchParam.replace(/\D/g, "")}%` } }
     ]
   };
   const limit = 20;
@@ -39,7 +41,14 @@ const ListUsersService = async ({
       "name",
       "id",
       "email",
+      "cpf",
+      "birthDate",
+      "jobTitle",
+      "messageSignature",
+      "mustChangePassword",
+      "workHours",
       "profile",
+      "profileId",
       "specialPermissions",
       "active",
       "glpiEnabled",
@@ -54,6 +63,7 @@ const ListUsersService = async ({
     order: [["createdAt", "DESC"]],
     include: [
       { model: Queue, as: "queues", attributes: ["id", "name", "color"] },
+      { model: UserProfile, as: "accessProfile", attributes: ["id", "name", "baseRole", "permissions"] },
       { model: Whatsapp, as: "whatsapp", attributes: ["id", "name"] }
     ]
   });

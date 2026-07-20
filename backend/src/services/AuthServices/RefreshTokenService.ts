@@ -10,6 +10,7 @@ import {
   createRefreshToken
 } from "../../helpers/CreateTokens";
 import { SerializeUser } from "../../helpers/SerializeUser";
+import { assertUserCanAccessNow } from "../../helpers/UserAccessRules";
 
 interface RefreshTokenPayload {
   id: string;
@@ -36,6 +37,8 @@ export const RefreshTokenService = async (
       res.clearCookie("jrt");
       throw new AppError("ERR_SESSION_EXPIRED", 401);
     }
+
+    assertUserCanAccessNow(user);
 
     if (user.tokenVersion !== tokenVersion) {
       res.clearCookie("jrt");

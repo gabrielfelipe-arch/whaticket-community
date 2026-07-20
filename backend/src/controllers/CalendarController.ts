@@ -8,28 +8,22 @@ import {
 import { logger } from "../utils/logger";
 
 export const googleAuth = async (req: Request, res: Response): Promise<Response> => {
-  if (req.user.profile !== "admin") throw new AppError("ERR_NO_PERMISSION", 403);
-
   const authUrl = await buildGoogleCalendarAuthUrl({
-    userId: Number(req.user.id),
-    connectionId: req.query.connectionId ? Number(req.query.connectionId) : null,
-    name: req.query.name ? String(req.query.name) : null
+    userId: Number(req.user.id)
   });
 
-  return res.status(200).json({ authUrl });
+  if (!authUrl) {
+    throw new AppError("Configuracao do Google Agenda incompleta.", 400);
+  }
+
+  return res.json({ authUrl });
 };
 
 export const googleCallback = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      throw new AppError(`Google OAuth recusado: ${String(error)}`, 400);
-    }
-
     const { redirectUrl } = await handleGoogleCalendarCallback({
-      code: String(code || ""),
-      state: String(state || "")
+      code: req.query.code as string,
+      state: req.query.state as string
     });
 
     res.redirect(redirectUrl);

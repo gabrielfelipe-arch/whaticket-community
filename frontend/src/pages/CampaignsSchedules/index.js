@@ -27,7 +27,6 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import SearchIcon from "@material-ui/icons/Search";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
-import PauseIcon from "@material-ui/icons/Pause";
 import StopIcon from "@material-ui/icons/Stop";
 import EditIcon from "@material-ui/icons/Edit";
 import FileCopyIcon from "@material-ui/icons/FileCopy";
@@ -195,6 +194,14 @@ const useStyles = makeStyles(theme => ({
       fontSize: 18,
     },
   },
+  compactIconCampaign: {
+    color: theme.palette.type === "dark" ? "#93C5FD" : "#1D4ED8",
+    background: theme.palette.type === "dark" ? "rgba(37,99,235,0.18)" : "#DBEAFE",
+  },
+  compactIconSchedule: {
+    color: theme.palette.type === "dark" ? "#5EEAD4" : "#0F766E",
+    background: theme.palette.type === "dark" ? "rgba(20,184,166,0.16)" : "#CCFBF1",
+  },
   itemText: {
     minWidth: 0,
   },
@@ -260,6 +267,14 @@ const useStyles = makeStyles(theme => ({
     fontSize: 11,
     fontWeight: 600,
     background: theme.palette.type === "dark" ? "#111A2E" : "#F1F5F9",
+  },
+  typeChipCampaign: {
+    color: theme.palette.type === "dark" ? "#93C5FD" : "#1D4ED8",
+    background: theme.palette.type === "dark" ? "rgba(37,99,235,0.16)" : "#DBEAFE",
+  },
+  typeChipSchedule: {
+    color: theme.palette.type === "dark" ? "#5EEAD4" : "#0F766E",
+    background: theme.palette.type === "dark" ? "rgba(20,184,166,0.16)" : "#CCFBF1",
   },
   dateCell: {
     whiteSpace: "nowrap",
@@ -634,10 +649,39 @@ const CampaignsSchedules = () => {
   const classes = useStyles();
   const { user } = useContext(AuthContext);
   const isAdmin = user?.profile === "admin";
-  const canManageAutomationItem = item =>
+  const hasPermission = permission => user?.permissions?.[permission] === true;
+  const hasCampaignFullAccess = user?.specialPermissions?.manageOtherCampaigns === true;
+  const ownsAutomationItem = item => Number(item?.userId) === Number(user?.id);
+  const canViewCampaigns = isAdmin || hasPermission("campaigns.view");
+  const canViewSchedules = isAdmin || hasPermission("scheduledMessages.view");
+  const canEditCampaign = campaign =>
     isAdmin ||
-    Number(item?.userId) === Number(user?.id) ||
-    user?.specialPermissions?.manageOtherCampaigns === true;
+    hasCampaignFullAccess ||
+    hasPermission("campaigns.edit_all") ||
+    (ownsAutomationItem(campaign) && hasPermission("campaigns.edit_own"));
+  const canCancelCampaign = campaign =>
+    isAdmin ||
+    hasCampaignFullAccess ||
+    hasPermission("campaigns.cancel_all") ||
+    (ownsAutomationItem(campaign) && hasPermission("campaigns.cancel_own"));
+  const canCloneCampaign = campaign =>
+    isAdmin ||
+    hasCampaignFullAccess ||
+    (hasPermission("campaigns.clone") && (ownsAutomationItem(campaign) || hasPermission("campaigns.view_all")));
+  const canEditSchedule = schedule =>
+    isAdmin ||
+    hasCampaignFullAccess ||
+    hasPermission("scheduledMessages.edit_all") ||
+    (ownsAutomationItem(schedule) && hasPermission("scheduledMessages.edit_own"));
+  const canCancelSchedule = schedule =>
+    isAdmin ||
+    hasCampaignFullAccess ||
+    hasPermission("scheduledMessages.cancel_all") ||
+    (ownsAutomationItem(schedule) && hasPermission("scheduledMessages.cancel_own"));
+  const canCloneSchedule = schedule =>
+    isAdmin ||
+    hasCampaignFullAccess ||
+    (hasPermission("scheduledMessages.clone") && (ownsAutomationItem(schedule) || hasPermission("scheduledMessages.view_all")));
   const [campaigns, setCampaigns] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
@@ -647,7 +691,7 @@ const CampaignsSchedules = () => {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [sendType, setSendType] = useState("scheduled");
   const [filterType, setFilterType] = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("scheduled");
   const [filterText, setFilterText] = useState("");
   const [campaignForm, setCampaignForm] = useState(initialCampaign);
   const [scheduleForm, setScheduleForm] = useState(initialSchedule);
@@ -665,24 +709,24 @@ const CampaignsSchedules = () => {
   const loadData = async () => {
     try {
       const [
-        { data: campaignData },
-        { data: scheduleData },
-        { data: contactData },
-        { data: whatsappData },
-        { data: tagData }
+        campaignResponse,
+        scheduleResponse,
+        contactResponse,
+        whatsappResponse,
+        tagResponse
       ] = await Promise.all([
-        api.get("/campaigns"),
-        api.get("/scheduled-messages"),
-        api.get("/contacts", { params: { all: true } }),
-        api.get("/whatsapp/"),
-        api.get("/tags")
+        canViewCampaigns ? api.get("/campaigns") : Promise.resolve({ data: [] }),
+        canViewSchedules ? api.get("/scheduled-messages") : Promise.resolve({ data: [] }),
+        hasPermission("contacts.view") || isAdmin ? api.get("/contacts", { params: { all: true } }) : Promise.resolve({ data: { contacts: [] } }),
+        api.get("/whatsapp/").catch(() => ({ data: [] })),
+        api.get("/tags").catch(() => ({ data: [] }))
       ]);
 
-      setCampaigns(campaignData);
-      setSchedules(scheduleData);
-      setContacts(contactData.contacts || []);
-      setWhatsapps(whatsappData || []);
-      setTags(tagData || []);
+      setCampaigns(campaignResponse.data || []);
+      setSchedules(scheduleResponse.data || []);
+      setContacts(contactResponse.data?.contacts || []);
+      setWhatsapps(whatsappResponse.data || []);
+      setTags(tagResponse.data || []);
       setSelectedItemIds([]);
     } catch (err) {
       toastError(err);
@@ -1121,6 +1165,11 @@ const CampaignsSchedules = () => {
   const buildAutomationItems = () => {
     const campaignItems = campaigns.map(campaign => {
       const progress = getCampaignProgress(campaign);
+      const nextRecipientRunAt = (campaign.recipients || [])
+        .map(recipient => recipient.nextRunAt)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
       return {
         id: `campaign-${campaign.id}`,
         source: "campaign",
@@ -1130,7 +1179,7 @@ const CampaignsSchedules = () => {
         recurrenceLabel: "Envio em fila",
         status: campaign.status,
         statusLabel: getCampaignStatusLabel(campaign.status),
-        nextRunAt: campaign.recipients?.find(recipient => recipient.nextRunAt)?.nextRunAt || (campaign.status === "scheduled" ? campaign.createdAt : null),
+        nextRunAt: nextRecipientRunAt || (campaign.status === "scheduled" ? campaign.createdAt : null),
         lastRunAt: campaign.completedAt || campaign.startedAt || campaign.updatedAt,
         whatsappName: campaign.whatsapp?.name || "Padrao",
         message: campaign.message,
@@ -1325,79 +1374,36 @@ const CampaignsSchedules = () => {
   const duplicateSchedule = async schedule => {
     try {
       await api.post(`/scheduled-messages/${schedule.id}/duplicate`);
-      toast.success("Mensagem programada clonada. Revise antes de ativar.");
+      toast.success("Mensagem programada clonada como rascunho. Revise e salve para agendar.");
       loadData();
     } catch (err) {
       toastError(err);
     }
   };
 
-  const renderCampaignActions = campaign => {
-    const progress = getCampaignProgress(campaign);
-
-    return (
-      <>
-        {(campaign.status === "scheduled" || campaign.status === "running") && (
-          <>
-            <Button size="small" onClick={() => updateCampaignStatus(campaign, "paused")}>
-              Pause
-            </Button>
-            <Button size="small" onClick={() => updateCampaignStatus(campaign, "canceled")}>
-              Stop
-            </Button>
-          </>
-        )}
-        {campaign.status === "paused" && (
-          <Button size="small" onClick={() => updateCampaignStatus(campaign, "running")}>
-            Play
-          </Button>
-        )}
-        {progress.failed > 0 && (
-          <Button size="small" onClick={() => retryCampaignErrors(campaign)}>
-            Reenviar erros
-          </Button>
-        )}
-        {["completed", "completed_with_errors", "canceled", "failed", "error"].includes(campaign.status) && (
-          <Button size="small" onClick={() => duplicateCampaign(campaign)}>
-            Reenviar tudo
-          </Button>
-        )}
-        <Button size="small" onClick={() => openCampaignLogs(campaign)}>
-          Logs
-        </Button>
-      </>
-    );
-  };
-
   const renderAutomationActions = item => {
     if (item.source === "campaign") {
       const campaign = item.raw;
-      const canManage = canManageAutomationItem(campaign);
       return (
         <div className={classes.playerActions}>
-          {canManage && ["scheduled", "paused"].includes(campaign.status) && renderIconAction({
+          {canEditCampaign(campaign) && ["scheduled", "paused"].includes(campaign.status) && renderIconAction({
             title: campaign.status === "paused" ? "Retomar campanha" : "Iniciar agora",
             icon: <PlayArrowIcon />,
             color: "primary",
             onClick: () => updateCampaignStatus(campaign, "running")
           })}
-          {canManage && campaign.status === "running" && renderIconAction({
-            title: "Pausar campanha",
-            icon: <PauseIcon />,
-            onClick: () => updateCampaignStatus(campaign, "paused")
-          })}
-          {canManage && ["scheduled", "running", "paused"].includes(campaign.status) && renderIconAction({
+          {canCancelCampaign(campaign) && ["scheduled", "running", "paused"].includes(campaign.status) && renderIconAction({
             title: "Cancelar campanha",
             icon: <StopIcon />,
             onClick: () => updateCampaignStatus(campaign, "canceled")
           })}
-          {canManage && item.progress.failed > 0 && renderIconAction({
+          {canEditCampaign(campaign) && item.progress.failed > 0 && renderIconAction({
             title: "Reenviar erros",
             icon: <ReplayIcon />,
             color: "secondary",
             onClick: () => retryCampaignErrors(campaign)
           })}
-          {renderIconAction({
+          {canCloneCampaign(campaign) && renderIconAction({
             title: "Clonar campanha",
             icon: <FileCopyIcon />,
             onClick: () => duplicateCampaign(campaign)
@@ -1418,31 +1424,19 @@ const CampaignsSchedules = () => {
     }
 
     const schedule = item.raw;
-    const canManage = canManageAutomationItem(schedule);
     return (
       <div className={classes.playerActions}>
-        {canManage && schedule.status === "paused" && renderIconAction({
-          title: "Retomar agendamento",
-          icon: <PlayArrowIcon />,
-          color: "primary",
-          onClick: () => updateScheduleStatus(schedule, "scheduled")
-        })}
-        {canManage && ["scheduled", "running"].includes(schedule.status) && renderIconAction({
-          title: "Pausar agendamento",
-          icon: <PauseIcon />,
-          onClick: () => updateScheduleStatus(schedule, "paused")
-        })}
-        {canManage && ["scheduled", "running", "paused"].includes(schedule.status) && renderIconAction({
+        {canCancelSchedule(schedule) && ["scheduled", "running", "draft"].includes(schedule.status) && renderIconAction({
           title: "Cancelar agendamento",
           icon: <StopIcon />,
           onClick: () => updateScheduleStatus(schedule, "canceled")
         })}
-        {canManage && !["sent", "completed", "canceled"].includes(schedule.status) && renderIconAction({
+        {canEditSchedule(schedule) && !["sent", "completed", "canceled"].includes(schedule.status) && renderIconAction({
           title: "Editar agendamento",
           icon: <EditIcon />,
           onClick: () => openEditScheduleModal(schedule)
         })}
-        {renderIconAction({
+        {canCloneSchedule(schedule) && renderIconAction({
           title: "Clonar agendamento",
           icon: <FileCopyIcon />,
           onClick: () => duplicateSchedule(schedule)
@@ -1546,7 +1540,7 @@ const CampaignsSchedules = () => {
               <MenuItem value="all">Todos</MenuItem>
               <MenuItem value="scheduled">Agendado</MenuItem>
               <MenuItem value="running">Em execucao</MenuItem>
-              <MenuItem value="paused">Pausado</MenuItem>
+              <MenuItem value="paused">Pausado (campanhas)</MenuItem>
               <MenuItem value="completed">Concluido</MenuItem>
               <MenuItem value="completed_with_errors">Concluido com erros</MenuItem>
               <MenuItem value="sent">Enviado</MenuItem>
@@ -1598,6 +1592,7 @@ const CampaignsSchedules = () => {
             {automationItems.map(item => {
               const percent = getProgressPercent(item.progress);
               const isCampaign = item.source === "campaign";
+              const isCampaignType = isCampaign || item.sendType === "campaign";
 
               return (
                 <TableRow key={item.id} hover>
@@ -1613,8 +1608,8 @@ const CampaignsSchedules = () => {
                   )}
                   <TableCell className={classes.compactNameCell}>
                     <div className={classes.itemIdentity}>
-                      <div className={classes.compactIcon}>
-                        {isCampaign ? <SendIcon /> : <ScheduleIcon />}
+                      <div className={`${classes.compactIcon} ${isCampaignType ? classes.compactIconCampaign : classes.compactIconSchedule}`}>
+                        {isCampaignType ? <SendIcon /> : <ScheduleIcon />}
                       </div>
                       <div className={classes.itemText}>
                         <Typography component="span" className={classes.itemName}>
@@ -1634,7 +1629,11 @@ const CampaignsSchedules = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    <Chip size="small" label={item.typeLabel} className={classes.typeChip} />
+                    <Chip
+                      size="small"
+                      label={item.typeLabel}
+                      className={`${classes.typeChip} ${isCampaignType ? classes.typeChipCampaign : classes.typeChipSchedule}`}
+                    />
                     <Typography className={classes.itemSubline} component="span">
                       {item.recurrenceLabel}
                     </Typography>

@@ -1,3 +1,5 @@
+import { Op } from "sequelize";
+
 import CheckContactOpenTickets from "../../helpers/CheckContactOpenTickets";
 import SetTicketMessagesAsRead from "../../helpers/SetTicketMessagesAsRead";
 import { getIO } from "../../libs/socket";
@@ -6,6 +8,7 @@ import Ticket from "../../models/Ticket";
 import Queue from "../../models/Queue";
 import User from "../../models/User";
 import UserQueue from "../../models/UserQueue";
+import ScheduledMessage from "../../models/ScheduledMessage";
 import ShowTicketService from "./ShowTicketService";
 import {
   distributeTicketIfNeeded,
@@ -267,6 +270,21 @@ const UpdateTicketService = async ({
     await ticket.update({
       whatsappId
     });
+  }
+
+  if (status === "closed" && oldStatus !== "closed") {
+    const closedAt = new Date();
+    await ScheduledMessage.update(
+      { returnHandledAt: closedAt },
+      {
+        where: {
+          contactId: ticket.contactId,
+          whatsappId: ticket.whatsappId,
+          returnHandledAt: null,
+          returnWindowExpiresAt: { [Op.gte]: closedAt }
+        }
+      }
+    );
   }
 
   let updatedTicket = await ShowTicketService(ticket.id);

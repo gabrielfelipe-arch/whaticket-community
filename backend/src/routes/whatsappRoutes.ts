@@ -2,7 +2,7 @@ import express from "express";
 import { Request, Response, NextFunction } from "express";
 import isAuth from "../middleware/isAuth";
 import AppError from "../errors/AppError";
-import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
+import requirePermission from "../middleware/requirePermission";
 
 import * as WhatsAppController from "../controllers/WhatsAppController";
 import * as WhatsAppUpdateController from "../controllers/WhatsAppUpdateController";
@@ -18,38 +18,31 @@ const isAdmin = (req: Request, res: Response, next: NextFunction) => {
   return next();
 };
 
-const isAdminOrSupervisor = (req: Request, res: Response, next: NextFunction) => {
-  if (!isAdminOrSupervisorProfile(req.user.profile)) {
-    throw new AppError("ERR_NO_PERMISSION", 403);
-  }
-  return next();
-};
+whatsappRoutes.get("/whatsapp/", isAuth, requirePermission("connections.view"), WhatsAppController.index);
 
-whatsappRoutes.get("/whatsapp/", isAuth, WhatsAppController.index);
+whatsappRoutes.get("/whatsapp-updates/status", isAuth, requirePermission("whatsapp_updates.manage"), WhatsAppUpdateController.status);
+whatsappRoutes.get("/whatsapp-updates/progress", isAuth, requirePermission("whatsapp_updates.manage"), WhatsAppUpdateController.progress);
+whatsappRoutes.post("/whatsapp-updates/install", isAuth, requirePermission("whatsapp_updates.manage"), WhatsAppUpdateController.install);
+whatsappRoutes.post("/whatsapp-updates/rollback", isAuth, requirePermission("whatsapp_updates.manage"), WhatsAppUpdateController.rollback);
 
-whatsappRoutes.get("/whatsapp-updates/status", isAuth, isAdmin, WhatsAppUpdateController.status);
-whatsappRoutes.get("/whatsapp-updates/progress", isAuth, isAdmin, WhatsAppUpdateController.progress);
-whatsappRoutes.post("/whatsapp-updates/install", isAuth, isAdmin, WhatsAppUpdateController.install);
-whatsappRoutes.post("/whatsapp-updates/rollback", isAuth, isAdmin, WhatsAppUpdateController.rollback);
-
-whatsappRoutes.get("/whatsapp-provider", isAuth, isAdmin, WhatsAppProviderController.show);
-whatsappRoutes.put("/whatsapp-provider", isAuth, isAdmin, WhatsAppProviderController.update);
-whatsappRoutes.post("/whatsapp-provider/test-evolution", isAuth, isAdmin, WhatsAppProviderController.testEvolution);
-whatsappRoutes.post("/whatsapp-provider/switch", isAuth, isAdmin, WhatsAppProviderController.switchProvider);
+whatsappRoutes.get("/whatsapp-provider", isAuth, requirePermission("whatsapp_provider.view"), WhatsAppProviderController.show);
+whatsappRoutes.put("/whatsapp-provider", isAuth, requirePermission("whatsapp_provider.manage"), WhatsAppProviderController.update);
+whatsappRoutes.post("/whatsapp-provider/test-evolution", isAuth, requirePermission("whatsapp_provider.manage"), WhatsAppProviderController.testEvolution);
+whatsappRoutes.post("/whatsapp-provider/switch", isAuth, requirePermission("whatsapp_provider.manage"), WhatsAppProviderController.switchProvider);
 
 whatsappRoutes.post("/webhooks/evolution", EvolutionWebhookController.receive);
 whatsappRoutes.post("/webhooks/evolution/:instance", EvolutionWebhookController.receive);
 
-whatsappRoutes.post("/whatsapp/", isAuth, isAdmin, WhatsAppController.store);
+whatsappRoutes.post("/whatsapp/", isAuth, requirePermission("connections.create"), WhatsAppController.store);
 
-whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, isAdminOrSupervisor, WhatsAppController.show);
+whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, requirePermission("connections.view"), WhatsAppController.show);
 
-whatsappRoutes.put("/whatsapp/:whatsappId", isAuth, isAdmin, WhatsAppController.update);
+whatsappRoutes.put("/whatsapp/:whatsappId", isAuth, requirePermission("connections.edit"), WhatsAppController.update);
 
 whatsappRoutes.delete(
   "/whatsapp/:whatsappId",
   isAuth,
-  isAdmin,
+  requirePermission("connections.delete"),
   WhatsAppController.remove
 );
 

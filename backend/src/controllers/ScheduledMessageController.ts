@@ -5,7 +5,11 @@ import ScheduledMessage from "../models/ScheduledMessage";
 import Contact from "../models/Contact";
 import Whatsapp from "../models/Whatsapp";
 import AppError from "../errors/AppError";
-import { isAdminProfile, requestUserHasSpecialPermission } from "../helpers/ProfilePermissions";
+import {
+  isAdminProfile,
+  requestUserHasPermission,
+  requestUserHasSpecialPermission
+} from "../helpers/ProfilePermissions";
 import Tag from "../models/Tag";
 import ContactTag from "../models/ContactTag";
 import { getPauseSeconds } from "../helpers/MessageQueueTiming";
@@ -19,7 +23,21 @@ const include = [
 
 const canManageSchedule = async (req: Request, schedule: ScheduledMessage): Promise<boolean> => {
   if (isAdminProfile(req.user.profile)) return true;
-  if (schedule.userId && Number(schedule.userId) === Number(req.user.id)) return true;
+  const canManageAll =
+    await requestUserHasPermission(req.user.id, "scheduledMessages.edit_all") ||
+    await requestUserHasPermission(req.user.id, "scheduledMessages.cancel_all");
+  if (canManageAll) return true;
+
+  if (
+    schedule.userId &&
+    Number(schedule.userId) === Number(req.user.id) &&
+    (
+      await requestUserHasPermission(req.user.id, "scheduledMessages.edit_own") ||
+      await requestUserHasPermission(req.user.id, "scheduledMessages.cancel_own") ||
+      await requestUserHasPermission(req.user.id, "scheduledMessages.clone")
+    )
+  ) return true;
+
   return requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
 };
 
@@ -242,7 +260,15 @@ const resolveScheduledRecipients = async ({
 };
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
+  const canViewAll =
+    isAdminProfile(req.user.profile) ||
+    await requestUserHasPermission(req.user.id, "scheduledMessages.view_all") ||
+    await requestUserHasPermission(req.user.id, "scheduledMessages.edit_all") ||
+    await requestUserHasPermission(req.user.id, "scheduledMessages.cancel_all") ||
+    await requestUserHasSpecialPermission(req.user.id, "manageOtherCampaigns");
+
   const messages = await ScheduledMessage.findAll({
+    where: canViewAll ? undefined : { userId: Number(req.user.id) },
     include,
     order: [["scheduledAt", "DESC"]]
   });
@@ -536,8 +562,9 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   }
 
   if (schedule.status === "error" || schedule.status === "failed") allowedData.status = "scheduled";
+  if (schedule.status === "draft" && status === undefined) allowedData.status = "scheduled";
   if (status !== undefined) {
-    if (!["scheduled", "paused", "canceled"].includes(status)) {
+    if (!["scheduled", "canceled"].includes(status)) {
       throw new AppError("ERR_INVALID_SCHEDULE_STATUS", 400);
     }
     allowedData.status = status;
@@ -562,7 +589,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
       {
         where: {
           batchId: schedule.batchId,
-          status: { [Op.in]: ["scheduled", "paused", "running", "error", "failed"] }
+          status: { [Op.in]: ["scheduled", "running", "error", "failed"] }
         }
       }
     );
@@ -624,7 +651,7 @@ export const duplicate = async (req: Request, res: Response): Promise<Response> 
     runCount: 0,
     respectBusinessHours: schedule.respectBusinessHours,
     missedRunPolicy: schedule.missedRunPolicy,
-    status: "paused"
+    status: "draft"
   });
 
   const created = await ScheduledMessage.findByPk(clone.id, { include });

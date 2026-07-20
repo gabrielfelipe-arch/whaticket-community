@@ -56,6 +56,8 @@ const getAudioExtension = type => {
   return "webm";
 };
 
+const getMessageSignature = user => String(user?.messageSignature || user?.name || "").trim();
+
 const useStyles = makeStyles(theme => ({
   mainWrapper: {
     background: theme.palette.background.paper,
@@ -416,8 +418,9 @@ const MessageInput = ({ ticketStatus }) => {
 
     const formData = new FormData();
     const caption = inputMessage.trim();
-    const signedCaption = caption && signMessage
-      ? `*${user?.name}:*\n${caption}`
+    const signature = getMessageSignature(user);
+    const signedCaption = caption && signMessage && signature
+      ? `*${signature}:*\n${caption}`
       : caption;
 
     formData.append("fromMe", true);
@@ -445,8 +448,8 @@ const MessageInput = ({ ticketStatus }) => {
       read: 1,
       fromMe: true,
       mediaUrl: "",
-      body: signMessage
-        ? `*${user?.name}:*\n${inputMessage.trim()}`
+      body: signMessage && getMessageSignature(user)
+        ? `*${getMessageSignature(user)}:*\n${inputMessage.trim()}`
         : inputMessage.trim(),
       quotedMsg: replyingMessage,
     };

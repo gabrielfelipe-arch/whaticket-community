@@ -11,7 +11,11 @@ import ClosingReason from "../models/ClosingReason";
 import SatisfactionSurveyResponse from "../models/SatisfactionSurveyResponse";
 import AuditLog from "../models/AuditLog";
 import AppError from "../errors/AppError";
-import { isAdminOrSupervisorProfile } from "../helpers/ProfilePermissions";
+import {
+  isAdminProfile,
+  isAdminOrSupervisorProfile,
+  requestUserHasPermission
+} from "../helpers/ProfilePermissions";
 
 const parseDateRange = (req: Request) => {
   const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
@@ -44,13 +48,13 @@ const statusLabels: Record<string, string> = {
   closed: "Encerrado"
 };
 
-const groupRows = async (column: string, alias: string, start: Date, end: Date) => {
+const groupRows = async (column: string, alias: string, start: Date, end: Date, baseWhere: any = {}) => {
   const rows = await Ticket.findAll({
     attributes: [
       [col(column) as any, "name"],
       [fn("COUNT", col("Ticket.id")), "total"]
     ],
-    where: { createdAt: dateFilter(start, end) } as any,
+    where: { ...baseWhere, createdAt: dateFilter(start, end) } as any,
     include: [
       {
         model: alias === "category" ? TicketCategory : ClosingReason,
@@ -123,9 +127,40 @@ const buildAttendantAudit = async () => {
   }));
 };
 
+const resolveDashboardWhere = async (req: Request, start: Date, end: Date) => {
+  const canViewAll =
+    isAdminProfile(req.user.profile) ||
+    await requestUserHasPermission(req.user.id, "dashboard.view_all_queues");
+
+  if (canViewAll) {
+    return {
+      where: { createdAt: dateFilter(start, end) } as any,
+      canViewAll
+    };
+  }
+
+  const canViewLinked = await requestUserHasPermission(req.user.id, "dashboard.view_linked_queues");
+  if (!canViewLinked) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const user = await User.findByPk(req.user.id, {
+    include: [{ model: Queue, as: "queues", attributes: ["id"] }]
+  });
+  const queueIds = (user?.queues || []).map(queue => Number(queue.id)).filter(Number.isFinite);
+
+  return {
+    where: {
+      createdAt: dateFilter(start, end),
+      queueId: queueIds.length ? { [Op.in]: queueIds } : -1
+    } as any,
+    canViewAll
+  };
+};
+
 export const dashboard = async (req: Request, res: Response): Promise<Response> => {
   const { start, end } = parseDateRange(req);
-  const where = { createdAt: dateFilter(start, end) } as any;
+  const { where, canViewAll } = await resolveDashboardWhere(req, start, end);
   const ticketCreatedDate = fn("DATE", col("Ticket.createdAt"));
 
   const [total, open, pending, closed, byCategory, byReason, byQueue, byUser, byDay, attendants] = await Promise.all([
@@ -133,8 +168,8 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
     Ticket.count({ where: { ...where, status: "open" } }),
     Ticket.count({ where: { ...where, status: "pending" } }),
     Ticket.count({ where: { ...where, status: "closed" } }),
-    groupRows("category.name", "category", start, end),
-    groupRows("closingReason.name", "closingReason", start, end),
+    groupRows("category.name", "category", start, end, where),
+    groupRows("closingReason.name", "closingReason", start, end, where),
     Ticket.findAll({
       attributes: [[col("queue.name") as any, "name"], [fn("COUNT", col("Ticket.id")), "total"]],
       where,
@@ -159,7 +194,7 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
       order: [[ticketCreatedDate as any, "ASC"]],
       raw: true
     }),
-    isAdminOrSupervisorProfile(req.user.profile) ? buildAttendantAudit() : Promise.resolve([])
+    canViewAll ? buildAttendantAudit() : Promise.resolve([])
   ]);
 
   return res.json({

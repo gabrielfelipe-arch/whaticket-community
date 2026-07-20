@@ -17,6 +17,7 @@ import tagRoutes from "./tagRoutes";
 import reportRoutes from "./reportRoutes";
 import glpiRoutes from "./glpiRoutes";
 import calendarRoutes from "./calendarRoutes";
+import userProfileRoutes from "./userProfileRoutes";
 
 const routes = Router();
 
@@ -37,6 +38,7 @@ routes.use(tagRoutes);
 routes.use(reportRoutes);
 routes.use(glpiRoutes);
 routes.use(calendarRoutes);
+routes.use(userProfileRoutes);
 
 export default routes;
 

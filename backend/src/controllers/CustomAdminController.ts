@@ -21,7 +21,9 @@ import {
   canManageResourceBySpecialPermission,
   canSupervisorManageConfigResource,
   isAdminProfile,
-  isSupervisorProfile
+  isSupervisorProfile,
+  ProfilePermissionKey,
+  requestUserHasPermission
 } from "../helpers/ProfilePermissions";
 import GenerateAiResponseService, { AiProviderError } from "../services/AiServices/GenerateAiResponseService";
 import {
@@ -58,6 +60,56 @@ function getModel(resource: string): AnyModel {
   }
 
   return model;
+}
+
+type ResourceAction = "view" | "create" | "edit" | "delete";
+
+const resourceActionPermissionMap: Record<string, Partial<Record<ResourceAction, ProfilePermissionKey>>> = {
+  ticketCategories: {
+    view: "settings.categories.view",
+    create: "settings.categories.create",
+    edit: "settings.categories.edit",
+    delete: "settings.categories.delete"
+  },
+  closingReasons: {
+    view: "settings.closing_reasons.view",
+    create: "settings.closing_reasons.create",
+    edit: "settings.closing_reasons.edit",
+    delete: "settings.closing_reasons.delete"
+  },
+  satisfactionSurveys: {
+    view: "settings.satisfaction.view",
+    create: "settings.satisfaction.create",
+    edit: "settings.satisfaction.edit",
+    delete: "settings.satisfaction.delete"
+  },
+  tags: {
+    view: "tags.view",
+    create: "tags.create",
+    edit: "tags.edit",
+    delete: "tags.delete"
+  }
+};
+
+async function canAccessResourceAction(
+  req: Request,
+  resource: string,
+  action: ResourceAction
+): Promise<boolean> {
+  if (isAdminProfile(req.user.profile)) return true;
+
+  const permission = resourceActionPermissionMap[resource]?.[action];
+  if (permission && await requestUserHasPermission(req.user.id, permission)) return true;
+
+  if (
+    ["create", "edit", "delete"].includes(action) &&
+    isSupervisorProfile(req.user.profile) &&
+    canSupervisorManageConfigResource(resource)
+  ) {
+    return true;
+  }
+
+  return canManageResourceBySpecialPermission(req.user.id, resource);
 }
 
 function nullableNumber(value: any): number | null {
@@ -637,7 +689,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   const isAdmin = isAdminProfile(req.user.profile);
   const isSupervisor = isSupervisorProfile(req.user.profile);
   const supervisorCanManage = isSupervisor && canSupervisorManageConfigResource(resource);
-  const hasSpecialAccess = await canManageResourceBySpecialPermission(req.user.id, resource);
+  const hasSpecialAccess = await canAccessResourceAction(req, resource, "view");
 
   if (!isAdmin && !supervisorCanManage && !hasSpecialAccess && !publicLookupResources.includes(resource)) {
     throw new AppError("ERR_NO_PERMISSION", 403);
@@ -657,9 +709,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { resource } = req.params;
-  if (!isAdminProfile(req.user.profile) && !(
-    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
-  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
+  if (!(await canAccessResourceAction(req, resource, "create"))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
@@ -696,9 +746,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
 export const update = async (req: Request, res: Response): Promise<Response> => {
   const { resource, id } = req.params;
-  if (!isAdminProfile(req.user.profile) && !(
-    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
-  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
+  if (!(await canAccessResourceAction(req, resource, "edit"))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
@@ -759,9 +807,7 @@ export const uploadQualificationMessageMedia = async (req: Request, res: Respons
 
 export const remove = async (req: Request, res: Response): Promise<Response> => {
   const { resource, id } = req.params;
-  if (!isAdminProfile(req.user.profile) && !(
-    isSupervisorProfile(req.user.profile) && canSupervisorManageConfigResource(resource)
-  ) && !(await canManageResourceBySpecialPermission(req.user.id, resource))) {
+  if (!(await canAccessResourceAction(req, resource, "delete"))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 

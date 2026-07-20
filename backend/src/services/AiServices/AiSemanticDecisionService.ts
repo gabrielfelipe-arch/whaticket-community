@@ -449,7 +449,7 @@ const chooseNextAction = (
     return { type: "check_stock", tool: capability === "stock" ? "consultarEstoque" : null, requiresBackendValidation: true, shouldAskClarification: false, nextQuestionKey: null };
   }
   if (primaryIntent === "pedido_agendamento" || primaryIntent === "pedido_disponibilidade") {
-    return { type: "check_appointment", tool: capability === "appointment" ? "consultarAgenda" : null, requiresBackendValidation: true, shouldAskClarification: !capability, nextQuestionKey: null };
+    return { type: "check_appointment", tool: null, requiresBackendValidation: true, shouldAskClarification: false, nextQuestionKey: null };
   }
   if (["tentativa_de_burla", "pedido_fora_da_regra", "assunto_sensivel_ou_proibido", "abuso_ou_ofensa", "fora_de_contexto"].includes(primaryIntent)) {
     return { type: "block_or_redirect", tool: null, requiresBackendValidation: primaryIntent === "tentativa_de_burla", shouldAskClarification: false, nextQuestionKey: null };

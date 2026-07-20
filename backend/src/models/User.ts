@@ -21,6 +21,7 @@ import Queue from "./Queue";
 import UserQueue from "./UserQueue";
 import Whatsapp from "./Whatsapp";
 import QuickAnswer from "./QuickAnswer";
+import UserProfile from "./UserProfile";
 
 @Table
 class User extends Model<User> {
@@ -35,11 +36,30 @@ class User extends Model<User> {
   @Column
   email: string;
 
+  @Column
+  cpf: string;
+
+  @Column(DataType.DATEONLY)
+  birthDate: string;
+
+  @Column
+  jobTitle: string;
+
+  @Column
+  messageSignature: string;
+
   @Column(DataType.VIRTUAL)
   password: string;
 
   @Column
   passwordHash: string;
+
+  @Default(false)
+  @Column
+  mustChangePassword: boolean;
+
+  @Column(DataType.TEXT)
+  workHours: string;
 
   @Default(0)
   @Column
@@ -48,6 +68,13 @@ class User extends Model<User> {
   @Default("user")
   @Column
   profile: string;
+
+  @ForeignKey(() => UserProfile)
+  @Column
+  profileId: number;
+
+  @BelongsTo(() => UserProfile)
+  accessProfile: UserProfile;
 
   @Default(true)
   @Column

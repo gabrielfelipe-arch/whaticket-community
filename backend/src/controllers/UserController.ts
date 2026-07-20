@@ -7,7 +7,8 @@ import {
   isAdminOrSupervisorProfile,
   isAdminProfile,
   isSupervisorProfile,
-  normalizeProfile
+  normalizeProfile,
+  requestUserHasPermission
 } from "../helpers/ProfilePermissions";
 
 import CreateUserService from "../services/UserServices/CreateUserService";
@@ -15,6 +16,8 @@ import ListUsersService from "../services/UserServices/ListUsersService";
 import UpdateUserService from "../services/UserServices/UpdateUserService";
 import ShowUserService from "../services/UserServices/ShowUserService";
 import DeleteUserService from "../services/UserServices/DeleteUserService";
+import ResetUserPasswordService from "../services/UserServices/ResetUserPasswordService";
+import ChangeUserPasswordService from "../services/UserServices/ChangeUserPasswordService";
 import {
   updateUserOperationalStatus,
   touchUserActivity
@@ -39,7 +42,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { email, password, name, profile, queueIds, whatsappId, attendanceGreeting, active, glpiEnabled, glpiUserToken, specialPermissions } = req.body;
+  const { email, cpf, birthDate, jobTitle, messageSignature, name, profile, profileId, queueIds, whatsappId, attendanceGreeting, active, glpiEnabled, glpiUserToken, specialPermissions, workHours } = req.body;
   const requesterProfile = normalizeProfile(req.user?.profile);
   const targetProfile = req.url === "/signup" ? "user" : normalizeProfile(profile || "user");
 
@@ -48,26 +51,35 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     (await CheckSettingsHelper("userCreation")) === "disabled"
   ) {
     throw new AppError("ERR_USER_CREATION_DISABLED", 403);
-  } else if (req.url !== "/signup" && !isAdminOrSupervisorProfile(requesterProfile)) {
+  } else if (
+    req.url !== "/signup" &&
+    !isAdminOrSupervisorProfile(requesterProfile) &&
+    !(await requestUserHasPermission(req.user.id, "users.create"))
+  ) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  if (isSupervisorProfile(requesterProfile) && targetProfile === "admin") {
+  if (!isAdminProfile(requesterProfile) && targetProfile === "admin") {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
   const user = await CreateUserService({
     email,
-    password,
+    cpf,
+    birthDate,
+    jobTitle,
+    messageSignature,
     name,
     profile: targetProfile,
+    profileId: isAdminProfile(requesterProfile) ? profileId : undefined,
     queueIds,
     whatsappId,
     attendanceGreeting,
     active,
     glpiEnabled: glpiEnabled === true || glpiEnabled === "true",
     glpiUserToken,
-    specialPermissions: isAdminProfile(requesterProfile) ? specialPermissions : undefined
+    specialPermissions: isAdminProfile(requesterProfile) ? specialPermissions : undefined,
+    workHours
   });
 
   const io = getIO();
@@ -96,7 +108,10 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const requesterProfile = normalizeProfile(req.user?.profile);
-  if (!isAdminOrSupervisorProfile(requesterProfile)) {
+  if (
+    !isAdminOrSupervisorProfile(requesterProfile) &&
+    !(await requestUserHasPermission(req.user.id, "users.edit"))
+  ) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
@@ -106,6 +121,7 @@ export const update = async (
 
   if (isSupervisorProfile(requesterProfile)) {
     delete userData.specialPermissions;
+    delete userData.profileId;
 
     if (isAdminProfile(targetUser.profile) || normalizeProfile(userData.profile || targetUser.profile) === "admin") {
       throw new AppError("ERR_NO_PERMISSION", 403);
@@ -119,6 +135,11 @@ export const update = async (
     }
   } else if (!isAdminProfile(requesterProfile)) {
     delete userData.specialPermissions;
+    delete userData.profileId;
+
+    if (isAdminProfile(targetUser.profile) || normalizeProfile(userData.profile || targetUser.profile) === "admin") {
+      throw new AppError("ERR_NO_PERMISSION", 403);
+    }
   }
 
   const user = await UpdateUserService({ userData, userId });
@@ -168,6 +189,61 @@ export const updateStatus = async (
   return res.status(200).json(serializedUser);
 };
 
+export const changePassword = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { currentPassword, newPassword } = req.body;
+
+  const user = await ChangeUserPasswordService({
+    userId: req.user.id,
+    currentPassword,
+    newPassword
+  });
+
+  const io = getIO();
+  io.emit("user", {
+    action: "update",
+    user
+  });
+
+  return res.status(200).json({ user });
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { userId } = req.params;
+  const requesterProfile = normalizeProfile(req.user?.profile);
+
+  if (
+    !isAdminProfile(requesterProfile) &&
+    !(await requestUserHasPermission(req.user.id, "users.reset_password"))
+  ) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const targetUser = await ShowUserService(userId);
+
+  if (!isAdminProfile(requesterProfile) && isAdminProfile(targetUser.profile)) {
+    throw new AppError("ERR_NO_PERMISSION", 403);
+  }
+
+  const user = await ResetUserPasswordService({ userId });
+
+  const io = getIO();
+  io.emit("user", {
+    action: "update",
+    user
+  });
+
+  return res.status(200).json({
+    user,
+    message: "Senha resetada para os 6 primeiros digitos do CPF."
+  });
+};
+
 export const activity = async (
   req: Request,
   res: Response
@@ -204,16 +280,16 @@ export const remove = async (
   const { userId } = req.params;
 
   const requesterProfile = normalizeProfile(req.user?.profile);
-  if (!isAdminOrSupervisorProfile(requesterProfile)) {
+  if (
+    !isAdminOrSupervisorProfile(requesterProfile) &&
+    !(await requestUserHasPermission(req.user.id, "users.delete"))
+  ) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
   const targetUser = await ShowUserService(userId);
 
-  if (
-    isSupervisorProfile(requesterProfile) &&
-    (isAdminProfile(targetUser.profile) || Number(req.user.id) === Number(userId))
-  ) {
+  if (!isAdminProfile(requesterProfile) && (isAdminProfile(targetUser.profile) || Number(req.user.id) === Number(userId))) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
