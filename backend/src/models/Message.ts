@@ -49,7 +49,11 @@ class Message extends Model<Message> {
 
       try {
         const url = new URL(backendUrl);
-        if (proxyPort && !url.port) url.port = proxyPort;
+        const shouldApplyProxyPort =
+          proxyPort &&
+          !url.port &&
+          !["80", "443"].includes(proxyPort);
+        if (shouldApplyProxyPort) url.port = proxyPort;
         return `${url.origin}/public/${mediaUrl}`;
       } catch (error) {
         const hasPort = /:\d+$/.test(backendUrl);

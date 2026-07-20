@@ -2794,7 +2794,7 @@ const QualificationFormsPanel = ({ classes }) => {
 				api.get("/qualification-form-questions"),
 				api.get("/tags"),
 				api.get("/ura-options").catch(() => ({ data: [] })),
-				api.get("/queues").catch(() => ({ data: [] })),
+				api.get("/queue").catch(() => ({ data: [] })),
 				api.get("/glpi/config").catch(() => ({ data: {} })),
 				api.get("/glpi/categories").catch(() => ({ data: [] })),
 				api.get("/glpi/entities").catch(() => ({ data: [] })),
