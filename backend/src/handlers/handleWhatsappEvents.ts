@@ -7,7 +7,6 @@ import { Op } from "sequelize";
 import { getIO } from "../libs/socket";
 import { logger } from "../utils/logger";
 import { debounce } from "../helpers/Debounce";
-import formatBody from "../helpers/Mustache";
 
 import Contact from "../models/Contact";
 import Ticket from "../models/Ticket";
@@ -46,7 +45,7 @@ import { tryRegisterSatisfactionResponse } from "../services/SatisfactionSurveyS
 import DecideAiTicketActionService, { AiDecision } from "../services/AiServices/DecideAiTicketActionService";
 import ExecuteAiToolService, { AiToolName } from "../services/AiServices/AiToolService";
 import uploadConfig from "../config/upload";
-import RenderMessageVariables from "../helpers/RenderMessageVariables";
+import RenderMessageVariables, { replaceMessageVariables } from "../helpers/RenderMessageVariables";
 import CreateGlpiTicketService from "../services/GlpiServices/CreateGlpiTicketService";
 import { logQueueEntry } from "../services/QueueService/QueueDistributionService";
 import {
@@ -348,15 +347,15 @@ const renderHandoffTemplate = async ({
   aiSetting: AiSetting;
 }): Promise<string> => {
   const brandName = await Setting.findOne({ where: { key: "brandName" } });
+  const renderedBase = await RenderMessageVariables(template || "", contactPayload as any);
 
-  return String(template || "")
-    .replace(/{{\s*nome_contato\s*}}/gi, contactPayload.name || "")
-    .replace(/{{\s*telefone_contato\s*}}/gi, contactPayload.number || "")
-    .replace(/{{\s*fila\s*}}/gi, queue?.name || "")
-    .replace(/{{\s*ultima_mensagem\s*}}/gi, lastMessage || "")
-    .replace(/{{\s*data_hora\s*}}/gi, new Date().toLocaleString("pt-BR"))
-    .replace(/{{\s*nome_empresa\s*}}/gi, aiSetting.companyName || brandName?.value || "")
-    .replace(/{{\s*nome_ia\s*}}/gi, aiSetting.name || "IA");
+  return replaceMessageVariables(renderedBase, {
+    fila: queue?.name || "",
+    ultima_mensagem: lastMessage || "",
+    data_hora: new Date().toLocaleString("pt-BR"),
+    nome_empresa: aiSetting.companyName || brandName?.value || "",
+    nome_ia: aiSetting.name || "IA"
+  });
 };
 
 const handoffToHuman = async (
@@ -3653,7 +3652,7 @@ const handleQueueLogic = async (
       options += `${formatNumberedOption(index + 1, queue.name)}\n`;
     });
 
-    const body = formatBody(
+    const body = await RenderMessageVariables(
       `\u200e${greetingMessage}\n${options}`,
       contactPayload as any
     );
@@ -3707,10 +3706,13 @@ export const handleMessage = async (
     }
 
     const whatsapp = await ShowWhatsAppService(contextPayload.whatsappId);
+    const renderedFarewellMessage = whatsapp.farewellMessage
+      ? await RenderMessageVariables(whatsapp.farewellMessage, contact)
+      : null;
     if (
       contextPayload.unreadMessages === 0 &&
       whatsapp.farewellMessage &&
-      formatBody(whatsapp.farewellMessage, contact) === processedMessage.body
+      renderedFarewellMessage === processedMessage.body
     ) {
       return;
     }

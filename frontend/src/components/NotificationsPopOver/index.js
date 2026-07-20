@@ -21,6 +21,8 @@ import useTickets from "../../hooks/useTickets";
 import alertSound from "../../assets/sound.mp3";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import useWhatsApps from "../../hooks/useWhatsApps";
+import api from "../../services/api";
+import { subscribeToPushNotifications } from "../../pwa";
 
 const whatsappAttentionStatuses = new Set([
 	"DISCONNECTED",
@@ -163,6 +165,12 @@ const NotificationsPopOver = ({ className }) => {
 	}, [ticketIdUrl]);
 
 	useEffect(() => {
+		if (user?.id && "Notification" in window && Notification.permission === "granted") {
+			subscribeToPushNotifications(api).catch(() => {});
+		}
+	}, [user]);
+
+	useEffect(() => {
 		const socket = openSocket();
 
 		socket.on("connect", () => socket.emit("joinNotification"));
@@ -246,11 +254,18 @@ const NotificationsPopOver = ({ className }) => {
 
 	const ensureNotificationPermission = async () => {
 		if (!("Notification" in window)) return false;
-		if (Notification.permission === "granted") return true;
+		if (Notification.permission === "granted") {
+			subscribeToPushNotifications(api).catch(() => {});
+			return true;
+		}
 		if (Notification.permission !== "default") return false;
 
 		const permission = await Notification.requestPermission();
-		return permission === "granted";
+		if (permission === "granted") {
+			subscribeToPushNotifications(api).catch(() => {});
+			return true;
+		}
+		return false;
 	};
 
 	const handleNotifications = async data => {

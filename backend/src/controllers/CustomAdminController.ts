@@ -717,7 +717,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   const data = await normalizeBody(resource, req.body);
   if (resource === "uraFlows") {
     applyMediaUpload(data, req, { url: "welcomeMediaUrl", type: "welcomeMediaType", name: "welcomeMediaName" });
-    if (!req.file) {
+    if (!req.file && (req.body.removeWelcomeMedia === true || req.body.removeWelcomeMedia === "true")) {
+      data.welcomeMediaUrl = null;
+      data.welcomeMediaType = null;
+      data.welcomeMediaName = null;
+    } else if (!req.file) {
       delete data.welcomeMediaUrl;
       delete data.welcomeMediaType;
       delete data.welcomeMediaName;
@@ -725,7 +729,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
   if (resource === "uraOptions") {
     applyMediaUpload(data, req, { url: "responseMediaUrl", type: "responseMediaType", name: "responseMediaName" });
-    if (!req.file) {
+    if (!req.file && (req.body.removeResponseMedia === true || req.body.removeResponseMedia === "true")) {
+      data.responseMediaUrl = null;
+      data.responseMediaType = null;
+      data.responseMediaName = null;
+    } else if (!req.file) {
       delete data.responseMediaUrl;
       delete data.responseMediaType;
       delete data.responseMediaName;
@@ -760,7 +768,11 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const data = await normalizeBody(resource, { ...req.body, id });
   if (resource === "uraFlows") {
     applyMediaUpload(data, req, { url: "welcomeMediaUrl", type: "welcomeMediaType", name: "welcomeMediaName" });
-    if (!req.file) {
+    if (!req.file && (req.body.removeWelcomeMedia === true || req.body.removeWelcomeMedia === "true")) {
+      data.welcomeMediaUrl = null;
+      data.welcomeMediaType = null;
+      data.welcomeMediaName = null;
+    } else if (!req.file) {
       delete data.welcomeMediaUrl;
       delete data.welcomeMediaType;
       delete data.welcomeMediaName;
@@ -768,7 +780,11 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   }
   if (resource === "uraOptions") {
     applyMediaUpload(data, req, { url: "responseMediaUrl", type: "responseMediaType", name: "responseMediaName" });
-    if (!req.file) {
+    if (!req.file && (req.body.removeResponseMedia === true || req.body.removeResponseMedia === "true")) {
+      data.responseMediaUrl = null;
+      data.responseMediaType = null;
+      data.responseMediaName = null;
+    } else if (!req.file) {
       delete data.responseMediaUrl;
       delete data.responseMediaType;
       delete data.responseMediaName;

@@ -1,6 +1,5 @@
 import Contact from "../models/Contact";
 import Setting from "../models/Setting";
-import formatBody from "./Mustache";
 
 const settingMap = async (): Promise<Record<string, string>> => {
   const settings = await Setting.findAll({
@@ -26,27 +25,27 @@ const settingMap = async (): Promise<Record<string, string>> => {
   }, {} as Record<string, string>);
 };
 
-const replaceAliases = (body: string, values: Record<string, string>): string =>
-  body
-    .replace(/{{\s*nome_contato\s*}}/gi, values.nome_contato || "")
-    .replace(/{{\s*telefone_contato\s*}}/gi, values.telefone_contato || "")
-    .replace(/{{\s*nome_empresa\s*}}/gi, values.nome_empresa || "")
-    .replace(/{{\s*empresa_nome\s*}}/gi, values.empresa_nome || "")
-    .replace(/{{\s*empresa_razao_social\s*}}/gi, values.empresa_razao_social || "")
-    .replace(/{{\s*empresa_cnpj\s*}}/gi, values.empresa_cnpj || "")
-    .replace(/{{\s*empresa_endereco\s*}}/gi, values.empresa_endereco || "")
-    .replace(/{{\s*empresa_telefone\s*}}/gi, values.empresa_telefone || "")
-    .replace(/{{\s*empresa_email\s*}}/gi, values.empresa_email || "")
-    .replace(/{{\s*empresa_site\s*}}/gi, values.empresa_site || "")
-    .replace(/{{\s*empresa_pix\s*}}/gi, values.empresa_pix || "")
-    .replace(/{{\s*dados_pagamento\s*}}/gi, values.dados_pagamento || "");
+export const replaceMessageVariables = (
+  body: string,
+  values: Record<string, string>
+): string =>
+  String(body || "").replace(/{{\s*([a-zA-Z0-9_]+)\s*}}/g, (match, key) => {
+    const normalizedKey = String(key || "").toLowerCase();
+    return Object.prototype.hasOwnProperty.call(values, normalizedKey)
+      ? values[normalizedKey] || ""
+      : match;
+  });
 
 const RenderMessageVariables = async (body: string, contact?: Contact | null): Promise<string> => {
   const settings = await settingMap();
   const companyName = settings.companyFantasyName || settings.brandName || settings.companyLegalName || "";
 
-  return replaceAliases(formatBody(body || "", contact as Contact), {
+  return replaceMessageVariables(body || "", {
+    name: contact?.name || "",
+    nome: contact?.name || "",
     nome_contato: contact?.name || "",
+    numero: contact?.number || "",
+    number: contact?.number || "",
     telefone_contato: contact?.number || "",
     nome_empresa: companyName,
     empresa_nome: companyName,

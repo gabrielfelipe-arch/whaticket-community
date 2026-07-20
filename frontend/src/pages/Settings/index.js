@@ -1874,6 +1874,7 @@ const UraTreePanel = ({ classes }) => {
 		try {
 			const payload = {
 				...flowForm,
+				removeWelcomeMedia: !flowMediaFile && !!flowForm.welcomeMediaRemoved,
 				fallbackQueueId: flowForm.fallbackQueueId || null,
 				aiAutoCloseEnabled: !!flowForm.aiAutoCloseEnabled,
 				aiAutoCloseMinutes: flowForm.aiAutoCloseEnabled ? flowForm.aiAutoCloseMinutes : null,
@@ -1905,6 +1906,7 @@ const UraTreePanel = ({ classes }) => {
 			const payload = {
 				...optionForm,
 				flowId: selectedFlowId,
+				removeResponseMedia: !optionMediaFile && !!optionForm.responseMediaRemoved,
 				parentOptionId: optionForm.parentOptionId || null,
 				targetQueueId: optionForm.targetQueueId || null,
 				closingReasonId: optionForm.closingReasonId || null,
@@ -2051,7 +2053,10 @@ const UraTreePanel = ({ classes }) => {
 						id="ura-flow-media"
 						type="file"
 						style={{ display: "none" }}
-						onChange={event => setFlowMediaFile(event.target.files?.[0] || null)}
+						onChange={event => {
+							setFlowMediaFile(event.target.files?.[0] || null);
+							setFlowField("welcomeMediaRemoved", false);
+						}}
 					/>
 					<label htmlFor="ura-flow-media">
 						<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
@@ -2061,6 +2066,25 @@ const UraTreePanel = ({ classes }) => {
 					<Typography variant="caption" display="block" color="textSecondary">
 						{flowMediaFile?.name || flowForm.welcomeMediaName || "Nenhum anexo selecionado"}
 					</Typography>
+					{(flowMediaFile || flowForm.welcomeMediaUrl || flowForm.welcomeMediaName) && (
+						<Button
+							size="small"
+							color="secondary"
+							onClick={() => {
+								setFlowMediaFile(null);
+								setFlowForm(prev => ({
+									...emptyUraFlow,
+									...(prev || {}),
+									welcomeMediaUrl: "",
+									welcomeMediaType: "",
+									welcomeMediaName: "",
+									welcomeMediaRemoved: true
+								}));
+							}}
+						>
+							Remover anexo
+						</Button>
+					)}
 					<TextField fullWidth margin="dense" variant="outlined" multiline rows={2} label="Mensagem de opcao invalida" value={textValue(flowForm.invalidOptionMessage)} onChange={event => setFlowField("invalidOptionMessage", event.target.value)} />
 					<TextField fullWidth margin="dense" variant="outlined" type="number" label="Maximo de tentativas invalidas" value={textValue(flowForm.maxInvalidAttempts)} onChange={event => setFlowField("maxInvalidAttempts", event.target.value)} />
 					<TextField select fullWidth margin="dense" variant="outlined" label="Fila fallback opcional" value={flowForm.fallbackQueueId || ""} onChange={event => setFlowField("fallbackQueueId", event.target.value)}>
@@ -2162,6 +2186,7 @@ const UraTreePanel = ({ classes }) => {
 											responseMediaUrl: "",
 											responseMediaType: "",
 											responseMediaName: "",
+											responseMediaRemoved: true,
 											showMainMenuAfterMessage: false
 										}));
 										setOptionMediaFile(null);
@@ -2254,7 +2279,10 @@ const UraTreePanel = ({ classes }) => {
 										id="ura-option-media"
 										type="file"
 										style={{ display: "none" }}
-										onChange={event => setOptionMediaFile(event.target.files?.[0] || null)}
+										onChange={event => {
+											setOptionMediaFile(event.target.files?.[0] || null);
+											setOptionField("responseMediaRemoved", false);
+										}}
 									/>
 									<label htmlFor="ura-option-media">
 										<Button component="span" size="small" variant="outlined" color="primary" style={{ marginTop: 8 }}>
@@ -2264,6 +2292,25 @@ const UraTreePanel = ({ classes }) => {
 									<Typography variant="caption" display="block" color="textSecondary">
 										{optionMediaFile?.name || optionForm.responseMediaName || "Nenhum anexo selecionado"}
 									</Typography>
+									{(optionMediaFile || optionForm.responseMediaUrl || optionForm.responseMediaName) && (
+										<Button
+											size="small"
+											color="secondary"
+											onClick={() => {
+												setOptionMediaFile(null);
+												setOptionForm(prev => ({
+													...emptyUraOption(selectedFlowId),
+													...(prev || {}),
+													responseMediaUrl: "",
+													responseMediaType: "",
+													responseMediaName: "",
+													responseMediaRemoved: true
+												}));
+											}}
+										>
+											Remover anexo
+										</Button>
+									)}
 								</>
 							)}
 							<Paper variant="outlined" style={{ padding: 12, marginTop: 12 }}>

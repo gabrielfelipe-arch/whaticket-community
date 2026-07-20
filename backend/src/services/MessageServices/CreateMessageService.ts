@@ -2,6 +2,7 @@ import { getIO } from "../../libs/socket";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import SendPushNotificationService from "../PushNotificationServices/SendPushNotificationService";
 
 interface MessageData {
   id: string;
@@ -75,6 +76,12 @@ const CreateMessageService = async ({
       ticket: message.ticket,
       contact: message.ticket.contact
     });
+
+  await SendPushNotificationService({
+    message,
+    ticket: message.ticket,
+    contact: message.ticket.contact
+  });
 
   return message;
 };

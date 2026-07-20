@@ -1,4 +1,4 @@
-const CACHE_VERSION = "rocketservice-shell-v1";
+const CACHE_VERSION = "rocketservice-shell-v2";
 
 const STATIC_CACHE_URLS = [
   "/",
@@ -11,6 +11,7 @@ const STATIC_CACHE_URLS = [
 
 const API_PREFIXES = [
   "/auth",
+  "/push-subscriptions",
   "/tickets",
   "/messages",
   "/contacts",
@@ -26,7 +27,8 @@ const API_PREFIXES = [
 
 const isApiRequest = request => {
   const url = new URL(request.url);
-  return API_PREFIXES.some(prefix => url.pathname.startsWith(prefix));
+  const accept = request.headers.get("accept") || "";
+  return accept.includes("application/json") || API_PREFIXES.some(prefix => url.pathname.startsWith(prefix));
 };
 
 self.addEventListener("install", event => {
@@ -57,6 +59,51 @@ self.addEventListener("message", event => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+self.addEventListener("push", event => {
+  let data = {};
+
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (err) {
+    data = { body: event.data ? event.data.text() : "Nova mensagem recebida" };
+  }
+
+  const title = data.title || "Nova mensagem";
+  const options = {
+    body: data.body || "Voce recebeu uma nova mensagem.",
+    icon: data.icon || "/android-chrome-192x192.png",
+    badge: data.badge || "/android-chrome-192x192.png",
+    tag: data.tag || "rocketservice-message",
+    renotify: true,
+    data: {
+      url: data.url || "/tickets",
+      ticketId: data.ticketId || null
+    }
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+
+  const targetUrl = new URL(event.notification.data?.url || "/tickets", self.location.origin).href;
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(clients => {
+      const sameOriginClient = clients.find(client => client.url.startsWith(self.location.origin));
+
+      if (sameOriginClient) {
+        sameOriginClient.focus();
+        sameOriginClient.navigate(targetUrl);
+        return;
+      }
+
+      return self.clients.openWindow(targetUrl);
+    })
+  );
 });
 
 self.addEventListener("fetch", event => {

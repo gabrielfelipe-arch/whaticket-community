@@ -15,7 +15,6 @@ import {
   getActiveSatisfactionSurvey,
   markSatisfactionSurveySent
 } from "../services/SatisfactionSurveyServices/SatisfactionSurveyService";
-import formatBody from "../helpers/Mustache";
 import FormatTicketTemplate from "../helpers/FormatTicketTemplate";
 import {
   validateManualTicketAcceptance
@@ -164,7 +163,7 @@ export const update = async (
     ticket.user?.attendanceGreeting
   ) {
     await SendWhatsAppMessage({
-      body: formatBody(ticket.user.attendanceGreeting, ticket.contact),
+      body: ticket.user.attendanceGreeting,
       ticket
     });
   }
@@ -190,7 +189,7 @@ export const update = async (
 
     if (farewellMessage) {
       await SendWhatsAppMessage({
-        body: await FormatTicketTemplate(formatBody(farewellMessage, ticket.contact), ticket),
+        body: await FormatTicketTemplate(farewellMessage, ticket),
         ticket
       });
     }

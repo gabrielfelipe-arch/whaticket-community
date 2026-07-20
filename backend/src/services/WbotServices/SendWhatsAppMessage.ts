@@ -3,7 +3,7 @@ import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import { whatsappProvider, ProviderMessage } from "../../providers/WhatsApp";
 
-import formatBody from "../../helpers/Mustache";
+import FormatTicketTemplate from "../../helpers/FormatTicketTemplate";
 
 interface Request {
   body: string;
@@ -23,10 +23,11 @@ const SendWhatsAppMessage = async ({
   const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
 
   try {
+    const renderedBody = await FormatTicketTemplate(body, ticket);
     const sentMessage = await whatsappProvider.sendMessage(
       ticket.whatsappId,
       chatId,
-      formatBody(body, ticket.contact),
+      renderedBody,
       {
         quotedMessageId: quotedMsg?.id,
         quotedMessageFromMe: quotedMsg?.fromMe,
@@ -34,7 +35,7 @@ const SendWhatsAppMessage = async ({
       }
     );
 
-    await ticket.update({ lastMessage: body });
+    await ticket.update({ lastMessage: renderedBody });
     return sentMessage;
   } catch (err) {
     throw new AppError("ERR_SENDING_WAPP_MSG");

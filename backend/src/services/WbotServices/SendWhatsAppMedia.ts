@@ -6,7 +6,7 @@ import AppError from "../../errors/AppError";
 import Ticket from "../../models/Ticket";
 import { whatsappProvider, ProviderMessage } from "../../providers/WhatsApp";
 
-import formatBody from "../../helpers/Mustache";
+import FormatTicketTemplate from "../../helpers/FormatTicketTemplate";
 import { logger } from "../../utils/logger";
 
 const execFileAsync = promisify(execFile);
@@ -61,7 +61,7 @@ const SendWhatsAppMedia = async ({
     const chatId = `${ticket.contact.number}@${ticket.isGroup ? "g" : "c"}.us`;
 
     const hasBody = String(body || "").trim()
-      ? formatBody(String(body).trim(), ticket.contact)
+      ? await FormatTicketTemplate(String(body).trim(), ticket)
       : undefined;
 
     const preparedMedia = await convertAudioToOgg(media);

@@ -51,6 +51,7 @@ import GlpiLog from "../models/GlpiLog";
 import GlpiConfiguration from "../models/GlpiConfiguration";
 import GlpiConfigurationWhatsapp from "../models/GlpiConfigurationWhatsapp";
 import UserProfile from "../models/UserProfile";
+import UserPushSubscription from "../models/UserPushSubscription";
 
 
 // eslint-disable-next-line
@@ -111,7 +112,8 @@ const models = [
   GlpiTicketLink,
   GlpiLog,
   GlpiConfiguration,
-  GlpiConfigurationWhatsapp
+  GlpiConfigurationWhatsapp,
+  UserPushSubscription
 ];
 
 sequelize.addModels(models);
