@@ -342,6 +342,31 @@ const useStyles = makeStyles(theme => ({
 		boxShadow: "none",
 		background: "transparent"
 	},
+	agentDialogContent: {
+		background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC"
+	},
+	agentSection: {
+		padding: theme.spacing(2.25, 0, 1.5),
+		borderTop: `1px solid ${theme.palette.divider}`,
+		"&:first-child": {
+			borderTop: 0,
+			paddingTop: 0
+		}
+	},
+	agentSectionHeader: {
+		marginBottom: theme.spacing(1.5)
+	},
+	agentSectionTitle: {
+		fontSize: 15,
+		fontWeight: 800,
+		letterSpacing: 0,
+		color: theme.palette.text.primary
+	},
+	agentSectionDescription: {
+		marginTop: 2,
+		fontSize: 12,
+		color: theme.palette.text.secondary
+	},
 	generalLogoControl: {
 		display: "flex",
 		alignItems: "center",
@@ -1037,27 +1062,33 @@ const resources = [
 			{
 				name: "name",
 				label: "Nome da IA",
+				section: "identity",
 				helperText: "Informe o nome que a IA usara no atendimento. Ex: Ana, Assistente Virtual, Atendente Digital."
 			},
 			{
 				name: "companyName",
 				label: "Nome da empresa ou servico",
+				section: "identity",
 				helperText: "Informe o nome da empresa, unidade ou servico que a IA representa."
 			},
 			{
 				name: "serviceType",
 				label: "Tipo de atendimento",
+				section: "identity",
 				helperText: "Explique o tipo de atendimento que a IA fara. Ex: vendas, orcamento, agendamento, duvidas, pos-venda."
 			},
 			{
 				name: "behaviorPrompt",
 				label: "Como a IA deve se comportar",
+				section: "behavior",
 				multiline: true,
 				helperText: "Explique como a IA deve falar com o cliente, quais assuntos pode responder e quando deve chamar um atendente."
 			},
 			{
 				name: "provider",
 				label: "Provedor",
+				section: "provider",
+				sm: 4,
 				type: "select",
 				options: [
 					{ value: "openai", label: "OpenAI" },
@@ -1066,24 +1097,29 @@ const resources = [
 					{ value: "deepseek", label: "DeepSeek" }
 				]
 			},
-			{ name: "model", label: "Modelo" },
-			{ name: "apiKey", label: "Chave da API" },
+			{ name: "model", label: "Modelo", section: "provider", sm: 4 },
+			{ name: "apiKey", label: "Chave da API", section: "provider", sm: 8 },
 			{
 				name: "baseUrl",
 				label: "Base URL personalizada",
+				section: "provider",
+				sm: 8,
 				helperText: "Opcional. Use somente se seu provedor exigir um endpoint diferente do padrao."
 			},
 			{
 				name: "systemPrompt",
 				label: "Instrucoes adicionais",
+				section: "behavior",
 				multiline: true,
 				helperText: "Use este campo para regras extras do atendimento. A IA continuara usando a base de conhecimento como fonte principal."
 			},
-			{ name: "temperature", label: "Temperatura", type: "number" },
-			{ name: "maxTokens", label: "Maximo de tokens", type: "number" },
+			{ name: "temperature", label: "Temperatura", type: "number", section: "provider", sm: 2 },
+			{ name: "maxTokens", label: "Maximo de tokens", type: "number", section: "provider", sm: 2 },
 			{
 				name: "aiQueueId",
 				label: "Fila da IA",
+				section: "routing",
+				sm: 6,
 				type: "relation",
 				relation: "queues",
 				nullable: true,
@@ -1091,25 +1127,59 @@ const resources = [
 			},
 			{
 				name: "allowedTools",
-				label: "Ferramentas permitidas",
+				label: "Ferramentas internas permitidas",
+				section: "tools",
 				type: "multiSelect",
 				options: [
 					{ value: "registrarLead", label: "Registrar lead" },
 					{ value: "gerarResumoParaAtendente", label: "Gerar resumo para atendente" },
-					{ value: "calcularOrcamento", label: "Calcular orcamento" },
 					{ value: "transferirParaFila", label: "Transferir para fila" },
 					{ value: "encerrarAtendimento", label: "Encerrar atendimento" }
 				],
-				helperText: "O backend so executa ferramentas marcadas aqui. A IA pode pedir, mas nao executa livremente."
+				helperText: "Ferramentas genericas do agente. Orcamento guiado e configurado no campo de fluxo abaixo."
+			},
+			{
+				name: "useGuidedFlow",
+				label: "Usar fluxo guiado",
+				section: "guidedFlow",
+				sm: 4,
+				type: "boolean",
+				helperText: "Quando desligado, a IA segue apenas prompt e base de conhecimento. Quando ligado, ela conduz um fluxo estruturado escolhido abaixo."
+			},
+			{
+				name: "guidedFlowKey",
+				label: "Fluxo guiado",
+				section: "guidedFlow",
+				sm: 8,
+				type: "select",
+				showWhen: form => !!form.useGuidedFlow,
+				options: [
+					{
+						value: "room_rental_people_days_hours",
+						label: "Aluguel de sala comercial - pessoas, dias e horas",
+						description: "Coleta quantidade de pessoas, quantidade de dias/encontros e horas por encontro. Pessoas aceitam intervalo aproximado e usam o maior numero; dias e horas precisam ser exatos. Ao completar os dados, usa o motor oficial de calculo e avisa se precisar considerar o limite de capacidade."
+					}
+				],
+				helperText: form => {
+					const option = [
+						{
+							value: "room_rental_people_days_hours",
+							description: "Coleta quantidade de pessoas, quantidade de dias/encontros e horas por encontro. Pessoas aceitam intervalo aproximado e usam o maior numero; dias e horas precisam ser exatos. Ao completar os dados, usa o motor oficial de calculo e avisa se precisar considerar o limite de capacidade."
+						}
+					].find(item => item.value === form.guidedFlowKey);
+					return option?.description || "Selecione o fluxo que a IA deve conduzir depois do prompt/base identificar uma necessidade estruturada.";
+				}
 			},
 			{
 				name: "allowedTransferQueueIds",
 				label: "Filas permitidas para ferramenta transferirParaFila",
+				section: "routing",
+				sm: 6,
 				type: "multiRelation",
 				relation: "queues",
 				helperText: "Limita quais filas este agente pode usar quando pedir a ferramenta transferirParaFila."
 			},
-			{ name: "active", label: "Ativo", type: "boolean" }
+			{ name: "active", label: "Ativo", type: "boolean", section: "status", sm: 4 }
 		],
 		columns: ["id", "name", "companyName", "serviceType", "provider", "model", "active"]
 	},
@@ -1498,6 +1568,8 @@ const defaultValue = field => {
 	if (field.name === "includeInReports") return true;
 	if (field.name === "maxInvalidAttempts") return 2;
 	if (field.name === "confirmationMaxAttempts") return 2;
+	if (field.name === "useGuidedFlow") return false;
+	if (field.name === "guidedFlowKey") return "";
 	if (field.type === "boolean") return true;
 	if (field.type === "multiSelect" || field.type === "multiRelation") return [];
 	if (field.type === "number") return "";
@@ -4832,6 +4904,13 @@ const ResourcePanel = ({ resource, classes }) => {
 				nextForm.model = defaultModelsByProvider[value] || "";
 			}
 
+			if (
+				resource.endpoint === "/ai-settings" &&
+				name === "useGuidedFlow"
+			) {
+				nextForm.guidedFlowKey = value ? (prev.guidedFlowKey || "room_rental_people_days_hours") : "";
+			}
+
 			return nextForm;
 		});
 	};
@@ -4959,11 +5038,15 @@ const ResourcePanel = ({ resource, classes }) => {
 		downloadTextFile(`${prefix}-${name}.txt`, buildDownloadText(row));
 	};
 
-	const fieldHelper = field => field.helperText ? (
-		<Typography variant="caption" color="textSecondary">
-			{field.helperText}
-		</Typography>
-	) : null;
+	const fieldHelper = field => {
+		const helperText = typeof field.helperText === "function" ? field.helperText(form) : field.helperText;
+
+		return helperText ? (
+			<Typography variant="caption" color="textSecondary">
+				{helperText}
+			</Typography>
+		) : null;
+	};
 
 	const renderCell = (row, col) => {
 		const value = row[col];
@@ -5010,12 +5093,60 @@ const ResourcePanel = ({ resource, classes }) => {
 
 	const isCalendarConnectionResource = resource.endpoint === "/ai-calendar-connections";
 	const isGoogleCalendarForm = isCalendarConnectionResource && (form.provider || "google") === "google";
+	const isAiSettingsResource = resource.endpoint === "/ai-settings";
+	const agentSections = [
+		{
+			key: "identity",
+			title: "Identidade do agente",
+			description: "Nome, empresa e contexto de atendimento usados para posicionar a IA."
+		},
+		{
+			key: "behavior",
+			title: "Comportamento e instrucoes",
+			description: "Tom de voz, limites de resposta e regras adicionais do atendimento."
+		},
+		{
+			key: "provider",
+			title: "Modelo e provedor",
+			description: "Conexao com o provedor de IA, modelo usado e parametros tecnicos."
+		},
+		{
+			key: "guidedFlow",
+			title: "Fluxo guiado",
+			description: "Define se a IA deve usar um roteiro operacional estruturado alem do prompt/base."
+		},
+		{
+			key: "tools",
+			title: "Ferramentas internas",
+			description: "Acoes auxiliares que o backend pode executar quando a IA solicitar."
+		},
+		{
+			key: "routing",
+			title: "Fila e encaminhamento",
+			description: "Fila da IA e limites de transferencia automatica."
+		},
+		{
+			key: "status",
+			title: "Status",
+			description: "Controle se este agente pode ser usado nos atendimentos."
+		}
+	];
 
 	const shouldRenderResourceField = field => {
 		if (!shouldShowField(field, form)) return false;
 		if (!isGoogleCalendarForm) return true;
 		return !["accessToken", "refreshToken", "userPrincipalName"].includes(field.name);
 	};
+
+	const visibleResourceFields = resource.fields.filter(field => shouldRenderResourceField(field));
+	const orderedVisibleResourceFields = isAiSettingsResource
+		? agentSections.flatMap(section => visibleResourceFields.filter(field => field.section === section.key))
+		: visibleResourceFields;
+	const getAgentSection = key => agentSections.find(section => section.key === key);
+	const shouldRenderAgentSectionHeader = field =>
+		isAiSettingsResource &&
+		field.section &&
+		orderedVisibleResourceFields.find(item => item.section === field.section)?.name === field.name;
 
 	const connectGoogleCalendar = async () => {
 		try {
@@ -5198,10 +5329,16 @@ const ResourcePanel = ({ resource, classes }) => {
 				</Table>
 			</div>
 
-			<Dialog open={modalOpen} onClose={() => setModalOpen(false)} maxWidth="md" fullWidth>
+			<Dialog
+				open={modalOpen}
+				onClose={() => setModalOpen(false)}
+				maxWidth={isAiSettingsResource ? "lg" : "md"}
+				fullWidth
+				scroll="paper"
+			>
 				<DialogTitle>{form.id ? "Editar" : "Novo"} {resource.title}</DialogTitle>
 
-				<DialogContent>
+				<DialogContent dividers className={isAiSettingsResource ? classes.agentDialogContent : undefined}>
 					<Grid container spacing={2}>
 						{isGoogleCalendarForm && (
 							<Grid item xs={12}>
@@ -5213,8 +5350,25 @@ const ResourcePanel = ({ resource, classes }) => {
 								</Typography>
 							</Grid>
 						)}
-						{resource.fields.filter(field => shouldRenderResourceField(field)).map(field => (
-							<Grid item xs={12} sm={field.multiline || field.type === "richtext" ? 12 : 6} key={field.name}>
+						{orderedVisibleResourceFields.map(field => {
+							const section = getAgentSection(field.section);
+							return (
+								<React.Fragment key={field.name}>
+									{shouldRenderAgentSectionHeader(field) && (
+										<Grid item xs={12} className={classes.agentSection}>
+											<div className={classes.agentSectionHeader}>
+												<Typography className={classes.agentSectionTitle}>
+													{section?.title || field.section}
+												</Typography>
+												{section?.description && (
+													<Typography className={classes.agentSectionDescription}>
+														{section.description}
+													</Typography>
+												)}
+											</div>
+										</Grid>
+									)}
+									<Grid item xs={12} sm={field.sm || (field.multiline || field.type === "richtext" ? 12 : 6)}>
 								{field.type === "boolean" ? (
 									<>
 										<FormControlLabel
@@ -5387,8 +5541,10 @@ const ResourcePanel = ({ resource, classes }) => {
 										{fieldHelper(field)}
 									</>
 								)}
-							</Grid>
-						))}
+									</Grid>
+								</React.Fragment>
+							);
+						})}
 					</Grid>
 				</DialogContent>
 

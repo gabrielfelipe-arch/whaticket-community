@@ -51,6 +51,9 @@ class CommercialService extends Model<CommercialService> {
   @Column
   capacityMax: number;
 
+  @Column
+  maxDurationPerOccurrence: number;
+
   @Column(DataType.TEXT)
   metadata: string;
 

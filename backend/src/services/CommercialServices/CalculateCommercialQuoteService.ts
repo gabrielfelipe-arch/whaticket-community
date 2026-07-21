@@ -7,7 +7,7 @@ import CommercialService from "../../models/CommercialService";
 type PricingDimension = "hours" | "quantity";
 type RuleMode = "flexible" | "consecutive" | "fixed";
 
-interface CalculateQuoteRequest {
+export interface CalculateQuoteRequest {
   commercialServiceId?: number;
   aiSettingId?: number;
   ticketId?: number;
@@ -45,13 +45,14 @@ interface QuoteCandidate {
   explanation: string;
 }
 
-interface CalculateQuoteResult {
+export interface CalculateQuoteResult {
   ok: boolean;
-  status: "success" | "missing_data" | "capacity_exceeded" | "not_found";
+  status: "success" | "missing_data" | "capacity_exceeded" | "duration_exceeded" | "not_found";
   service?: {
     id: number;
     name: string;
     capacityMax: number | null;
+    maxDurationPerOccurrence: number | null;
   };
   requestedQuantity?: number;
   recommended?: QuoteCandidate;
@@ -253,15 +254,34 @@ const CalculateCommercialQuoteService = async (
   }
 
   const capacityMax = service.capacityMax ? Number(service.capacityMax) : null;
+  const maxDurationPerOccurrence = service.maxDurationPerOccurrence
+    ? Number(service.maxDurationPerOccurrence)
+    : null;
   if (capacityMax && request.participantCount && request.participantCount > capacityMax) {
     return {
       ok: false,
       status: "capacity_exceeded",
-      service: { id: service.id, name: service.name, capacityMax },
+      service: { id: service.id, name: service.name, capacityMax, maxDurationPerOccurrence },
       requestedQuantity,
       alternatives: [],
       includedItems: [],
       validationMessage: `Capacidade máxima: ${capacityMax}. Quantidade informada: ${request.participantCount}.`
+    };
+  }
+
+  if (
+    maxDurationPerOccurrence &&
+    request.durationPerOccurrence &&
+    Number(request.durationPerOccurrence) > maxDurationPerOccurrence
+  ) {
+    return {
+      ok: false,
+      status: "duration_exceeded",
+      service: { id: service.id, name: service.name, capacityMax, maxDurationPerOccurrence },
+      requestedQuantity,
+      alternatives: [],
+      includedItems: [],
+      validationMessage: `Duração máxima por dia/encontro: ${maxDurationPerOccurrence}h. Duração informada: ${request.durationPerOccurrence}h.`
     };
   }
 
@@ -309,7 +329,7 @@ const CalculateCommercialQuoteService = async (
   const result: CalculateQuoteResult = {
     ok: Boolean(recommended),
     status: recommended ? "success" : "not_found",
-    service: { id: service.id, name: service.name, capacityMax },
+    service: { id: service.id, name: service.name, capacityMax, maxDurationPerOccurrence },
     requestedQuantity,
     recommended,
     alternatives,

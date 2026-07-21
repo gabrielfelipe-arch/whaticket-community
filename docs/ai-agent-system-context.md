@@ -260,6 +260,8 @@ Regra critica:
 
 - IA nao deve calcular preco manualmente.
 - Qualquer preco/simulacao deve usar o motor oficial e tabelas comerciais.
+- `CommercialServices.maxDurationPerOccurrence` limita a duracao de cada dia/encontro sem limitar o total de horas do pacote. Valor `NULL` desativa essa validacao.
+- Para `salinha-meier-aluguel-sala`, o limite operacional atual e `10` horas por dia/encontro.
 
 ### Campanhas
 
@@ -765,6 +767,35 @@ Rotas adicionais:
 - `GET /calendar/google/callback`
 
 ## Fluxos Criticos
+
+### IA Apos Formulario E Limites Operacionais
+
+1. O formulario de qualificacao pode iniciar o agente configurado e o fluxo guiado de orcamento.
+2. A primeira coleta do fluxo de aluguel de sala e a quantidade de pessoas.
+3. Respostas em faixa usam o maior valor informado, inclusive quando houver texto livre ou erro de digitacao reconhecido pelo contexto, por exemplo `15 a 25 oessoas` resulta em 25.
+4. Se a quantidade superar a capacidade cadastrada na base, o backend informa o limite, grava o limite como quantidade usada na simulacao e continua coletando dias/encontros e horas.
+5. Exceder a capacidade nao encaminha para atendente e nao interrompe o orcamento. Encaminhamento continua reservado a pedido explicito do cliente ou operacao que realmente exija equipe.
+6. Dias/encontros e horas devem ser coletados como valores exatos antes de chamar o motor oficial de calculo.
+7. O motor valida `durationPerOccurrence` contra `CommercialServices.maxDurationPerOccurrence`. Na Salinha Meier, uma resposta como `30 horas por dia` e ajustada para `10 horas por dia`, o cliente e avisado e a simulacao continua sem encaminhamento.
+8. O limite e por ocorrencia: `3 dias x 10h` continua valido como `30h` totais. Uma solicitacao de pacote com `30h` totais, sem declarar `30h` em um unico encontro, tambem continua valida.
+9. O valor efetivamente usado depois do ajuste e salvo em `AiTicketContexts`, evitando que a etapa seguinte reutilize a duracao impossivel.
+
+Rollback rapido do limite por ocorrencia, sem restaurar banco nem remover coluna:
+
+```sql
+UPDATE "CommercialServices"
+SET "maxDurationPerOccurrence" = NULL
+WHERE "slug" = 'salinha-meier-aluguel-sala';
+```
+
+Para reativar, trocar `NULL` por `10`. A migration `20260721011000-add-max-duration-per-occurrence-to-commercial-services.ts` tambem possui `down` para remover a coluna, mas isso exige reverter junto o codigo que a consulta. Backup anterior a esta mudanca: `backups/pre-max-hours-per-occurrence-20260721-0102.dump`.
+
+### Autoria Das Mensagens Automaticas
+
+- `Messages.senderType` diferencia `customer`, `ai`, `human`, `system` e `ura`.
+- O eco `fromMe` recebido do WhatsApp nao pode trocar uma mensagem ja gravada como `ai`, `system` ou `ura` para `human`.
+- O bloqueio que impede a IA de responder por cima de atendente considera apenas mensagens realmente humanas na sessao atual.
+- Alteracoes nessa classificacao devem cobrir a ordem de corrida entre envio local e eco do provedor.
 
 ### Agenda Operacional Removida
 

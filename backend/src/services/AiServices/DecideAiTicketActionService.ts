@@ -23,6 +23,10 @@ import AiSemanticDecisionService from "./AiSemanticDecisionService";
 import { appendPostQuoteMenu } from "./PostQuoteMenuService";
 import BuildKnowledgeBaseQueryService from "./BuildKnowledgeBaseQueryService";
 import FullBaseGroundingMariService from "./FullBaseGroundingMariService";
+import {
+  getEffectiveAllowedTools,
+  isGuidedQuoteFlowEnabled
+} from "./GuidedFlowService";
 
 export type AiTicketAction =
   | "responder_com_base"
@@ -125,16 +129,6 @@ const hasDecisionContract = (parsed: any): boolean => {
     parsed.baseEncontrada !== undefined ||
     parsed.respostaSegura !== undefined
   );
-};
-
-const parseAllowedTools = (value?: string | null): string[] => {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(item => String(item)) : [];
-  } catch (err) {
-    return [];
-  }
 };
 
 const parseObject = (value?: string | null): Record<string, any> => {
@@ -333,10 +327,20 @@ const extractQuoteScenarioFromText = (value = ""): Partial<CurrentQuoteData> => 
     .trim();
   const scenario: Partial<CurrentQuoteData> = {};
   const number = `(?:${numberLikeTokenPattern})`;
+  const parseRangeMax = (left?: string, right?: string): number | null => {
+    const min = parseNumberLikeToken(left);
+    const max = parseNumberLikeToken(right);
+    if (!min || !max || min === max) return null;
+    return Math.max(min, max);
+  };
 
   const participantPatterns = [
     new RegExp(`\\b(${number})\\s*(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\\b`),
     new RegExp(`\\b(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\\s*(?:para|pra|de|com)?\\s*(${number})\\b`)
+  ];
+  const participantRangePatterns = [
+    new RegExp(`\\b(${number})\\s*(?:a|ate|ou)\\s*(${number})\\s*(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\\b`),
+    new RegExp(`\\b(?:pessoas|participantes|alunos|clientes|convidados|candidatos|equipe)\\s*(?:para|pra|de|com)?\\s*(${number})\\s*(?:a|ate|ou)\\s*(${number})\\b`)
   ];
   const occurrencePatterns = [
     new RegExp(`\\b(${number})\\s*(?:dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|cursos|curso|treinamentos|treinamento|sessoes|sessao|consultas|consulta)\\b`),
@@ -347,7 +351,17 @@ const extractQuoteScenarioFromText = (value = ""): Partial<CurrentQuoteData> => 
     new RegExp(`\\b(${number})\\s*(?:h|hora|horas)\\s*(?:cada|por dia|por encontro|por aula)?\\b`)
   ];
 
+  for (const pattern of participantRangePatterns) {
+    const match = normalized.match(pattern);
+    const parsed = parseRangeMax(match?.[1], match?.[2]);
+    if (parsed) {
+      scenario.participantCount = parsed;
+      break;
+    }
+  }
+
   for (const pattern of participantPatterns) {
+    if (scenario.participantCount) break;
     const match = normalized.match(pattern);
     const parsed = parseNumberLikeToken(match?.[1]);
     if (parsed) {
@@ -486,6 +500,52 @@ const isBareNumericAnswer = (message = ""): boolean => {
 
   return /^\d{1,2}$/.test(normalized) ||
     /^(?:um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze)$/.test(normalized);
+};
+
+const parseStandaloneParticipantCountAnswer = (message = ""): number | null => {
+  const normalized = normalizeText(message)
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return null;
+  if (/\b(hora|horas|h|dia|dias|encontro|encontros|aula|aulas|reuniao|reunioes|sessao|sessoes|consulta|consultas|mes|meses)\b/.test(normalized)) {
+    return null;
+  }
+  if (/\b(capacidade|cabe|cabem|comporta|suporta|limite|lotacao|valor|preco|precos|orcamento|pix|cartao|reserva|reservar)\b/.test(normalized)) {
+    return null;
+  }
+
+  const token = `(?:${numberLikeTokenPattern})`;
+  const range = normalized.match(new RegExp(`^(?:de\\s+)?(${token})\\s*(?:a|ate|ou)\\s*(${token})(?:\\s+pessoas?)?$`));
+  if (range) {
+    const min = parseNumberLikeToken(range[1]);
+    const max = parseNumberLikeToken(range[2]);
+    if (min && max && min !== max) return Math.max(min, max);
+  }
+
+  const exact = normalized.match(new RegExp(`^(${token})(?:\\s+pessoas?)?$`));
+  return parseNumberLikeToken(exact?.[1]);
+};
+
+export const getParticipantCountFromCurrentMessageContext = (
+  collectedData: Record<string, any>,
+  message: string
+): number | null => {
+  const participant = collectedData?.participant_count;
+  if (!participant) return null;
+
+  const normalizeComparableText = (value: unknown): string => normalizeText(String(value || ""))
+    .replace(/[^\w\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  const rawValue = normalizeComparableText(participant.rawValue);
+  const currentMessage = normalizeComparableText(message);
+
+  if (!rawValue || rawValue !== currentMessage) return null;
+
+  const parsed = Number.parseInt(String(participant.value || ""), 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 };
 
 const bareNumericAnswerToValue = (message = ""): string | null => {
@@ -936,7 +996,7 @@ const buildCapacityExceededDecision = (
   resposta: [
     `Para ${participantCount} pessoas, preciso considerar um ponto importante: a capacidade informada e de ate ${capacityLimit} pessoas.`,
     `Para seguir com uma estimativa, vou considerar o limite de ${capacityLimit} pessoas.`,
-    `Posso calcular o orcamento para ${capacityLimit} pessoas com os dados que voce informou?`
+    "Se ainda faltar algum dado essencial, vou pedir somente essa informacao para concluir a simulacao."
   ].join("\n\n"),
   knowledgeIds: articles.map(article => article.id)
 });
@@ -2142,7 +2202,7 @@ const buildCommercialQuoteAnswer = ({
   return appendPostQuoteMenu(baseAnswer);
 };
 
-const buildCommercialQuoteDecision = async ({
+export const buildCommercialQuoteDecision = async ({
   ticket,
   aiSetting,
   message,
@@ -2161,103 +2221,106 @@ const buildCommercialQuoteDecision = async ({
 }): Promise<AiDecision | null> => {
   if (!quoteData.occurrenceCount || !quoteData.durationHours) return null;
 
-  const quoteResult = await CalculateCommercialQuoteService({
+  const calculate = (data: CurrentQuoteData) => CalculateCommercialQuoteService({
     aiSettingId: aiSetting.id,
     ticketId: ticket.id,
     contactId: ticket.contactId || undefined,
     pricingDimension: "hours",
-    participantCount: quoteData.participantCount || undefined,
-    occurrenceCount: quoteData.occurrenceCount,
-    durationPerOccurrence: quoteData.durationHours,
+    participantCount: data.participantCount || undefined,
+    occurrenceCount: data.occurrenceCount || undefined,
+    durationPerOccurrence: data.durationHours || undefined,
     includeAlternatives: false
   });
 
-  if (quoteResult.status === "capacity_exceeded") {
-    const capacityLimit = quoteResult.service?.capacityMax || null;
-    if (capacityLimit) {
-      const adjustedQuoteData: CurrentQuoteData = {
-        ...quoteData,
-        participantCount: capacityLimit
-      };
-      const adjustedQuoteResult = await CalculateCommercialQuoteService({
-        aiSettingId: aiSetting.id,
-        ticketId: ticket.id,
-        contactId: ticket.contactId || undefined,
-        pricingDimension: "hours",
-        participantCount: capacityLimit,
-        occurrenceCount: quoteData.occurrenceCount,
-        durationPerOccurrence: quoteData.durationHours,
-        includeAlternatives: false
-      });
-      const adjustedAnswer = adjustedQuoteResult.ok
-        ? buildCommercialQuoteAnswer({
-            quoteData: adjustedQuoteData,
-            quoteResult: adjustedQuoteResult,
-            activeHistory,
-            message
-          })
-        : null;
+  const originalQuoteData: CurrentQuoteData = { ...quoteData };
+  const effectiveQuoteData: CurrentQuoteData = { ...quoteData };
+  const adjustmentMessages: string[] = [];
+  let capacityAdjusted = false;
+  let durationAdjusted = false;
+  let quoteResult = await calculate(effectiveQuoteData);
 
-      if (adjustedAnswer) {
-        return {
-          intencao: "consulta_valor",
-          confianca: "alta",
-          mensagemInterpretada: message,
-          contexto: quoteResult.validationMessage || `Quantidade informada excede a capacidade maxima de ${capacityLimit}.`,
-          baseEncontrada: true,
-          respostaSegura: true,
-          acao: "responder_com_base",
-          motivo: "Calculador comercial ajustou automaticamente a simulacao para o limite de capacidade cadastrado.",
-          resposta: [
-            `A capacidade informada da Salinha Meier e de ate ${capacityLimit} pessoas.`,
-            quoteData.participantCount
-              ? `Como voce pediu para ${quoteData.participantCount} pessoas, montei a estimativa considerando o limite de ${capacityLimit} pessoas.`
-              : `Montei a estimativa considerando o limite de ${capacityLimit} pessoas.`,
-            adjustedAnswer
-          ].join("\n\n"),
-          knowledgeIds,
-          operationalStatePatch: {
-            lastQuote: {
-              people: capacityLimit,
-              meetingCount: adjustedQuoteData.occurrenceCount || null,
-              hoursPerMeeting: adjustedQuoteData.durationHours || null,
-              totalHours: adjustedQuoteData.occurrenceCount && adjustedQuoteData.durationHours
-                ? adjustedQuoteData.occurrenceCount * adjustedQuoteData.durationHours
-                : adjustedQuoteResult.requestedQuantity || null,
-              recommendedOption: adjustedQuoteResult.recommended?.lines?.map((line: any) => line.name).join(" + ") || null,
-              total: adjustedQuoteResult.recommended?.total ? Number(adjustedQuoteResult.recommended.total) : null
-            },
-            lastOfferType: "post_quote_menu",
-            awaitingConfirmationFor: "post_quote_menu",
-            lastQuestionKey: null,
-            lastQuestionText: "Como deseja prosseguir?",
-            quoteRevisionMode: null
-          }
-        };
-      }
+  for (let attempt = 0; attempt < 2 && !quoteResult.ok; attempt += 1) {
+    if (quoteResult.status === "capacity_exceeded" && !capacityAdjusted) {
+      const capacityLimit = quoteResult.service?.capacityMax || null;
+      if (!capacityLimit) break;
+
+      capacityAdjusted = true;
+      effectiveQuoteData.participantCount = capacityLimit;
+      adjustmentMessages.push(
+        `A capacidade da Salinha Méier é de até ${capacityLimit} pessoas. ` +
+        `Como você informou ${originalQuoteData.participantCount || "uma quantidade maior"}, ` +
+        `vou seguir com o orçamento considerando ${capacityLimit} pessoas.`
+      );
+      quoteResult = await calculate(effectiveQuoteData);
+      continue;
     }
 
-    return {
-      intencao: "consulta_valor",
-      confianca: "alta",
-      mensagemInterpretada: message,
-      contexto: quoteResult.validationMessage || "Quantidade informada excede a capacidade cadastrada.",
-      baseEncontrada: true,
-      respostaSegura: true,
-      acao: "pedir_confirmacao",
-      motivo: "Calculador comercial bloqueou orcamento por capacidade.",
-      resposta: [
-        quoteResult.validationMessage || "A quantidade informada passa da capacidade cadastrada.",
-        "Posso refazer a simulacao considerando o limite permitido?"
-      ].join("\n\n"),
-      knowledgeIds
-    };
+    if (quoteResult.status === "duration_exceeded" && !durationAdjusted) {
+      const durationLimit = quoteResult.service?.maxDurationPerOccurrence || null;
+      if (!durationLimit) break;
+
+      durationAdjusted = true;
+      effectiveQuoteData.durationHours = durationLimit;
+      adjustmentMessages.push(
+        `O limite de uso em cada dia/encontro é de até ${durationLimit}h consecutivas. ` +
+        `Como você informou ${originalQuoteData.durationHours}h por dia/encontro, ` +
+        `vou calcular considerando ${durationLimit}h por dia/encontro.`
+      );
+      quoteResult = await calculate(effectiveQuoteData);
+      continue;
+    }
+
+    break;
   }
 
-  if (!quoteResult.ok) return null;
+  if (!quoteResult.ok) {
+    if (quoteResult.status === "duration_exceeded") {
+      const durationLimit = quoteResult.service?.maxDurationPerOccurrence || null;
+      return {
+        intencao: "consulta_valor",
+        confianca: "alta",
+        mensagemInterpretada: message,
+        contexto: quoteResult.validationMessage || "Duracao por dia/encontro acima do limite cadastrado.",
+        baseEncontrada: true,
+        respostaSegura: true,
+        acao: "pedir_mais_informacoes",
+        motivo: "Calculador comercial bloqueou duracao impossivel por dia/encontro sem encaminhar para atendente.",
+        resposta: durationLimit
+          ? `O limite é de ${durationLimit}h por dia/encontro. Informe uma duração de até ${durationLimit}h para eu continuar a simulação.`
+          : "A duração por dia/encontro ultrapassa o limite cadastrado. Informe uma duração válida para eu continuar a simulação.",
+        knowledgeIds
+      };
+    }
+
+    return null;
+  }
+
+  if (capacityAdjusted || durationAdjusted) {
+    await UpdateAiTicketContextService({
+      ticket,
+      source: "commercial_quote_limit",
+      collectedData: {
+        ...(capacityAdjusted ? {
+          participant_count: {
+            label: "Quantidade de pessoas/participantes",
+            value: String(effectiveQuoteData.participantCount),
+            rawValue: message
+          }
+        } : {}),
+        ...(durationAdjusted ? {
+          duration: {
+            label: "Duracao/tempo informado",
+            value: `${effectiveQuoteData.durationHours}h`,
+            rawValue: message
+          }
+        } : {})
+      },
+      missingData: []
+    });
+  }
 
   const resposta = buildCommercialQuoteAnswer({
-    quoteData,
+    quoteData: effectiveQuoteData,
     quoteResult,
     activeHistory,
     message
@@ -2268,20 +2331,26 @@ const buildCommercialQuoteDecision = async ({
     intencao: "consulta_valor",
     confianca: "alta",
     mensagemInterpretada: message,
-    contexto: "Orcamento calculado por regras comerciais estruturadas.",
+    contexto: adjustmentMessages.length
+      ? "Orcamento calculado apos aplicar limites operacionais cadastrados."
+      : "Orcamento calculado por regras comerciais estruturadas.",
     baseEncontrada: true,
     respostaSegura: true,
     acao: "responder_com_base",
-    motivo: reason,
-    resposta,
+    motivo: adjustmentMessages.length
+      ? "Calculador comercial aplicou os limites cadastrados e continuou a simulacao sem encaminhamento."
+      : reason,
+    resposta: adjustmentMessages.length
+      ? [...adjustmentMessages, resposta].join("\n\n")
+      : resposta,
     knowledgeIds,
     operationalStatePatch: {
       lastQuote: {
-        people: quoteData.participantCount || null,
-        meetingCount: quoteData.occurrenceCount || null,
-        hoursPerMeeting: quoteData.durationHours || null,
-        totalHours: quoteData.occurrenceCount && quoteData.durationHours
-          ? quoteData.occurrenceCount * quoteData.durationHours
+        people: effectiveQuoteData.participantCount || null,
+        meetingCount: effectiveQuoteData.occurrenceCount || null,
+        hoursPerMeeting: effectiveQuoteData.durationHours || null,
+        totalHours: effectiveQuoteData.occurrenceCount && effectiveQuoteData.durationHours
+          ? effectiveQuoteData.occurrenceCount * effectiveQuoteData.durationHours
           : quoteResult.requestedQuantity || null,
         recommendedOption: quoteResult.recommended?.lines?.map((line: any) => line.name).join(" + ") || null,
         total: quoteResult.recommended?.total ? Number(quoteResult.recommended.total) : null
@@ -3695,7 +3764,7 @@ const buildDecisionPrompt = ({
     "So use encerrar_atendimento quando a mensagem atual do cliente indicar encerramento, satisfacao final ou resposta negativa a uma pergunta anterior como 'Posso ajudar em algo mais?'.",
     "Quando decidir encerrar o atendimento, inclua obrigatoriamente [FECHAR TICKET] no final do campo resposta.",
     "Intencoes validas: consulta_valor, interesse_compra, promocao, pedido_atendente, pedido_encerramento, cliente_satisfeito, cliente_nao_satisfeito, pergunta_sobre_produto_ou_servico, agendamento, acompanhamento, reclamacao, diagnostico_inicial, cobranca, financeiro, sem_resposta_segura, confirmacao_opcao.",
-    `Ferramentas permitidas para esta IA: ${parseAllowedTools(aiSetting.allowedTools).join(", ") || "nenhuma"}.`,
+    `Ferramentas permitidas para esta IA: ${getEffectiveAllowedTools(aiSetting).join(", ") || "nenhuma"}.`,
     "A IA pode pedir ferramenta somente quando ela estiver listada como permitida. O backend valida e executa; nunca confirme ferramenta antes do retorno do backend.",
     "Ferramentas disponiveis: registrarLead, gerarResumoParaAtendente, calcularOrcamento, transferirParaFila, encerrarAtendimento.",
     "Para calcular orcamento estruturado, transferir fila, encerrar, registrar lead ou gerar resumo ao atendente, use acao executar_ferramenta com ferramenta e parametrosFerramenta.",
@@ -3783,6 +3852,8 @@ const DecideAiTicketActionService = async ({
       motivo: "Ticket saiu da fila da IA, foi assumido, encaminhado ou encerrado"
     };
   }
+
+  const guidedQuoteFlowEnabled = isGuidedQuoteFlowEnabled(aiSetting);
 
   if (isExplicitCloseRequest(message)) {
     return {
@@ -3920,6 +3991,7 @@ const DecideAiTicketActionService = async ({
     .trim();
 
   if (
+    guidedQuoteFlowEnabled &&
     hasPreviousQuoteBeforeGrounding &&
     directRevisionFieldBeforeGrounding &&
     hasExplicitNumericDetail(normalizedRevisionMessage)
@@ -3980,6 +4052,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     hasPreviousQuoteBeforeGrounding &&
     directRevisionFieldBeforeGrounding &&
     !hasExplicitNumericDetail(normalizedRevisionMessage) &&
@@ -3989,6 +4062,7 @@ const DecideAiTicketActionService = async ({
   }
 
   const shouldLetOperationalStateHandleQuoteReply =
+    guidedQuoteFlowEnabled &&
     Boolean(activeQuestionBeforeGrounding) &&
     (
       /\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(activeQuestionBeforeGrounding) ||
@@ -4005,6 +4079,76 @@ const DecideAiTicketActionService = async ({
       hasDurationOrOccurrenceDetail(message) ||
       changesParticipantCount(message)
     );
+
+  const standaloneParticipantCount =
+    parseStandaloneParticipantCountAnswer(message) ||
+    getParticipantCountFromCurrentMessageContext(collectedData, message);
+  const currentQuoteBeforeGrounding = getCurrentQuoteDataFromContext(structuredContext);
+  const standaloneParticipantAnswerMatchesQuoteStep =
+    /\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(activeQuestionBeforeGrounding) ||
+    (
+      !currentQuoteBeforeGrounding.occurrenceCount &&
+      !currentQuoteBeforeGrounding.durationHours &&
+      (
+        !activeQuestionBeforeGrounding ||
+        /\b(orcamento|simulacao|cotacao|quantidade|participantes|pessoas)\b/.test(activeQuestionBeforeGrounding)
+      )
+    );
+
+  if (
+    guidedQuoteFlowEnabled &&
+    standaloneParticipantCount &&
+    standaloneParticipantAnswerMatchesQuoteStep &&
+    !pendingOptions.length &&
+    !/\bpost_quote_menu\b/.test(operationalStateText)
+  ) {
+    const activeArticles = await getActiveKnowledgeFragments();
+    const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
+    const capacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
+    const participantCountForQuote = capacityLimit && standaloneParticipantCount > capacityLimit
+      ? capacityLimit
+      : standaloneParticipantCount;
+
+    await UpdateAiTicketContextService({
+      ticket,
+      source: "customer_message",
+      collectedData: {
+        participant_count: {
+          label: "Quantidade de pessoas/participantes",
+          value: String(participantCountForQuote),
+          rawValue: message
+        }
+      },
+      missingData: ["occurrences", "duration"]
+    });
+
+    return {
+      intencao: "diagnostico_inicial",
+      confianca: "alta",
+      mensagemInterpretada: message,
+      contexto: "Cliente informou quantidade de pessoas para o fluxo guiado antes do grounding.",
+      baseEncontrada: activeArticles.length > 0,
+      respostaSegura: true,
+      acao: "pedir_mais_informacoes",
+      motivo: "Resposta numerica/range de participantes deve seguir o fluxo guiado de orcamento, sem encaminhar para atendente.",
+      resposta: [
+        capacityLimit && standaloneParticipantCount > capacityLimit
+          ? `A capacidade da Salinha Méier é de até ${capacityLimit} pessoas. Vou seguir com o orçamento considerando esse limite.`
+          : "Perfeito, anotei a quantidade de pessoas.",
+        "Quantos dias/encontros serão ao todo?"
+      ].join("\n\n"),
+      knowledgeIds: activeArticles.map(article => article.id),
+      operationalStatePatch: {
+        lastQuote: {
+          people: participantCountForQuote
+        },
+        lastQuestionKey: "meetingCount",
+        lastQuestionText: "Quantos dias/encontros serão ao todo?",
+        quoteRevisionMode: null
+      }
+    };
+  }
+
   const fullBaseGrounding = shouldLetOperationalStateHandleQuoteReply
     ? null
     : await FullBaseGroundingMariService({
@@ -4033,7 +4177,7 @@ const DecideAiTicketActionService = async ({
     };
   }
 
-  if (fullBaseGrounding?.needsQuoteCalculation) {
+  if (guidedQuoteFlowEnabled && fullBaseGrounding?.needsQuoteCalculation) {
     const scenario = extractQuoteScenarioFromText(message);
     if (scenario.participantCount || scenario.occurrenceCount || scenario.durationHours) {
       await UpdateAiTicketContextService({
@@ -4161,6 +4305,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     changesParticipantCount(message) &&
     /\b(occurrences|duration|dias|encontros|horas|duracao)\b/.test(pendingQuoteDataText) &&
     !/\b(cabe|cabem|capacidade|lotacao|suporta|comporta)\b/.test(normalizeText(message))
@@ -4234,7 +4379,7 @@ const DecideAiTicketActionService = async ({
     return buildAcceptedHumanHandoffDecision(message);
   }
 
-  if (isAffirmativeCapacityLimitQuoteRequest(message, ticket.lastAiMessage)) {
+  if (guidedQuoteFlowEnabled && isAffirmativeCapacityLimitQuoteRequest(message, ticket.lastAiMessage)) {
     const activeArticles = await getActiveKnowledgeFragments();
     const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
     const capacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
@@ -4304,6 +4449,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     isBareNumericAnswer(message) &&
     /\b(pessoas|participantes|participar|alunos|clientes|convidados|equipe)\b/.test(normalizedActiveLastQuestion)
   ) {
@@ -4338,6 +4484,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     changesParticipantCount(message) &&
     /\b(occurrences|duration|dias|encontros|horas|duracao)\b/.test(pendingQuoteDataText) &&
     !/\b(cabe|cabem|capacidade|lotacao|suporta|comporta)\b/.test(normalizeText(message))
@@ -4375,6 +4522,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     hasOccurrenceCountDetail(message) &&
     !hasHourDurationDetail(message) &&
     /\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|sessoes|sessao|consultas|consulta)\b/.test(normalizedActiveLastQuestion) &&
@@ -4398,6 +4546,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     hasHourDurationDetail(message) &&
     isHourQuestion(ticket.lastAiMessage || "")
   ) {
@@ -4420,17 +4569,7 @@ const DecideAiTicketActionService = async ({
 
     if (hasMinimumQuoteData(structuredContext)) {
       const activeArticles = await getActiveKnowledgeFragments();
-      const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
       const quoteData = getCurrentQuoteDataFromContext(structuredContext);
-      const activeCapacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
-
-      if (
-        quoteData.participantCount !== null &&
-        activeCapacityLimit !== null &&
-        quoteData.participantCount > activeCapacityLimit
-      ) {
-        return buildCapacityExceededDecision(message, activeArticles, quoteData.participantCount, activeCapacityLimit);
-      }
 
       const commercialQuoteDecision = await buildCommercialQuoteDecision({
         ticket,
@@ -4449,6 +4588,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     isBareNumericAnswer(message) &&
     (
       /\b(horas|hora|duracao|duração|tempo)\b/.test(normalizedActiveLastQuestion) ||
@@ -4472,17 +4612,7 @@ const DecideAiTicketActionService = async ({
 
     if (hasMinimumQuoteData(structuredContext)) {
       const activeArticles = await getActiveKnowledgeFragments();
-      const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
       const quoteData = getCurrentQuoteDataFromContext(structuredContext);
-      const activeCapacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
-
-      if (
-        quoteData.participantCount !== null &&
-        activeCapacityLimit !== null &&
-        quoteData.participantCount > activeCapacityLimit
-      ) {
-        return buildCapacityExceededDecision(message, activeArticles, quoteData.participantCount, activeCapacityLimit);
-      }
 
       const activeHistory = getActiveConversationHistory(history);
       const commercialQuoteDecision = await buildCommercialQuoteDecision({
@@ -4502,6 +4632,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     isBareNumericAnswer(message) &&
     /\b(dias|dia|encontros|encontro|aulas|aula|reunioes|reuniao|sessoes|sessao|consultas|consulta)\b/.test(normalizedActiveLastQuestion) &&
     !/\b(horas|hora|duracao|tempo)\b/.test(normalizedActiveLastQuestion) &&
@@ -4524,7 +4655,7 @@ const DecideAiTicketActionService = async ({
     return buildHoursPerOccurrenceQuestionDecision(message);
   }
 
-  if (lastAiAskedQuoteRevisionScope(ticket)) {
+  if (guidedQuoteFlowEnabled && lastAiAskedQuoteRevisionScope(ticket)) {
     const revisionField = getQuoteRevisionField(message);
     const normalizedRevisionAnswer = normalizeText(message)
       .replace(/[^\w\s]/g, " ")
@@ -4554,6 +4685,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     lastAiAskedSamePeopleForNewQuote(ticket) &&
     (
       isAffirmativeShortAnswer(normalizeText(message).replace(/[^\w\s]/g, " ").replace(/\s+/g, " ").trim()) ||
@@ -4566,6 +4698,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     lastAiAskedSamePeopleForNewQuote(ticket) &&
     !hasDurationOrOccurrenceDetail(message) &&
     (isBareNumericAnswer(message) || changesParticipantCount(message))
@@ -4589,15 +4722,15 @@ const DecideAiTicketActionService = async ({
     return buildMultipleOccurrencesQuestionDecision(message);
   }
 
-  if (isAffirmativeAnswerToNewQuoteScenario(message, ticket) || isNewQuoteRequestMissingDetails(message)) {
+  if (guidedQuoteFlowEnabled && (isAffirmativeAnswerToNewQuoteScenario(message, ticket) || isNewQuoteRequestMissingDetails(message))) {
     return buildNewQuoteDetailsRequestDecision(message, structuredContext);
   }
 
-  if (answersOccurrenceButMissingHours(message, ticket)) {
+  if (guidedQuoteFlowEnabled && answersOccurrenceButMissingHours(message, ticket)) {
     return buildHoursPerOccurrenceQuestionDecision(message);
   }
 
-  if (isLikelyParticipantCountAnswer(message, ticket)) {
+  if (guidedQuoteFlowEnabled && isLikelyParticipantCountAnswer(message, ticket)) {
     if (singleOccurrenceFromContext) {
       return buildSingleOccurrenceHoursQuestionDecision(message);
     }
@@ -4622,22 +4755,13 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     bareDuration &&
     isHourQuestion(ticket.lastAiMessage || "") &&
     hasMinimumQuoteData(structuredContext)
   ) {
     const activeArticles = await getActiveKnowledgeFragments();
-    const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
     const quoteData = getCurrentQuoteDataFromContext(structuredContext);
-    const activeCapacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
-
-    if (
-      quoteData.participantCount !== null &&
-      activeCapacityLimit !== null &&
-      quoteData.participantCount > activeCapacityLimit
-    ) {
-      return buildCapacityExceededDecision(message, activeArticles, quoteData.participantCount, activeCapacityLimit);
-    }
 
     const activeHistory = getActiveConversationHistory(history);
     const commercialQuoteDecision = await buildCommercialQuoteDecision({
@@ -4667,13 +4791,15 @@ const DecideAiTicketActionService = async ({
     return buildContextualIdentityAnswerDecision(message, aiSetting, getActiveConversationHistory(history));
   }
 
-  const operationalDecision = await EvaluateAiConversationStateService({
-    ticket,
-    message,
-    aiSetting,
-    context: aiContext,
-    semanticDecision
-  });
+  const operationalDecision = guidedQuoteFlowEnabled
+    ? await EvaluateAiConversationStateService({
+        ticket,
+        message,
+        aiSetting,
+        context: aiContext,
+        semanticDecision
+      })
+    : null;
 
   if (operationalDecision) {
     logger.info(
@@ -4713,7 +4839,7 @@ const DecideAiTicketActionService = async ({
 
   const requestedTotalHours = extractRequestedTotalHours(message);
 
-  if (requestedTotalHours) {
+  if (guidedQuoteFlowEnabled && requestedTotalHours) {
     await UpdateAiTicketContextService({
       ticket,
       source: "customer_message",
@@ -4768,6 +4894,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     singleOccurrenceFromContext &&
     bareDuration &&
     isDurationOrOccurrenceQuestion(ticket.lastAiMessage || "") &&
@@ -4789,6 +4916,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     isHourQuestion(ticket.lastAiMessage || "") &&
     hasOccurrenceCountDetail(message) &&
     !hasHourDurationDetail(message)
@@ -4816,6 +4944,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     bareDuration &&
     isHourQuestion(ticket.lastAiMessage || "") &&
     hasMinimumQuoteData(structuredContext)
@@ -4823,15 +4952,6 @@ const DecideAiTicketActionService = async ({
     const activeArticles = await getActiveKnowledgeFragments();
     const activeKnowledge = await buildKnowledgeWithFullIncludedSource(buildKnowledgeText(activeArticles));
     const quoteData = getCurrentQuoteDataFromContext(structuredContext);
-    const activeCapacityLimit = getCapacityLimitFromKnowledge(activeKnowledge);
-
-    if (
-      quoteData.participantCount !== null &&
-      activeCapacityLimit !== null &&
-      quoteData.participantCount > activeCapacityLimit
-    ) {
-      return buildCapacityExceededDecision(message, activeArticles, quoteData.participantCount, activeCapacityLimit);
-    }
 
     const activeHistory = getActiveConversationHistory(history);
     const commercialQuoteDecision = await buildCommercialQuoteDecision({
@@ -4928,11 +5048,11 @@ const DecideAiTicketActionService = async ({
     };
   }
 
-  if (answersOccurrenceButMissingHours(message, ticket)) {
+  if (guidedQuoteFlowEnabled && answersOccurrenceButMissingHours(message, ticket)) {
     return buildHoursPerOccurrenceQuestionDecision(message);
   }
 
-  if (isLikelyParticipantCountAnswer(message, ticket)) {
+  if (guidedQuoteFlowEnabled && isLikelyParticipantCountAnswer(message, ticket)) {
     if (singleOccurrenceFromContext) {
       return buildSingleOccurrenceHoursQuestionDecision(message);
     }
@@ -4956,7 +5076,7 @@ const DecideAiTicketActionService = async ({
     };
   }
 
-  if (isNewQuoteRequestMissingDetails(message)) {
+  if (guidedQuoteFlowEnabled && isNewQuoteRequestMissingDetails(message)) {
     return {
       intencao: "consulta_valor",
       confianca: "alta",
@@ -4982,7 +5102,7 @@ const DecideAiTicketActionService = async ({
     return buildShortQuoteRejectionDecision(message);
   }
 
-  if (isAskingForSmallerPackage(message) && hasMinimumQuoteData(structuredContext)) {
+  if (guidedQuoteFlowEnabled && isAskingForSmallerPackage(message) && hasMinimumQuoteData(structuredContext)) {
     return buildSmallerPackageDecision(message, getCurrentQuoteDataFromContext(structuredContext));
   }
 
@@ -5025,7 +5145,7 @@ const DecideAiTicketActionService = async ({
   const participantCount = getParticipantCountFromContext(structuredContext);
   const shouldAutoQuote = shouldAutoQuoteFromCurrentMessage(message, ticket);
 
-  if (!articles.length && hasMinimumQuoteData(structuredContext) && shouldAutoQuote) {
+  if (guidedQuoteFlowEnabled && !articles.length && hasMinimumQuoteData(structuredContext) && shouldAutoQuote) {
     articles = await getActiveKnowledgeFragments();
   }
 
@@ -5053,6 +5173,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     articles.length > 0 &&
     participantCount !== null &&
     capacityLimit !== null &&
@@ -5110,6 +5231,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     articles.length > 0 &&
     hasMinimumQuoteData(structuredContext) &&
     shouldAutoQuote &&
@@ -5157,6 +5279,7 @@ const DecideAiTicketActionService = async ({
   }
 
   if (
+    guidedQuoteFlowEnabled &&
     articles.length > 0 &&
     isCapacityLimitAdjustmentRequest(message, ticket.lastAiMessage, capacityLimit) &&
     adjustedCapacityCount
@@ -5249,6 +5372,7 @@ const DecideAiTicketActionService = async ({
     hasDurationOrOccurrenceDetail(message) ||
     changesParticipantCount(message);
   const shouldBlockCapacityQuote =
+    guidedQuoteFlowEnabled &&
     participantCount !== null &&
     capacityLimit !== null &&
     participantCount > capacityLimit &&

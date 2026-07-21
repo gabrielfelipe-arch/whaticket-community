@@ -28,6 +28,8 @@ const aiSetting = (overrides: Record<string, any> = {}): any => ({
   id: 1,
   name: "Mari",
   companyName: "Salinha Meier",
+  useGuidedFlow: true,
+  guidedFlowKey: "room_rental_people_days_hours",
   ...overrides
 });
 
@@ -224,6 +226,37 @@ describe("AiConversationStateService", () => {
       message: "voce esta em looping",
       context: context({
         lastQuote: { people: 20, meetingCount: 3, hoursPerMeeting: 5 }
+      })
+    });
+
+    expect(decision).toBeNull();
+  });
+
+  it("uses the upper bound when customer answers participant count as a range", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "de 10 a 15 pessoas",
+      context: context({
+        lastQuestionKey: "people",
+        lastQuote: {}
+      })
+    });
+
+    expect(decision?.answeredField).toBe("people");
+    expect(decision?.nextState.lastQuote?.people).toBe(15);
+    expect(decision?.collectedDataPatch?.participant_count.value).toBe("15");
+    expect(decision?.nextQuestionKey).toBe("meetingCount");
+  });
+
+  it("does not accept ranged hours as exact duration for quote calculation", async () => {
+    const decision = await EvaluateAiConversationStateService({
+      ticket: ticket(),
+      aiSetting: aiSetting(),
+      message: "de 3 a 4 horas",
+      context: context({
+        lastQuestionKey: "hoursPerMeeting",
+        lastQuote: { people: 10, meetingCount: 2 }
       })
     });
 

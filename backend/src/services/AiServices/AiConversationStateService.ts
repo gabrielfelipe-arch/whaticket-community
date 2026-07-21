@@ -4,6 +4,7 @@ import Ticket from "../../models/Ticket";
 import type { AiDecision } from "./DecideAiTicketActionService";
 import { UpdateAiTicketContextService } from "./AiTicketContextService";
 import type { AiSemanticDecision } from "./AiSemanticDecisionService";
+import { isGuidedQuoteFlowEnabled } from "./GuidedFlowService";
 import { isPostQuoteMenuOption } from "./PostQuoteMenuService";
 
 export type OperationalOfferType = "quote_revision" | "human_transfer" | "close_ticket" | "post_quote_menu" | null;
@@ -145,6 +146,19 @@ const parseNumberLike = (value = ""): number | null => {
   };
 
   return words[normalized] || null;
+};
+
+const parseNumberRangeLike = (value = ""): { min: number; max: number } | null => {
+  const normalized = normalizeText(value);
+  const token = "(\\d{1,4}|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|onze|doze|treze|quatorze|catorze|quinze|dezesseis|dezessete|dezoito|dezenove|vinte)";
+  const range = normalized.match(new RegExp(`\\b${token}\\s*(?:a|ate|ou)\\s*${token}\\b`));
+  if (!range) return null;
+
+  const min = parseNumberLike(range[1]);
+  const max = parseNumberLike(range[2]);
+  if (!min || !max || min === max) return null;
+
+  return { min: Math.min(min, max), max: Math.max(min, max) };
 };
 
 const isAffirmative = (message = ""): boolean => {
@@ -674,7 +688,14 @@ const buildRevisionScopeFieldDecision = (
 
 const extractQuoteFieldChange = (message = ""): { field: OperationalQuestionKey; value: number } | null => {
   const normalized = normalizeText(message);
-  const value = parseNumberLike(normalized);
+  const range = parseNumberRangeLike(message);
+  if (range && !/\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(normalized)) {
+    return null;
+  }
+
+  const value = range && /\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(normalized)
+    ? range.max
+    : parseNumberLike(normalized);
   if (!value) return null;
 
   if (/\b(pessoas|participantes|alunos|clientes|convidados)\b/.test(normalized)) {
@@ -817,6 +838,10 @@ export const EvaluateAiConversationStateService = async ({
   context,
   semanticDecision
 }: EvaluateRequest): Promise<OperationalDecision | null> => {
+  if (!isGuidedQuoteFlowEnabled(aiSetting)) {
+    return null;
+  }
+
   const state = getStateWithFallbacks(ticket, context);
   const normalized = normalizeText(message);
   const semanticIntent = semanticDecision?.messageUnderstanding.primaryIntent;
@@ -993,7 +1018,12 @@ export const EvaluateAiConversationStateService = async ({
   }
 
   if (state.lastQuestionKey && ["people", "meetingCount", "hoursPerMeeting"].includes(state.lastQuestionKey)) {
-    const value = parseNumberLike(message);
+    const range = parseNumberRangeLike(message);
+    const value = state.lastQuestionKey === "people" && range
+      ? range.max
+      : range
+        ? null
+        : parseNumberLike(message);
     if (value) {
       const decision = buildFieldAnswerDecision(message, state, state.lastQuestionKey, value);
       await persistOperationalDecision(ticket, decision);

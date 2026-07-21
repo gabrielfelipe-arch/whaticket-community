@@ -2,6 +2,7 @@ import AiSetting from "../../models/AiSetting";
 import AiTicketContext from "../../models/AiTicketContext";
 import Ticket from "../../models/Ticket";
 import { OperationalState, parseOperationalState } from "./AiConversationStateService";
+import { isGuidedQuoteFlowEnabled } from "./GuidedFlowService";
 
 export type ConversationMode =
   | "commercial"
@@ -231,7 +232,9 @@ const getCapabilities = (aiSetting: AiSetting): Set<string> => {
   const text = normalizeText(raw);
   const capabilities = new Set<string>(["knowledge_base", "human_transfer"]);
 
-  if (/\b(orcamento|quote|calcular|preco|valor|venda|comercial)\b/.test(text)) capabilities.add("quote");
+  if (isGuidedQuoteFlowEnabled(aiSetting) && /\b(orcamento|quote|calcular|preco|valor|venda|comercial)\b/.test(text)) {
+    capabilities.add("quote");
+  }
   if (/\b(catalogo|catalog|produto|estoque|stock|veiculo|carro)\b/.test(text)) capabilities.add("catalog");
   if (/\b(estoque|stock|disponivel em|cor|tamanho)\b/.test(text)) capabilities.add("stock");
   if (/\b(agenda|agendamento|consulta|horario|appointment)\b/.test(text)) capabilities.add("appointment");

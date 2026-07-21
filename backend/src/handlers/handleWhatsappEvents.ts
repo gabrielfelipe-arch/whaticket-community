@@ -912,6 +912,16 @@ const handleAiReply = async (
     contactName: contactPayload.name
   });
 
+  logger.info(
+    {
+      ticketId: ticket.id,
+      action: aiDecision.acao,
+      intent: aiDecision.intencao,
+      reason: aiDecision.motivo
+    },
+    "[AI FLOW] Decision resolved"
+  );
+
   if (aiDecision.acao === "nao_responder") {
     return false;
   }
@@ -3729,7 +3739,7 @@ export const handleMessage = async (
       if (!openTicket) return;
     }
 
-    const ticket = await FindOrCreateTicketService(
+    let ticket = await FindOrCreateTicketService(
       contact,
       contextPayload.whatsappId,
       contextPayload.unreadMessages,
@@ -3772,6 +3782,8 @@ export const handleMessage = async (
     await ticket.update({ lastMessage: lastMessageText });
 
     await CreateMessageService({ messageData });
+
+    ticket = await ShowTicketService(ticket.id);
 
     if (!processedMessage.fromMe && !contextPayload.groupContact) {
       const handledScheduledReturn = await handleScheduledMessageReturn({
@@ -3822,6 +3834,14 @@ export const handleMessage = async (
       !processedMessage.fromMe &&
       !ticket.userId
     ) {
+      logger.info(
+        {
+          ticketId: ticket.id,
+          aiSettingId: ticket.aiSettingId || ticket.queue?.aiSettingId || null,
+          queueId: ticket.queueId || null
+        },
+        "[AI FLOW] Handling customer reply"
+      );
       await handleAiReply(
         contextPayload.whatsappId,
         processedMessage.body,
@@ -3830,6 +3850,18 @@ export const handleMessage = async (
         ticket.aiSettingId || ticket.queue?.aiSettingId
       );
       return;
+    }
+
+    if (!processedMessage.fromMe && !contextPayload.groupContact && ticket.aiActive) {
+      logger.warn(
+        {
+          ticketId: ticket.id,
+          aiActive: ticket.aiActive,
+          userId: ticket.userId || null,
+          groupContact: Boolean(contextPayload.groupContact)
+        },
+        "[AI FLOW] Customer reply skipped by guard"
+      );
     }
 
     if (

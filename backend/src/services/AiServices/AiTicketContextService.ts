@@ -177,6 +177,17 @@ const firstNumberToken = (value: string): string | null => {
 const isBareParticipantCountAnswer = (value: string): boolean =>
   new RegExp(`^(?:umas?|uns|cerca\\s+de|aproximadamente|mais\\s+ou\\s+menos|por\\s+volta\\s+de)?\\s*${NUMBER_TOKEN_PATTERN}\\s*(?:pessoas|participantes|alunos|clientes|convidados)?$`).test(value);
 
+const parseParticipantRangeAnswer = (value: string): string | null => {
+  const range = value.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:a|ate|ou)\\s*(${NUMBER_TOKEN_PATTERN})\\b`));
+  if (!range) return null;
+
+  const min = parseNumberToken(range[1]);
+  const max = parseNumberToken(range[2]);
+  if (!min || !max || min === max) return null;
+
+  return String(Math.max(Number(min), Number(max)));
+};
+
 const OCCURRENCE_UNITS = [
   "aula",
   "aulas",
@@ -317,7 +328,8 @@ const extractCollectedData = (
   const collected: Record<string, { label: string; value: string | null; rawValue?: string | null }> = {};
   const packageCompositionOrTotalHours = isPackageCompositionOrTotalHoursRequest(normalized);
 
-  const number = firstNumberToken(normalized);
+  const participantRange = parseParticipantRangeAnswer(normalized);
+  const number = participantRange || firstNumberToken(normalized);
   const countAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s*(?:de|x|por|vezes)\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
   const unitCountAndDuration = normalized.match(new RegExp(`\\b(${NUMBER_TOKEN_PATTERN})\\s+(${OCCURRENCE_UNIT_PATTERN})\\s*(?:de|com|por|para|durando)?\\s*(${NUMBER_TOKEN_PATTERN})\\s*(?:h|hora|horas)\\b`));
   const occurrenceUnit = unitCountAndDuration?.[2] || normalized.match(occurrenceUnitRegex)?.[1] || null;
@@ -336,7 +348,7 @@ const extractCollectedData = (
     number &&
     (
       speaksAboutPeople ||
-      (questionType === "participant_count" && !speaksAboutTimeOrOccurrences && isBareParticipantCountAnswer(normalized))
+      (questionType === "participant_count" && !speaksAboutTimeOrOccurrences && (participantRange || isBareParticipantCountAnswer(normalized)))
     )
   ) {
     collected.participant_count = {

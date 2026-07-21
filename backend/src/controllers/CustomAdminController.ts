@@ -26,6 +26,7 @@ import {
   requestUserHasPermission
 } from "../helpers/ProfilePermissions";
 import GenerateAiResponseService, { AiProviderError } from "../services/AiServices/GenerateAiResponseService";
+import { ROOM_RENTAL_GUIDED_FLOW_KEY } from "../services/AiServices/GuidedFlowService";
 import {
   htmlToPlainText,
   plainTextToHtml,
@@ -530,6 +531,17 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
     const active = isEnabled(data.active);
     const provider = normalizeAiProvider(data.provider);
     const model = normalizeAiModel(provider, data.model);
+    const useGuidedFlow = isEnabled(data.useGuidedFlow);
+    const guidedFlowKey = useGuidedFlow ? data.guidedFlowKey || ROOM_RENTAL_GUIDED_FLOW_KEY : null;
+    const allowedTools = Array.isArray(data.allowedTools)
+      ? data.allowedTools.map((item: any) => String(item).trim()).filter(Boolean)
+      : [];
+    const visibleAllowedTools = useGuidedFlow
+      ? allowedTools
+      : allowedTools.filter((tool: string) => tool !== "calcularOrcamento");
+    if (useGuidedFlow && guidedFlowKey === ROOM_RENTAL_GUIDED_FLOW_KEY && !allowedTools.includes("calcularOrcamento")) {
+      allowedTools.push("calcularOrcamento");
+    }
     if (active) {
       requireField(data.name, "Informe o nome da IA.");
       requireField(provider, "Escolha o provedor da IA.");
@@ -553,7 +565,11 @@ async function normalizeBody(resource: string, body: any): Promise<any> {
       aiQueueId: nullableNumber(data.aiQueueId),
       confirmationMaxAttempts: Number(data.confirmationMaxAttempts || 2),
       confirmationFailureMessage: data.confirmationFailureMessage || null,
-      allowedTools: normalizeJsonArray(data.allowedTools),
+      allowedTools: visibleAllowedTools.length || allowedTools.length
+        ? JSON.stringify(useGuidedFlow ? allowedTools : visibleAllowedTools)
+        : normalizeJsonArray(data.allowedTools),
+      useGuidedFlow,
+      guidedFlowKey,
       allowedTransferQueueIds: normalizeJsonArray(data.allowedTransferQueueIds),
       calendarConnectionId: nullableNumber(data.calendarConnectionId),
       active

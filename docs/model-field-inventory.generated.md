@@ -363,6 +363,7 @@ Este arquivo lista os campos declarados nos models Sequelize carregados pelo bac
 | `unitLabel` | `string` | @Column |
 | `capacityMin` | `number` | @Column |
 | `capacityMax` | `number` | @Column |
+| `maxDurationPerOccurrence` | `number` | @Column |
 | `metadata` | `string` | @Column(DataType.TEXT) |
 | `active` | `boolean` | @Default(true) @Column |
 | `includedItems` | `CommercialIncludedItem[]` | @HasMany(() => CommercialIncludedItem) |

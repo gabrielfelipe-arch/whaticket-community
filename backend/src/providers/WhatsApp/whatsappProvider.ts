@@ -15,6 +15,7 @@ import {
   normalizeWhatsAppProvider,
   WhatsAppProviderKey
 } from "../../services/WhatsappProviderServices/WhatsappProviderSettingsService";
+import prepareWhatsAppText from "../../helpers/PrepareWhatsAppText";
 
 export interface WhatsappProvider {
   init(whatsapp: Whatsapp): Promise<void>;
@@ -93,11 +94,14 @@ const whatsappProvider: WhatsappProvider = {
   },
   sendMessage: async (sessionId, to, body, options) => {
     const provider = await resolveProvider();
-    return provider.sendMessage(sessionId, to, body, options);
+    return provider.sendMessage(sessionId, to, prepareWhatsAppText(body), options);
   },
   sendMedia: async (sessionId, to, media, options) => {
     const provider = await resolveProvider();
-    return provider.sendMedia(sessionId, to, media, options);
+    return provider.sendMedia(sessionId, to, media, {
+      ...options,
+      caption: options?.caption ? prepareWhatsAppText(options.caption) : options?.caption
+    });
   },
   deleteMessage: async (sessionId, chatId, messageId, fromMe) => {
     const provider = await resolveProvider();

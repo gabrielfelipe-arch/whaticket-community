@@ -1,6 +1,6 @@
 ﻿# Rocket Service - Inventario Do Schema Real PostgreSQL
 
-Gerado em: 2026-07-18
+Gerado em: 2026-07-21
 
 Fonte: banco local `whaticket_pg`, schema `public`, via `information_schema` e `pg_catalog`. Este arquivo contem somente estrutura, sem dados de clientes, mensagens, tokens ou configuracoes.
 
@@ -492,6 +492,7 @@ Total de tabelas: 57
 | 11 | `active` | `boolean / bool` | NO | `true` |
 | 12 | `createdAt` | `timestamp with time zone / timestamptz` | NO | `` |
 | 13 | `updatedAt` | `timestamp with time zone / timestamptz` | NO | `` |
+| 14 | `maxDurationPerOccurrence` | `integer(32,0)` | YES | `` |
 
 ### Constraints
 

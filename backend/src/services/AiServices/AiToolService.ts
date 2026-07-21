@@ -8,8 +8,11 @@ import Queue from "../../models/Queue";
 import Ticket from "../../models/Ticket";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import CreateMessageService from "../MessageServices/CreateMessageService";
-import CalculateCommercialQuoteService from "../CommercialServices/CalculateCommercialQuoteService";
+import CalculateCommercialQuoteService, {
+  CalculateQuoteRequest
+} from "../CommercialServices/CalculateCommercialQuoteService";
 import { appendPostQuoteMenu } from "./PostQuoteMenuService";
+import { getEffectiveAllowedTools, isGuidedQuoteFlowEnabled } from "./GuidedFlowService";
 
 export type AiToolName =
   | "registrarLead"
@@ -42,13 +45,14 @@ const parseJson = <T>(value: string | null | undefined, fallback: T): T => {
   }
 };
 
-const parseAllowedTools = (aiSetting: AiSetting): string[] =>
-  parseJson<string[]>(aiSetting.allowedTools, []);
-
 const assertToolAllowed = (aiSetting: AiSetting, toolName: AiToolName): void => {
-  const allowed = parseAllowedTools(aiSetting);
+  const allowed = getEffectiveAllowedTools(aiSetting);
   if (!allowed.includes(toolName)) {
     throw new Error(`Ferramenta ${toolName} nao permitida para esta IA.`);
+  }
+
+  if (toolName === "calcularOrcamento" && !isGuidedQuoteFlowEnabled(aiSetting)) {
+    throw new Error("Fluxo guiado de orcamento nao esta ativo para esta IA.");
   }
 };
 
@@ -131,7 +135,7 @@ const calculateQuote = async (
   aiSetting: AiSetting,
   params: Record<string, any>
 ): Promise<AiToolResult> => {
-  const result = await CalculateCommercialQuoteService({
+  const quoteRequest: CalculateQuoteRequest = {
     commercialServiceId: params.commercialServiceId ? Number(params.commercialServiceId) : undefined,
     aiSettingId: aiSetting.id,
     ticketId: ticket.id,
@@ -144,7 +148,43 @@ const calculateQuote = async (
     preferredMode: params.preferredMode,
     maxUsefulOverage: params.maxUsefulOverage ? Number(params.maxUsefulOverage) : undefined,
     includeAlternatives: Boolean(params.includeAlternatives)
-  });
+  };
+  const originalParticipantCount = quoteRequest.participantCount;
+  const originalDuration = quoteRequest.durationPerOccurrence;
+  const adjustmentMessages: string[] = [];
+  let capacityAdjusted = false;
+  let durationAdjusted = false;
+  let result = await CalculateCommercialQuoteService(quoteRequest);
+
+  for (let attempt = 0; attempt < 2 && !result.ok; attempt += 1) {
+    if (result.status === "capacity_exceeded" && !capacityAdjusted) {
+      const capacityLimit = result.service?.capacityMax || null;
+      if (!capacityLimit) break;
+      capacityAdjusted = true;
+      quoteRequest.participantCount = capacityLimit;
+      adjustmentMessages.push(
+        `A capacidade é de até ${capacityLimit} pessoas. ` +
+        `Vou seguir com o orçamento considerando esse limite.`
+      );
+      result = await CalculateCommercialQuoteService(quoteRequest);
+      continue;
+    }
+
+    if (result.status === "duration_exceeded" && !durationAdjusted) {
+      const durationLimit = result.service?.maxDurationPerOccurrence || null;
+      if (!durationLimit) break;
+      durationAdjusted = true;
+      quoteRequest.durationPerOccurrence = durationLimit;
+      adjustmentMessages.push(
+        `O limite é de ${durationLimit}h por dia/encontro. ` +
+        `Como você informou ${originalDuration}h, vou calcular considerando ${durationLimit}h por dia/encontro.`
+      );
+      result = await CalculateCommercialQuoteService(quoteRequest);
+      continue;
+    }
+
+    break;
+  }
 
   if (!result.ok) {
     return {
@@ -163,6 +203,7 @@ const calculateQuote = async (
     : "";
 
   const customerMessage = [
+    ...adjustmentMessages,
     "📌 Orçamento estimado",
     "",
     `⏱️ Total: ${result.requestedQuantity}h`,
@@ -178,7 +219,17 @@ const calculateQuote = async (
   return {
     ok: true,
     customerMessage: appendPostQuoteMenu(customerMessage),
-    data: result as any
+    data: {
+      ...result,
+      adjustments: {
+        participantCount: capacityAdjusted
+          ? { requested: originalParticipantCount, used: quoteRequest.participantCount }
+          : null,
+        durationPerOccurrence: durationAdjusted
+          ? { requested: originalDuration, used: quoteRequest.durationPerOccurrence }
+          : null
+      }
+    } as any
   };
 };
 

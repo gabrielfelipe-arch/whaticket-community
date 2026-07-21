@@ -102,6 +102,13 @@ class AiSetting extends Model<AiSetting> {
   @Column(DataType.TEXT)
   allowedTools: string;
 
+  @Default(false)
+  @Column
+  useGuidedFlow: boolean;
+
+  @Column
+  guidedFlowKey: string;
+
   @Column(DataType.TEXT)
   allowedTransferQueueIds: string;
 

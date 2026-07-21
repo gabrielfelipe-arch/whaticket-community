@@ -2,6 +2,9 @@ import { getIO } from "../../libs/socket";
 import Message from "../../models/Message";
 import Ticket from "../../models/Ticket";
 import Whatsapp from "../../models/Whatsapp";
+import ResolveMessageSenderType, {
+  MessageSenderType
+} from "../../helpers/ResolveMessageSenderType";
 import SendPushNotificationService from "../PushNotificationServices/SendPushNotificationService";
 
 interface MessageData {
@@ -15,7 +18,7 @@ interface MessageData {
   mediaUrl?: string;
   ack?: number;
   quotedMsgId?: string;
-  senderType?: "customer" | "ai" | "human" | "system" | "ura";
+  senderType?: MessageSenderType;
   aiSessionStartedAt?: Date | null;
 }
 interface Request {
@@ -25,7 +28,7 @@ interface Request {
 const CreateMessageService = async ({
   messageData
 }: Request): Promise<Message> => {
-  const inferredSenderType =
+  const requestedSenderType: MessageSenderType =
     messageData.senderType ||
     (!messageData.fromMe
       ? "customer"
@@ -33,10 +36,27 @@ const CreateMessageService = async ({
         ? "system"
         : "human");
 
-  await Message.upsert({
-    ...messageData,
-    senderType: inferredSenderType
+  const existingMessage =
+    messageData.fromMe && requestedSenderType === "human"
+      ? await Message.findByPk(messageData.id, {
+          attributes: ["senderType", "aiSessionStartedAt"]
+        })
+      : null;
+
+  const inferredSenderType = ResolveMessageSenderType({
+    requestedSenderType,
+    existingSenderType: existingMessage?.senderType,
+    fromMe: messageData.fromMe
   });
+
+  const normalizedMessageData = {
+    ...messageData,
+    senderType: inferredSenderType,
+    aiSessionStartedAt:
+      messageData.aiSessionStartedAt || existingMessage?.aiSessionStartedAt || null
+  };
+
+  await Message.upsert(normalizedMessageData);
 
   const message = await Message.findByPk(messageData.id, {
     include: [
