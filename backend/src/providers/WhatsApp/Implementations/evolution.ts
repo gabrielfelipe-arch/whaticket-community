@@ -350,10 +350,38 @@ const reactMessage = async (
   });
 };
 
-const checkNumber = async (_sessionId: number, number: string): Promise<string> => {
+const checkNumber = async (sessionId: number, number: string): Promise<string> => {
   const cleanNumber = normalizeNumber(number);
   if (!cleanNumber) throw new AppError("ERR_INVALID_NUMBER", 400);
-  return `${cleanNumber}@s.whatsapp.net`;
+
+  const { client, instance } = await getClientContext(sessionId);
+
+  try {
+    const response = await client.post(
+      `/chat/whatsappNumbers/${encodeURIComponent(instance)}`,
+      { numbers: [cleanNumber] }
+    );
+    const entries = Array.isArray(response.data)
+      ? response.data
+      : response.data?.numbers || response.data?.data || [];
+    const result = Array.isArray(entries) ? entries[0] : entries;
+
+    if (!result?.exists) {
+      throw new AppError("ERR_WAPP_NUMBER_NOT_REGISTERED", 400);
+    }
+
+    return result.jid || result.number || `${cleanNumber}@s.whatsapp.net`;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    logger.warn({
+      info: "Could not validate number through Evolution API",
+      whatsappId: sessionId,
+      status: error?.response?.status,
+      err: error?.response?.data || error?.message
+    });
+    throw new AppError("ERR_WAPP_CHECK_CONTACT", 502);
+  }
 };
 
 const getProfilePicUrl = async (

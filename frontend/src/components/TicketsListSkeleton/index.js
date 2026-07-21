@@ -1,44 +1,37 @@
 import React from "react";
 
-import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import ListItemAvatar from "@material-ui/core/ListItemAvatar";
-import Divider from "@material-ui/core/Divider";
+import { makeStyles } from "@material-ui/core/styles";
 import Skeleton from "@material-ui/lab/Skeleton";
 
+const useStyles = makeStyles(theme => ({
+	row: {
+		height: 60,
+		display: "flex",
+		alignItems: "center",
+		gap: theme.spacing(1),
+		padding: theme.spacing(0.5, 1.25),
+		borderBottom: `1px solid ${theme.palette.divider}`,
+	},
+	content: {
+		flex: 1,
+		minWidth: 0,
+	},
+}));
+
 const TicketsSkeleton = () => {
+	const classes = useStyles();
+
 	return (
 		<>
-			<ListItem dense>
-				<ListItemAvatar>
-					<Skeleton animation="wave" variant="circle" width={40} height={40} />
-				</ListItemAvatar>
-				<ListItemText
-					primary={<Skeleton animation="wave" height={20} width={60} />}
-					secondary={<Skeleton animation="wave" height={20} width={90} />}
-				/>
-			</ListItem>
-			<Divider variant="inset" />
-			<ListItem dense>
-				<ListItemAvatar>
-					<Skeleton animation="wave" variant="circle" width={40} height={40} />
-				</ListItemAvatar>
-				<ListItemText
-					primary={<Skeleton animation="wave" height={20} width={70} />}
-					secondary={<Skeleton animation="wave" height={20} width={120} />}
-				/>
-			</ListItem>
-			<Divider variant="inset" />
-			<ListItem dense>
-				<ListItemAvatar>
-					<Skeleton animation="wave" variant="circle" width={40} height={40} />
-				</ListItemAvatar>
-				<ListItemText
-					primary={<Skeleton animation="wave" height={20} width={60} />}
-					secondary={<Skeleton animation="wave" height={20} width={90} />}
-				/>
-			</ListItem>
-			<Divider variant="inset" />
+			{[72, 58, 66, 62, 76].map((width, index) => (
+				<div className={classes.row} key={`${width}-${index}`}>
+					<Skeleton animation="wave" variant="circle" width={36} height={36} />
+					<div className={classes.content}>
+						<Skeleton animation="wave" height={18} width={`${width}%`} />
+						<Skeleton animation="wave" height={16} width={`${Math.min(width + 14, 92)}%`} />
+					</div>
+				</div>
+			))}
 		</>
 	);
 };

@@ -72,6 +72,7 @@ export const PROFILE_PERMISSION_KEYS = [
   "quickAnswers.create",
   "quickAnswers.edit",
   "quickAnswers.delete",
+  "quickAnswers.publish_global",
   "campaigns.view",
   "campaigns.manage",
   "campaigns.view_own",
@@ -173,7 +174,8 @@ export const PROFILE_PERMISSION_GROUPS = [
       { key: "quickAnswers.view", label: "Respostas rapidas - visualizar" },
       { key: "quickAnswers.create", label: "Respostas rapidas - adicionar" },
       { key: "quickAnswers.edit", label: "Respostas rapidas - editar" },
-      { key: "quickAnswers.delete", label: "Respostas rapidas - excluir" }
+      { key: "quickAnswers.delete", label: "Respostas rapidas - excluir" },
+      { key: "quickAnswers.publish_global", label: "Respostas rapidas - publicar para todos" }
     ]
   },
   {

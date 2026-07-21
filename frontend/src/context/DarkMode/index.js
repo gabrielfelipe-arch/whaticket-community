@@ -166,6 +166,14 @@ export const ThemeProvider = ({ children }) => {
             error: { bg: darkMode ? "rgba(248, 113, 113, 0.16)" : "#FEE2E2", color: darkMode ? "#FCA5A5" : "#991B1B" },
           },
         },
+        props: {
+          MuiTooltip: {
+            arrow: true,
+            placement: "top",
+            enterDelay: 250,
+            enterNextDelay: 100,
+          },
+        },
         overrides: {
           MuiButton: {
             root: {
@@ -208,6 +216,8 @@ export const ThemeProvider = ({ children }) => {
               borderRadius: 8,
               fontSize: 12,
               fontWeight: 600,
+              maxWidth: 280,
+              lineHeight: 1.4,
               backgroundColor: darkMode ? "#E2E8F0" : "#0F172A",
               color: darkMode ? "#0F172A" : "#FFFFFF",
             },

@@ -17,7 +17,7 @@ import {
 
 interface TicketData {
   status?: string;
-  userId?: number;
+  userId?: number | null;
   queueId?: number | null;
   whatsappId?: number;
   categoryId?: number;

@@ -15,7 +15,6 @@ import {
   CircularProgress,
   FormControlLabel,
   Switch,
-  Typography,
 } from "@material-ui/core";
 import { green } from "@material-ui/core/colors";
 import { i18n } from "../../translate/i18n";
@@ -80,6 +79,9 @@ const QuickAnswersModal = ({
   const classes = useStyles();
   const isMounted = useRef(true);
   const { user } = useContext(AuthContext);
+  const canPublishGlobal =
+    user?.profile === "admin" ||
+    user?.permissions?.["quickAnswers.publish_global"] === true;
 
   const initialState = {
     shortcut: "",
@@ -98,13 +100,24 @@ const QuickAnswersModal = ({
 
   useEffect(() => {
     const fetchQuickAnswer = async () => {
+      if (!open) return;
+
       if (initialValues) {
         setQuickAnswer((prevState) => {
           return normalizeQuickAnswer({ ...prevState, ...initialValues });
         });
       }
 
-      if (!quickAnswerId) return;
+      if (!quickAnswerId) {
+        if (!initialValues) {
+          setQuickAnswer({
+            shortcut: "",
+            message: "",
+            global: user?.profile === "admin",
+          });
+        }
+        return;
+      }
 
       try {
         const { data } = await api.get(`/quickAnswers/${quickAnswerId}`);
@@ -117,7 +130,7 @@ const QuickAnswersModal = ({
     };
 
     fetchQuickAnswer();
-  }, [quickAnswerId, open, initialValues]);
+  }, [quickAnswerId, open, initialValues, user?.profile]);
 
   const handleClose = () => {
     onClose();
@@ -172,7 +185,7 @@ const QuickAnswersModal = ({
             actions.setSubmitting(false);
           }}
         >
-          {({ values, errors, touched, isSubmitting, setFieldValue }) => (
+          {({ values, errors, touched, isSubmitting }) => (
             <Form>
               <DialogContent dividers>
                 <div className={classes.textQuickAnswerContainer}>
@@ -201,21 +214,25 @@ const QuickAnswersModal = ({
                     mediaName={mediaFile?.name || values.mediaName}
                   />
                 </div>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      color="primary"
-                      checked={asBoolean(values.global)}
-                      disabled={user?.profile !== "admin" && quickAnswerId && asBoolean(quickAnswer.global)}
-                      onChange={event => setFieldValue("global", event.target.checked)}
-                    />
-                  }
-                  label="Publica para todos"
-                />
-                {user?.profile !== "admin" && quickAnswerId && asBoolean(quickAnswer.global) && (
-                  <Typography variant="caption" color="textSecondary" display="block">
-                    Mensagens publicas so podem voltar a ser privadas por um administrador.
-                  </Typography>
+                {canPublishGlobal && (
+                  <FormControlLabel
+                    control={
+                      <Field name="global">
+                        {({ field, form }) => (
+                          <Switch
+                            {...field}
+                            color="primary"
+                            checked={asBoolean(field.value)}
+                            onChange={(event, checked) => {
+                              form.setFieldValue("global", checked);
+                            }}
+                            inputProps={{ "aria-label": "Publicar para todos" }}
+                          />
+                        )}
+                      </Field>
+                    }
+                    label="Publicar para todos"
+                  />
                 )}
               </DialogContent>
               <DialogActions>

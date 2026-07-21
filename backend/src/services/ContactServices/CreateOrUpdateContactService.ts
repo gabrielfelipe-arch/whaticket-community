@@ -24,6 +24,22 @@ const emitContact = (action: "update" | "create", contact: Contact) => {
   io.emit("contact", { action, contact });
 };
 
+export const isTechnicalContactName = (name: string | null | undefined, number: string): boolean => {
+  const currentName = String(name || "").trim();
+  if (!currentName) return true;
+  return currentName.replace(/\D/g, "") === number;
+};
+
+const getIncomingContactName = (
+  currentName: string | null | undefined,
+  incomingName: string,
+  number: string
+): string | undefined => {
+  const candidate = String(incomingName || "").trim();
+  if (!candidate || candidate.replace(/\D/g, "") === number) return undefined;
+  return isTechnicalContactName(currentName, number) ? candidate : undefined;
+};
+
 const CreateOrUpdateContactService = async ({
   name,
   number: rawNumber,
@@ -45,6 +61,7 @@ const CreateOrUpdateContactService = async ({
     contactByNumber && contactByLid && contactByNumber.id !== contactByLid.id;
 
   if (shouldMerge) {
+    const incomingContactName = getIncomingContactName(contactByNumber.name, name, number);
     await Ticket.update(
       { contactId: contactByNumber.id },
       { where: { contactId: contactByLid.id } }
@@ -53,6 +70,7 @@ const CreateOrUpdateContactService = async ({
     await contactByLid.destroy();
 
     await contactByNumber.update({
+      ...(incomingContactName ? { name: incomingContactName } : {}),
       lid: contactByLid.lid,
       profilePicUrl
     });
@@ -69,7 +87,9 @@ const CreateOrUpdateContactService = async ({
   }
 
   if (contactByNumber) {
+    const incomingContactName = getIncomingContactName(contactByNumber.name, name, number);
     await contactByNumber.update({
+      ...(incomingContactName ? { name: incomingContactName } : {}),
       lid: lid || contactByNumber.lid,
       profilePicUrl
     });
@@ -80,7 +100,9 @@ const CreateOrUpdateContactService = async ({
   }
 
   if (contactByLid) {
+    const incomingContactName = getIncomingContactName(contactByLid.name, name, number);
     await contactByLid.update({
+      ...(incomingContactName ? { name: incomingContactName } : {}),
       number: number || contactByLid.number,
       profilePicUrl
     });

@@ -223,10 +223,14 @@ const messages = {
       ticketsManager: {
         buttons: {
           newTicket: "Novo",
+          newTicketTooltip: "Iniciar novo atendimento",
         },
       },
       ticketsQueueSelect: {
         placeholder: "Filas",
+        all: "Todas as filas",
+        selected: "{{count}} filas",
+        tooltip: "Filtrar atendimentos por fila",
       },
       tickets: {
         toasts: {
@@ -236,19 +240,30 @@ const messages = {
           message: "Mensagem de",
         },
         tabs: {
-          open: { title: "Inbox" },
-          closed: { title: "Resolvidos" },
-          search: { title: "Busca" },
+          open: { title: "Inbox", tooltip: "Atendimentos em andamento" },
+          closed: { title: "Resolvidos", tooltip: "Atendimentos finalizados" },
+          search: { title: "Busca", tooltip: "Buscar contatos e mensagens" },
         },
         search: {
           placeholder: "Buscar tickets e mensagens",
         },
         buttons: {
+          mine: "Meus",
           showAll: "Todos",
+        },
+        tooltips: {
+          navigation: "Navegação dos atendimentos",
+          statusNavigation: "Status dos atendimentos",
+          mine: "Mostrar meus atendimentos e os ainda não atribuídos",
+          mineFixed: "Você visualiza seus atendimentos e os ainda não atribuídos",
+          showAll: "Mostrar atendimentos de todos os usuários nas filas selecionadas",
         },
       },
       transferTicketModal: {
         title: "Transferir Ticket",
+        targetTypeLabel: "Tipo de destino da transferência",
+        targetUser: "Usuário",
+        targetQueue: "Fila",
         fieldLabel: "Digite para buscar usuários",
         fieldQueueLabel: "Transferir para fila",
         fieldConnectionLabel: "Transferir para conexão",
@@ -271,20 +286,40 @@ const messages = {
       ticketsList: {
         pendingHeader: "Aguardando",
         assignedHeader: "Atendendo",
+        triageHeader: "Em triagem",
+        noQueue: "Sem fila",
+        owner: {
+          you: "Você",
+          unassigned: "Sem atendente",
+          attendedBy: "Atendido por {{name}}",
+          attendedByYou: "Atendido por você ({{name}})",
+          unassignedTooltip: "Atendimento ainda não atribuído",
+        },
+        tooltips: {
+          assigned: "Conversas assumidas por atendentes",
+          pending: "Conversas aguardando atendimento",
+          triage: "Conversas em triagem ou atendimento automático",
+        },
         noTicketsTitle: "Nada aqui!",
         noTicketsMessage:
           "Nenhum ticket encontrado com esse status ou termo pesquisado",
         connectionTitle: "Conexão que está sendo utilizada atualmente.",
         buttons: {
           accept: "Aceitar",
+          assumeAi: "Assumir atendimento",
+          assumeTriage: "Assumir triagem",
         },
       },
       newTicketModal: {
-        title: "Criar Ticket",
-        fieldLabel: "Digite para pesquisar o contato",
+        title: "Nova conversa",
+        fieldLabel: "Busque por nome ou digite um número",
         add: "Adicionar",
+        directNumber: "Número não cadastrado - iniciar conversa",
+        createContact: "Cadastrar um novo contato",
+        phoneHelp: "Para iniciar pelo telefone, informe o número com DDI e DDD.",
+        unsavedContact: "Contato ainda não cadastrado",
         buttons: {
-          ok: "Salvar",
+          ok: "Iniciar conversa",
           cancel: "Cancelar",
         },
       },
@@ -436,6 +471,7 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_TRANSFER_SAME_USER: "Não é possível transferir o atendimento para o mesmo usuário que já está atendendo.",
         ERR_NO_OTHER_WHATSAPP: "Deve haver pelo menos um WhatsApp padrão.",
         ERR_NO_DEF_WAPP_FOUND:
           "Nenhum WhatsApp padrão encontrado. Verifique a página de conexões.",
@@ -444,6 +480,7 @@ const messages = {
         ERR_WAPP_CHECK_CONTACT:
           "Não foi possível verificar o contato do WhatsApp. Verifique a página de conexões",
         ERR_WAPP_INVALID_CONTACT: "Este não é um número de Whatsapp válido.",
+        ERR_WAPP_NUMBER_NOT_REGISTERED: "O número informado não existe ou não possui WhatsApp.",
         ERR_WAPP_DOWNLOAD_MEDIA:
           "Não foi possível baixar mídia do WhatsApp. Verifique a página de conexões.",
         ERR_INVALID_CREDENTIALS:

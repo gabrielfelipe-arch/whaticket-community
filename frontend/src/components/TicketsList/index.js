@@ -28,11 +28,10 @@ const useStyles = makeStyles(theme => ({
 
 	ticketsList: {
 		flex: 1,
-		overflowY: "scroll",
+		overflowY: "auto",
 		...theme.scrollbarStyles,
-		borderTop: `1px solid ${theme.palette.divider}`,
-		padding: theme.spacing(1),
-		background: theme.palette.type === "dark" ? "#0B1220" : "#F8FAFC",
+		padding: 0,
+		background: theme.palette.background.paper,
 	},
 
 	ticketsListHeader: {
@@ -206,10 +205,12 @@ const reducer = (state, action) => {
 		const shouldUpdateTicket = ticket => !searchParam &&
 			belongsToThisPanel(ticket) &&
 			(!ticket.userId || Number(ticket.userId) === Number(user?.id) || showAll) &&
-			(!ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1);
+			(!selectedQueueIds.length || !ticket.queueId || selectedQueueIds.indexOf(ticket.queueId) > -1);
 
 		const notBelongsToUserQueues = ticket =>
-			ticket.queueId && selectedQueueIds.indexOf(ticket.queueId) === -1;
+			selectedQueueIds.length > 0 &&
+			ticket.queueId &&
+			selectedQueueIds.indexOf(ticket.queueId) === -1;
 
 		const removeTicketFromPanel = ticketId => {
 			recentlyRemovedTicketIds.current.add(ticketId);
@@ -314,7 +315,7 @@ const reducer = (state, action) => {
 				className={classes.ticketsList}
 				onScroll={handleScroll}
 			>
-			<List style={{ paddingTop: 0 }}>
+			<List disablePadding>
 					{ticketsList.length === 0 && !loading ? (
 						<div className={classes.noTicketsDiv}>
 							<EmptyState

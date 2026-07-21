@@ -32,10 +32,14 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const TicketHeader = ({ loading, children }) => {
+const TicketHeader = ({ loading, children, onBack }) => {
   const classes = useStyles();
   const history = useHistory();
   const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
     history.push("/tickets");
   };
 

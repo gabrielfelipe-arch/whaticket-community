@@ -9,6 +9,7 @@ import UpdateQuickAnswerService from "../services/QuickAnswerService/UpdateQuick
 import DeleteQuickAnswerService from "../services/QuickAnswerService/DeleteQuickAnswerService";
 
 import AppError from "../errors/AppError";
+import { requestUserHasPermission } from "../helpers/ProfilePermissions";
 
 type IndexQuery = {
   searchParam: string;
@@ -77,10 +78,16 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     throw new AppError(err.message);
   }
 
+  const canPublishGlobal = await requestUserHasPermission(
+    req.user.id,
+    "quickAnswers.publish_global"
+  );
+
   const quickAnswer = await CreateQuickAnswerService({
     ...newQuickAnswer,
     userId: Number(req.user.id),
-    userProfile: req.user.profile
+    userProfile: req.user.profile,
+    canPublishGlobal
   });
 
   const io = getIO();
@@ -126,12 +133,17 @@ export const update = async (
   }
 
   const { quickAnswerId } = req.params;
+  const canPublishGlobal = await requestUserHasPermission(
+    req.user.id,
+    "quickAnswers.publish_global"
+  );
 
   const quickAnswer = await UpdateQuickAnswerService({
     quickAnswerData,
     quickAnswerId,
     userId: Number(req.user.id),
-    userProfile: req.user.profile
+    userProfile: req.user.profile,
+    canPublishGlobal
   });
 
   const io = getIO();

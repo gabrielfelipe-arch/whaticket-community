@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useHistory } from "react-router-dom";
 
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import TextField from "@material-ui/core/TextField";
 import Dialog from "@material-ui/core/Dialog";
 import Select from "@material-ui/core/Select";
@@ -17,6 +18,8 @@ import Autocomplete, {
 	createFilterOptions,
 } from "@material-ui/lab/Autocomplete";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import PersonOutlineIcon from "@material-ui/icons/PersonOutline";
+import BusinessOutlinedIcon from "@material-ui/icons/BusinessOutlined";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
@@ -32,31 +35,43 @@ const useStyles = makeStyles((theme) => ({
   maxWidth: {
     width: "100%",
   },
+  targetSelector: {
+    width: "100%",
+    marginBottom: theme.spacing(2.5),
+  },
+  targetButton: {
+    flex: 1,
+    minHeight: 42,
+    gap: theme.spacing(1),
+  },
+  targetButtonActive: {
+    backgroundColor: theme.palette.primary.main,
+    color: theme.palette.primary.contrastText,
+    "&:hover": {
+      backgroundColor: theme.palette.primary.dark,
+    },
+  },
 }));
 
 const filterOptions = createFilterOptions({
 	trim: true,
 });
 
-const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId }) => {
+const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId, currentUserId }) => {
 	const history = useHistory();
 	const [options, setOptions] = useState([]);
 	const [queues, setQueues] = useState([]);
-	const [allQueues, setAllQueues] = useState([]);
 	const [loading, setLoading] = useState(false);
 	const [searchParam, setSearchParam] = useState("");
 	const [selectedUser, setSelectedUser] = useState(null);
 	const [selectedQueue, setSelectedQueue] = useState('');
+	const [targetType, setTargetType] = useState("user");
 	const [selectedWhatsapp, setSelectedWhatsapp] = useState(ticketWhatsappId);
 	const classes = useStyles();
 	const { findAll: findAllQueues } = useQueues();
 	const { loadingWhatsapps, whatsApps } = useWhatsApps();
 
 	const { user: loggedInUser } = useContext(AuthContext);
-
-	const userBelongsToQueue = useCallback((user, queueId) => {
-		return !queueId || (user?.queues || []).some(queue => Number(queue.id) === Number(queueId));
-	}, []);
 
 	const userCanReceiveTransfer = useCallback((user) => {
 		return user?.active !== false && user?.operationalStatus === "online";
@@ -69,16 +84,9 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 		return i18n.t("transferTicketModal.offlineLabel");
 	}, []);
 
-	const userOptions = useMemo(() => {
-		return options.filter(user => {
-			return userBelongsToQueue(user, selectedQueue);
-		});
-	}, [options, selectedQueue, userBelongsToQueue]);
-
 	useEffect(() => {
 		const loadQueues = async () => {
 			const list = await findAllQueues();
-			setAllQueues(list);
 			setQueues(list);
 		}
 		loadQueues();
@@ -86,7 +94,7 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 	}, []);
 
 	useEffect(() => {
-		if (!modalOpen || searchParam.length < 3) {
+		if (!modalOpen || targetType !== "user" || searchParam.length < 3) {
 			setLoading(false);
 			return;
 		}
@@ -94,7 +102,7 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 		const delayDebounceFn = setTimeout(() => {
 			const fetchUsers = async () => {
 				try {
-					const { data } = await api.get("/users/", {
+					const { data } = await api.get(`/tickets/${ticketid}/transfer-users`, {
 						params: { searchParam },
 					});
 					setOptions(data.users);
@@ -108,47 +116,51 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 			fetchUsers();
 		}, 500);
 		return () => clearTimeout(delayDebounceFn);
-	}, [searchParam, modalOpen]);
+	}, [searchParam, modalOpen, targetType]);
 
 	const handleClose = () => {
 		onClose();
 		setSearchParam("");
 		setSelectedUser(null);
+		setSelectedQueue('');
+		setTargetType("user");
+	};
+
+	const handleTargetTypeChange = nextType => {
+		setTargetType(nextType);
+		setSelectedUser(null);
+		setSelectedQueue('');
+		setSearchParam("");
+		setOptions([]);
 	};
 
 	const handleSaveTicket = async e => {
 		e.preventDefault();
 		if (!ticketid) return;
-		if (!selectedUser && !selectedQueue) {
+		if (targetType === "user" && !selectedUser) {
 			toast.warning(i18n.t("transferTicketModal.selectTarget"));
 			return;
 		}
-		if (selectedUser && !userCanReceiveTransfer(selectedUser)) {
+		if (targetType === "queue" && !selectedQueue) {
+			toast.warning(i18n.t("transferTicketModal.selectTarget"));
+			return;
+		}
+		if (targetType === "user" && !userCanReceiveTransfer(selectedUser)) {
 			toast.warning(i18n.t("transferTicketModal.onlineOnly"));
 			return;
 		}
 		setLoading(true);
 		try {
-			let data = {};
-
-			if (selectedUser) {
-				data.userId = selectedUser.id
-			}
-
-			if (selectedQueue && selectedQueue !== null) {
-				data.queueId = selectedQueue
-
-				if (!selectedUser) {
-					data.status = 'pending';
-					data.userId = null;
-				}
-			}
+			const data = {
+				targetType,
+				targetId: targetType === "user" ? selectedUser.id : selectedQueue,
+			};
 
 			if(selectedWhatsapp) {
 				data.whatsappId = selectedWhatsapp;
 			}
 
-			await api.put(`/tickets/${ticketid}`, data);
+			await api.post(`/tickets/${ticketid}/transfer`, data);
 
 			setLoading(false);
 			history.push(`/tickets`);
@@ -165,19 +177,31 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 					{i18n.t("transferTicketModal.title")}
 				</DialogTitle>
 				<DialogContent dividers>
-					<Autocomplete
+					<ButtonGroup className={classes.targetSelector} aria-label={i18n.t("transferTicketModal.targetTypeLabel")}>
+						<Button
+							className={`${classes.targetButton} ${targetType === "user" ? classes.targetButtonActive : ""}`}
+							onClick={() => handleTargetTypeChange("user")}
+							aria-pressed={targetType === "user"}
+						>
+							<PersonOutlineIcon fontSize="small" />
+							{i18n.t("transferTicketModal.targetUser")}
+						</Button>
+						<Button
+							className={`${classes.targetButton} ${targetType === "queue" ? classes.targetButtonActive : ""}`}
+							onClick={() => handleTargetTypeChange("queue")}
+							aria-pressed={targetType === "queue"}
+						>
+							<BusinessOutlinedIcon fontSize="small" />
+							{i18n.t("transferTicketModal.targetQueue")}
+						</Button>
+					</ButtonGroup>
+					{targetType === "user" && <Autocomplete
 						style={{ width: 300, marginBottom: 20 }}
 						getOptionLabel={option => `${option.name}`}
 						onChange={(e, newValue) => {
 							setSelectedUser(newValue);
-							if (newValue != null && Array.isArray(newValue.queues)) {
-								setQueues(newValue.queues);
-							} else {
-								setQueues(allQueues);
-								setSelectedQueue('');
-							}
 						}}
-						options={userOptions}
+						options={options.filter(option => Number(option.id) !== Number(currentUserId))}
 						filterOptions={filterOptions}
 						getOptionDisabled={option => !userCanReceiveTransfer(option)}
 						autoHighlight
@@ -211,18 +235,12 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 								}}
 							/>
 						)}
-					/>
-					<FormControl variant="outlined" className={classes.maxWidth}>
+					/>}
+					{targetType === "queue" && <FormControl variant="outlined" className={classes.maxWidth}>
 						<InputLabel>{i18n.t("transferTicketModal.fieldQueueLabel")}</InputLabel>
 						<Select
 							value={selectedQueue}
-							onChange={(e) => {
-								const queueId = e.target.value;
-								setSelectedQueue(queueId);
-								if (selectedUser && !userBelongsToQueue(selectedUser, queueId)) {
-									setSelectedUser(null);
-								}
-							}}
+							onChange={(e) => setSelectedQueue(e.target.value)}
 							label={i18n.t("transferTicketModal.fieldQueuePlaceholder")}
 						>
 							<MenuItem value={''}>&nbsp;</MenuItem>
@@ -230,7 +248,7 @@ const TransferTicketModal = ({ modalOpen, onClose, ticketid, ticketWhatsappId })
 								<MenuItem key={queue.id} value={queue.id}>{queue.name}</MenuItem>
 							))}
 						</Select>
-					</FormControl>
+					</FormControl>}
 					<Can
 						role={loggedInUser.profile}
 						perform="ticket-options:transferWhatsapp"

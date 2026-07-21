@@ -8,6 +8,7 @@ import Queue from "../../models/Queue";
 import Whatsapp from "../../models/Whatsapp";
 import TicketCategory from "../../models/TicketCategory";
 import ClosingReason from "../../models/ClosingReason";
+import User from "../../models/User";
 import { getUserQueueIds } from "../../helpers/TicketAccess";
 import { isAdminProfile, isSupervisorProfile } from "../../helpers/ProfilePermissions";
 
@@ -65,6 +66,12 @@ const ListTicketsService = async ({
       model: Contact,
       as: "contact",
       attributes: ["id", "name", "number", "profilePicUrl"]
+    },
+    {
+      model: User,
+      as: "user",
+      attributes: ["id", "name"],
+      required: false
     },
     {
       model: Queue,

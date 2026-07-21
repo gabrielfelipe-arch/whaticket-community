@@ -221,10 +221,14 @@ const messages = {
       ticketsManager: {
         buttons: {
           newTicket: "New",
+          newTicketTooltip: "Start a new conversation",
         },
       },
       ticketsQueueSelect: {
         placeholder: "Queues",
+        all: "All queues",
+        selected: "{{count}} queues",
+        tooltip: "Filter conversations by queue",
       },
       tickets: {
         toasts: {
@@ -234,19 +238,30 @@ const messages = {
           message: "Message from",
         },
         tabs: {
-          open: { title: "Inbox" },
-          closed: { title: "Resolved" },
-          search: { title: "Search" },
+          open: { title: "Inbox", tooltip: "Active conversations" },
+          closed: { title: "Resolved", tooltip: "Resolved conversations" },
+          search: { title: "Search", tooltip: "Search contacts and messages" },
         },
         search: {
           placeholder: "Search tickets and messages.",
         },
         buttons: {
+          mine: "Mine",
           showAll: "All",
+        },
+        tooltips: {
+          navigation: "Conversation navigation",
+          statusNavigation: "Conversation status",
+          mine: "Show my conversations and unassigned conversations",
+          mineFixed: "You can view your conversations and unassigned conversations",
+          showAll: "Show conversations from all users in the selected queues",
         },
       },
       transferTicketModal: {
         title: "Transfer Ticket",
+        targetTypeLabel: "Transfer destination type",
+        targetUser: "User",
+        targetQueue: "Queue",
         fieldLabel: "Type to search for users",
         fieldQueueLabel: "Transfer to queue",
         fieldConnectionLabel: "Transfer to connection",
@@ -269,19 +284,39 @@ const messages = {
       ticketsList: {
         pendingHeader: "Queue",
         assignedHeader: "Working on",
+        triageHeader: "Triage",
+        noQueue: "No queue",
+        owner: {
+          you: "You",
+          unassigned: "Unassigned",
+          attendedBy: "Handled by {{name}}",
+          attendedByYou: "Handled by you ({{name}})",
+          unassignedTooltip: "Conversation is not assigned yet",
+        },
+        tooltips: {
+          assigned: "Conversations assigned to agents",
+          pending: "Conversations waiting for an agent",
+          triage: "Conversations in triage or automation",
+        },
         noTicketsTitle: "Nothing here!",
         noTicketsMessage: "No tickets found with this status or search term.",
         connectionTitle: "Connection that is currently being used.",
         buttons: {
           accept: "Accept",
+          assumeAi: "Take over conversation",
+          assumeTriage: "Take over triage",
         },
       },
       newTicketModal: {
-        title: "Create Ticket",
-        fieldLabel: "Type to search for a contact",
+        title: "New conversation",
+        fieldLabel: "Search by name or enter a number",
         add: "Add",
+        directNumber: "Unsaved number - start conversation",
+        createContact: "Create a new contact",
+        phoneHelp: "To start by phone, include the country and area codes.",
+        unsavedContact: "Contact not saved yet",
         buttons: {
-          ok: "Save",
+          ok: "Start conversation",
           cancel: "Cancel",
         },
       },
@@ -431,6 +466,7 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_TRANSFER_SAME_USER: "The conversation cannot be transferred to the user who is already handling it.",
         ERR_NO_OTHER_WHATSAPP:
           "There must be at lest one default WhatsApp connection.",
         ERR_NO_DEF_WAPP_FOUND:
@@ -440,6 +476,7 @@ const messages = {
         ERR_WAPP_CHECK_CONTACT:
           "Could not check WhatsApp contact. Check connections page.",
         ERR_WAPP_INVALID_CONTACT: "This is not a valid whatsapp number.",
+        ERR_WAPP_NUMBER_NOT_REGISTERED: "The provided number does not exist or is not registered on WhatsApp.",
         ERR_WAPP_DOWNLOAD_MEDIA:
           "Could not download media from WhatsApp. Check connections page.",
         ERR_INVALID_CREDENTIALS: "Authentication error. Please try again.",

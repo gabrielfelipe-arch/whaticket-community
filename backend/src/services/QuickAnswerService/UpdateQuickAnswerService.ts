@@ -1,6 +1,7 @@
 import QuickAnswer from "../../models/QuickAnswer";
 import AppError from "../../errors/AppError";
 import User from "../../models/User";
+import ResolveQuickAnswerVisibility from "./ResolveQuickAnswerVisibility";
 
 interface QuickAnswerData {
   shortcut?: string;
@@ -16,16 +17,15 @@ interface Request {
   quickAnswerId: string;
   userId: number;
   userProfile: string;
+  canPublishGlobal?: boolean;
 }
-
-const toBoolean = (value: unknown): boolean =>
-  value === true || value === "true" || value === "1" || value === 1;
 
 const UpdateQuickAnswerService = async ({
   quickAnswerData,
   quickAnswerId,
   userId,
-  userProfile
+  userProfile,
+  canPublishGlobal = false
 }: Request): Promise<QuickAnswer> => {
   const { shortcut, message, global, mediaUrl, mediaType, mediaName } = quickAnswerData;
 
@@ -46,13 +46,11 @@ const UpdateQuickAnswerService = async ({
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const requestedGlobal = global === undefined ? quickAnswer.global : toBoolean(global);
-  const nextGlobal =
-    userProfile === "admin"
-      ? requestedGlobal
-      : quickAnswer.global
-        ? true
-        : requestedGlobal;
+  const requestedGlobal = ResolveQuickAnswerVisibility({
+    requestedGlobal: global,
+    currentGlobal: quickAnswer.global,
+    canPublishGlobal
+  });
 
   await quickAnswer.update({
     shortcut,
@@ -60,7 +58,7 @@ const UpdateQuickAnswerService = async ({
     mediaUrl,
     mediaType,
     mediaName,
-    global: nextGlobal
+    global: requestedGlobal
   });
 
   await quickAnswer.reload({

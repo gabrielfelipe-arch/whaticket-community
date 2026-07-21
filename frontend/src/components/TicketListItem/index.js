@@ -1,369 +1,250 @@
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useContext } from "react";
 
 import { useHistory, useParams } from "react-router-dom";
-import { parseISO, format, isSameDay } from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import clsx from "clsx";
 
 import { makeStyles } from "@material-ui/core/styles";
 import ListItem from "@material-ui/core/ListItem";
-import ListItemText from "@material-ui/core/ListItemText";
-import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Typography from "@material-ui/core/Typography";
 import Avatar from "@material-ui/core/Avatar";
-import Divider from "@material-ui/core/Divider";
-import Badge from "@material-ui/core/Badge";
-import Chip from "@material-ui/core/Chip";
+import Tooltip from "@material-ui/core/Tooltip";
 
 import { i18n } from "../../translate/i18n";
-
-import api from "../../services/api";
-import ButtonWithSpinner from "../ButtonWithSpinner";
 import MarkdownWrapper from "../MarkdownWrapper";
-import { Tooltip } from "@material-ui/core";
 import { AuthContext } from "../../context/Auth/AuthContext";
-import toastError from "../../errors/toastError";
 
 const useStyles = makeStyles(theme => ({
 	ticket: {
 		position: "relative",
-		marginBottom: theme.spacing(1),
-		borderRadius: 8,
-		background: theme.palette.background.paper,
-		border: `1px solid ${theme.palette.divider}`,
-		boxShadow: theme.palette.type === "dark"
-			? "0 10px 24px rgba(0,0,0,0.18)"
-			: "0 10px 24px rgba(15,23,42,0.05)",
+		height: 60,
+		minHeight: 60,
+		padding: theme.spacing(0.5, 1, 0.5, 1.5),
+		borderBottom: `1px solid ${theme.palette.divider}`,
+		backgroundColor: theme.palette.background.paper,
 		overflow: "hidden",
-		transition: "all 160ms ease",
+		transition: "background-color 140ms ease",
 		"&:hover": {
-			transform: "translateY(-1px)",
-			boxShadow: theme.palette.type === "dark"
-				? "0 14px 30px rgba(0,0,0,0.22)"
-				: "0 14px 30px rgba(15,23,42,0.08)",
+			backgroundColor: theme.palette.action.hover,
 		},
 		"&.Mui-selected": {
-			background: theme.palette.type === "dark" ? "#102040" : "#EFF6FF",
-			borderColor: "#60A5FA",
+			backgroundColor: theme.palette.type === "dark" ? "rgba(37,99,235,0.18)" : "#EFF6FF",
+		},
+		"&.Mui-selected:hover": {
+			backgroundColor: theme.palette.type === "dark" ? "rgba(37,99,235,0.24)" : "#DBEAFE",
 		},
 	},
-
 	pendingTicket: {
-		cursor: "unset",
+		cursor: "default",
 	},
-
-	noTicketsDiv: {
+	ticketQueueColor: {
+		position: "absolute",
+		top: 0,
+		bottom: 0,
+		left: 0,
+		width: 3,
+	},
+	avatarWrapper: {
+		position: "relative",
+		width: 44,
+		minWidth: 44,
+		height: 40,
 		display: "flex",
-		height: "100px",
-		margin: 40,
-		flexDirection: "column",
+		alignItems: "center",
+	},
+	contactAvatar: {
+		width: 36,
+		height: 36,
+		fontSize: 14,
+	},
+	ownerBadge: {
+		position: "absolute",
+		top: 0,
+		right: 2,
+		width: 18,
+		height: 18,
+		display: "inline-flex",
 		alignItems: "center",
 		justifyContent: "center",
+		borderRadius: "50%",
+		border: `2px solid ${theme.palette.background.paper}`,
+		backgroundColor: theme.palette.type === "dark" ? "#475569" : "#64748B",
+		color: "#FFFFFF",
+		fontSize: 9,
+		fontWeight: 800,
+		lineHeight: 1,
+		zIndex: 1,
 	},
-
-	noTicketsText: {
-		textAlign: "center",
-		color: "rgb(104, 121, 146)",
-		fontSize: "14px",
-		lineHeight: "1.4",
+	ownerBadgeMine: {
+		backgroundColor: theme.palette.primary.main,
 	},
-
-	noTicketsTitle: {
-		textAlign: "center",
-		fontSize: "16px",
-		fontWeight: "600",
-		margin: "0px",
-	},
-
-	contactNameWrapper: {
-		display: "flex",
-		justifyContent: "space-between",
-		alignItems: "center",
-		gap: theme.spacing(1),
-	},
-
-	ticketContentGrid: {
-		display: "grid",
-		gridTemplateColumns: "minmax(0, 1fr) 112px",
-		columnGap: theme.spacing(1),
-		rowGap: theme.spacing(0.35),
-		alignItems: "start",
-		width: "100%",
-	},
-
-	ticketName: {
-		minWidth: 0,
-		fontWeight: 500,
-	},
-
-	lastMessageTime: {
-		justifySelf: "end",
-		fontSize: 12,
-		color: theme.palette.text.secondary,
-	},
-
-	statusArea: {
-		gridColumn: 2,
-		gridRow: 2,
-		justifySelf: "end",
-		display: "flex",
-		flexDirection: "column",
-		alignItems: "flex-end",
-		gap: 4,
-		minHeight: 24,
-	},
-
-	contactLastMessage: {
-		paddingRight: 8,
-		minWidth: 0,
+	ticketContent: {
 		flex: 1,
-		color: theme.palette.text.secondary,
+		minWidth: 0,
+		display: "grid",
+		gridTemplateRows: "24px 24px",
 	},
-
-	newMessagesCount: {
-		alignSelf: "center",
-		marginRight: 8,
-		marginLeft: "auto",
+	topLine: {
+		minWidth: 0,
+		display: "flex",
+		alignItems: "center",
+		gap: 5,
 	},
-
-	badgeStyle: {
-		color: "white",
-		backgroundColor: "#22C55E",
-		fontWeight: 800,
-	},
-
-	acceptButton: {
-		flex: "none",
-		marginLeft: theme.spacing(1),
+	contactName: {
+		minWidth: 0,
+		maxWidth: "62%",
+		overflow: "hidden",
+		textOverflow: "ellipsis",
 		whiteSpace: "nowrap",
+		fontSize: 13,
+		fontWeight: 700,
+		color: theme.palette.text.primary,
 	},
-
-	ticketQueueColor: {
+	ownerSeparator: {
 		flex: "none",
-		width: "8px",
-		height: "100%",
-		position: "absolute",
-		top: "0%",
-		left: "0%",
-	},
-
-	statusChip: {
-		height: 22,
+		color: theme.palette.text.disabled,
 		fontSize: 11,
-		fontWeight: 800,
-		maxWidth: 108,
 	},
-	closedChip: {
-		background: theme.custom?.status?.closed?.bg || "#E2E8F0",
-		color: theme.custom?.status?.closed?.color || "#334155",
-	},
-	pendingChip: {
-		background: theme.custom?.status?.waiting?.bg || "#FEF3C7",
-		color: theme.custom?.status?.waiting?.color || "#92400E",
-	},
-	openChip: {
-		background: theme.custom?.status?.open?.bg || "#DCFCE7",
-		color: theme.custom?.status?.open?.color || "#166534",
-	},
-	aiTag: {
-		height: 22,
+	ownerName: {
+		minWidth: 0,
+		maxWidth: 72,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+		color: theme.palette.text.secondary,
 		fontSize: 11,
-		maxWidth: 108,
-		background: theme.custom?.status?.ai?.bg || "#E0F2FE",
-		color: theme.custom?.status?.ai?.color || "#0369A1",
-		fontWeight: 800,
+		fontWeight: 600,
+		cursor: "help",
 	},
-	triageTag: {
-		height: 22,
+	ownerNameMine: {
+		color: theme.palette.primary.main,
+	},
+	lastMessageTime: {
+		marginLeft: "auto",
+		flex: "none",
+		color: theme.palette.text.secondary,
 		fontSize: 11,
-		maxWidth: 108,
-		background: theme.palette.type === "dark" ? "#312E81" : "#EDE9FE",
-		color: theme.palette.type === "dark" ? "#DDD6FE" : "#5B21B6",
+		fontVariantNumeric: "tabular-nums",
+	},
+	bottomLine: {
+		minWidth: 0,
+		display: "flex",
+		alignItems: "center",
+		gap: 6,
+	},
+	contactLastMessage: {
+		flex: 1,
+		minWidth: 0,
+		overflow: "hidden",
+		textOverflow: "ellipsis",
+		whiteSpace: "nowrap",
+		color: theme.palette.text.secondary,
+		fontSize: 11.5,
+		lineHeight: "18px",
+		"& p": {
+			display: "inline",
+			margin: 0,
+		},
+	},
+	actions: {
+		flex: "none",
+		display: "inline-flex",
+		alignItems: "center",
+		gap: 4,
+	},
+	unreadCount: {
+		minWidth: 18,
+		height: 18,
+		display: "inline-flex",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: "0 5px",
+		borderRadius: 9,
+		backgroundColor: theme.palette.primary.main,
+		color: "#FFFFFF",
+		fontSize: 10,
 		fontWeight: 800,
+		lineHeight: 1,
 	},
 }));
+
+const firstName = name => String(name || "").trim().split(/\s+/)[0] || "";
 
 const TicketListItem = ({ ticket }) => {
 	const classes = useStyles();
 	const history = useHistory();
-	const [loading, setLoading] = useState(false);
 	const { ticketId } = useParams();
-	const isMounted = useRef(true);
 	const { user } = useContext(AuthContext);
-	const isLimitConfirmationError = err =>
-		err?.response?.status === 409 &&
-		String(err.response?.data?.error || "").startsWith("QUEUE_LIMIT_CONFIRM_REQUIRED|");
-	const getLimitConfirmationMessage = err =>
-		String(err.response?.data?.error || "")
-			.replace("QUEUE_LIMIT_CONFIRM_REQUIRED|", "") ||
-		"Voce ja atingiu o limite de atendimentos desta fila. Deseja aceitar mesmo assim?";
+	const assignedUserName = ticket.user?.name || "";
+	const isCurrentUser = Boolean(ticket.userId) && Number(ticket.userId) === Number(user?.id);
+	const ownerLabel = assignedUserName
+		? (isCurrentUser ? i18n.t("ticketsList.owner.you") : firstName(assignedUserName))
+		: i18n.t("ticketsList.owner.unassigned");
+	const ownerTooltip = assignedUserName
+		? (isCurrentUser
+			? i18n.t("ticketsList.owner.attendedByYou", { name: assignedUserName })
+			: i18n.t("ticketsList.owner.attendedBy", { name: assignedUserName }))
+		: i18n.t("ticketsList.owner.unassignedTooltip");
+	const ownerInitial = assignedUserName ? firstName(assignedUserName).charAt(0).toUpperCase() : "-";
 
-	useEffect(() => {
-		return () => {
-			isMounted.current = false;
-		};
-	}, []);
-
-	const handleAcepptTicket = async (id, forceAcceptOverLimit = false) => {
-		setLoading(true);
-		try {
-			const preferredQueue = user?.queues?.find(queue => queue.glpiEnabled)
-				|| user?.queues?.[0];
-			const humanQueue = ticket.aiActive
-				? user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId && queue.glpiEnabled)
-					|| user?.queues?.find(queue => queue.id !== ticket.aiQueueId && queue.id !== ticket.queueId)
-				: null;
-
-			await api.put(`/tickets/${id}`, {
-				status: "open",
-				userId: user?.id,
-				...(forceAcceptOverLimit ? { forceAcceptOverLimit: true } : {}),
-				...(ticket.aiActive
-					? { assumeAi: true, queueId: humanQueue?.id || preferredQueue?.id || null }
-					: { queueId: ticket.queueId && !ticket.queue?.useAI ? ticket.queueId : preferredQueue?.id || null }),
-			});
-		} catch (err) {
-			if (!forceAcceptOverLimit && isLimitConfirmationError(err)) {
-				const confirmed = window.confirm(getLimitConfirmationMessage(err));
-				if (confirmed) {
-					return handleAcepptTicket(id, true);
-				}
-				setLoading(false);
-				return;
-			}
-			setLoading(false);
-			toastError(err);
-			return;
-		}
-		if (isMounted.current) {
-			setLoading(false);
-		}
-		history.push(`/tickets/${id}`);
-	};
-
-	const handleSelectTicket = id => {
-		history.push(`/tickets/${id}`);
-	};
+	const updatedAt = parseISO(ticket.updatedAt);
+	const formattedTime = isSameDay(updatedAt, new Date())
+		? format(updatedAt, "HH:mm")
+		: format(updatedAt, "dd/MM/yyyy");
 
 	return (
-		<React.Fragment key={ticket.id}>
-			<ListItem
-				dense
-				button
-				onClick={e => {
-					handleSelectTicket(ticket.id);
-				}}
-				selected={ticketId && +ticketId === ticket.id}
-				className={clsx(classes.ticket, {
-					[classes.pendingTicket]: ticket.status === "pending",
-				})}
-			>
-				<Tooltip
-					arrow
-					placement="right"
-					title={ticket.queue?.name || "Sem fila"}
-				>
-					<span
-						style={{ backgroundColor: ticket.queue?.color || "#7C7C7C" }}
-						className={classes.ticketQueueColor}
-					></span>
-				</Tooltip>
-				<ListItemAvatar>
-					<Avatar src={ticket?.contact?.profilePicUrl} />
-				</ListItemAvatar>
-				<ListItemText
-					disableTypography
-					primary={
-						<span className={classes.ticketContentGrid}>
-							<Typography
-								noWrap
-								className={classes.ticketName}
-								component="span"
-								variant="body2"
-								color="textPrimary"
-							>
-								{ticket.contact.name}
-							</Typography>
-							{ticket.lastMessage && (
-								<Typography
-									className={classes.lastMessageTime}
-									component="span"
-									variant="body2"
-									color="textSecondary"
-								>
-									{isSameDay(parseISO(ticket.updatedAt), new Date()) ? (
-										<>{format(parseISO(ticket.updatedAt), "HH:mm")}</>
-									) : (
-										<>{format(parseISO(ticket.updatedAt), "dd/MM/yyyy")}</>
-									)}
-								</Typography>
-							)}
-							<span className={classes.statusArea}>
-								{ticket.uraActive && !ticket.queueId && !ticket.aiActive && (
-									<Chip size="small" className={classes.triageTag} label="Em triagem" />
-								)}
-								{ticket.aiActive && (
-									<Chip size="small" className={classes.aiTag} label="IA atendendo" />
-								)}
-								{ticket.status === "closed" && (
-									<Chip size="small" className={clsx(classes.statusChip, classes.closedChip)} label="Finalizado" />
-								)}
-								{ticket.status === "pending" && !ticket.aiActive && !ticket.uraActive && (
-									<Chip size="small" className={clsx(classes.statusChip, classes.pendingChip)} label="Aguardando" />
-								)}
-								{ticket.status === "open" && !ticket.aiActive && (
-									<Chip size="small" className={clsx(classes.statusChip, classes.openChip)} label="Em atendimento" />
-								)}
-							</span>
-						</span>
-					}
-					secondary={
-						<span className={classes.contactNameWrapper}>
-							<Typography
-								className={classes.contactLastMessage}
-								noWrap
-								component="span"
-								variant="body2"
-								color="textSecondary"
-							>
-								{ticket.lastMessage ? (
-									<MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper>
-								) : (
-									<br />
-								)}
-							</Typography>
-
-							<Badge
-								className={classes.newMessagesCount}
-								badgeContent={ticket.unreadMessages}
-								classes={{
-									badge: classes.badgeStyle,
-								}}
-							/>
-						</span>
-					}
+		<ListItem
+			button
+			onClick={() => history.push(`/tickets/${ticket.id}`)}
+			selected={Boolean(ticketId) && Number(ticketId) === Number(ticket.id)}
+			className={clsx(classes.ticket, {
+				[classes.pendingTicket]: ticket.status === "pending",
+			})}
+		>
+			<Tooltip title={ticket.queue?.name || i18n.t("ticketsList.noQueue")}>
+				<span
+					className={classes.ticketQueueColor}
+					style={{ backgroundColor: ticket.queue?.color || "#94A3B8" }}
 				/>
-				{ticket.status === "pending" && (
-					<ButtonWithSpinner
-						color="primary"
-						variant="contained"
-						className={classes.acceptButton}
-						size="small"
-						loading={loading}
-						onClick={e => {
-							e.stopPropagation();
-							handleAcepptTicket(ticket.id);
-						}}
-					>
-						{ticket.aiActive
-							? "Assumir atendimento"
-							: ticket.uraActive
-								? "Assumir triagem"
-								: i18n.t("ticketsList.buttons.accept")}
-					</ButtonWithSpinner>
-				)}
-			</ListItem>
-			<Divider variant="inset" component="li" />
-		</React.Fragment>
+			</Tooltip>
+
+			<div className={classes.avatarWrapper}>
+				<Avatar className={classes.contactAvatar} src={ticket.contact?.profilePicUrl}>
+					{firstName(ticket.contact?.name).charAt(0).toUpperCase()}
+				</Avatar>
+				<Tooltip arrow title={ownerTooltip}>
+					<span className={clsx(classes.ownerBadge, isCurrentUser && classes.ownerBadgeMine)}>
+						{ownerInitial}
+					</span>
+				</Tooltip>
+			</div>
+
+			<div className={classes.ticketContent}>
+				<div className={classes.topLine}>
+					<Typography component="span" className={classes.contactName}>
+						{ticket.contact?.name}
+					</Typography>
+					<span className={classes.ownerSeparator}>·</span>
+					<Tooltip arrow title={ownerTooltip}>
+						<span className={clsx(classes.ownerName, isCurrentUser && classes.ownerNameMine)}>
+							{ownerLabel}
+						</span>
+					</Tooltip>
+					<span className={classes.lastMessageTime}>{formattedTime}</span>
+				</div>
+
+				<div className={classes.bottomLine}>
+					<Typography component="span" className={classes.contactLastMessage}>
+						{ticket.lastMessage ? <MarkdownWrapper>{ticket.lastMessage}</MarkdownWrapper> : " "}
+					</Typography>
+					<span className={classes.actions}>
+						{ticket.unreadMessages > 0 && (
+							<span className={classes.unreadCount}>{ticket.unreadMessages}</span>
+						)}
+					</span>
+				</div>
+			</div>
+		</ListItem>
 	);
 };
 

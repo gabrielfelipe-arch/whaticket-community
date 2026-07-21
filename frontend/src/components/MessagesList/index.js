@@ -39,6 +39,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     flexGrow: 1,
+    minHeight: 0,
   },
 
   messagesList: {
@@ -50,6 +51,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     flexGrow: 1,
+    minHeight: 0,
     padding: "26px 28px",
     overflowY: "scroll",
     [theme.breakpoints.down("sm")]: {
@@ -548,8 +550,8 @@ const MessagesList = ({ ticketId, isGroup }) => {
   };
 
   const scrollToBottom = () => {
-    if (lastMessageRef.current) {
-      lastMessageRef.current.scrollIntoView({});
+    if (messagesListRef.current) {
+      messagesListRef.current.scrollTop = messagesListRef.current.scrollHeight;
     }
   };
 

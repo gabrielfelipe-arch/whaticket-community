@@ -290,7 +290,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-const MessageInput = ({ ticketStatus }) => {
+const MessageInput = ({ ticketStatus, draftNumber = "", onDraftCreated }) => {
   const classes = useStyles();
   const { ticketId } = useParams();
 
@@ -310,6 +310,7 @@ const MessageInput = ({ ticketStatus }) => {
   const { setReplyingMessage, replyingMessage } =
     useContext(ReplyMessageContext);
   const { user } = useContext(AuthContext);
+  const isDraft = Boolean(draftNumber);
 
   const [signMessage, setSignMessage] = useLocalStorage("signOption", true);
 
@@ -325,7 +326,7 @@ const MessageInput = ({ ticketStatus }) => {
       setMedias([]);
       setReplyingMessage(null);
     };
-  }, [ticketId, setReplyingMessage]);
+  }, [ticketId, draftNumber, setReplyingMessage]);
 
   const handleChangeInput = e => {
     setInputMessage(e.target.value);
@@ -447,14 +448,23 @@ const MessageInput = ({ ticketStatus }) => {
 
     formData.append("fromMe", true);
     formData.append("body", signedCaption);
+    if (isDraft) formData.append("number", draftNumber);
     medias.forEach(media => {
       formData.append("medias", media);
     });
 
     try {
-      await api.post(`/messages/${ticketId}`, formData);
+      const { data } = await api.post(
+        isDraft ? "/tickets/by-number" : `/messages/${ticketId}`,
+        formData
+      );
+      if (isDraft) onDraftCreated(data);
     } catch (err) {
       toastError(err);
+      if (isDraft) {
+        setLoading(false);
+        return;
+      }
     }
 
     setLoading(false);
@@ -474,11 +484,20 @@ const MessageInput = ({ ticketStatus }) => {
         ? `*${getMessageSignature(user)}:*\n${inputMessage.trim()}`
         : inputMessage.trim(),
       quotedMsg: replyingMessage,
+      ...(isDraft ? { number: draftNumber } : {}),
     };
     try {
-      await api.post(`/messages/${ticketId}`, message);
+      const { data } = await api.post(
+        isDraft ? "/tickets/by-number" : `/messages/${ticketId}`,
+        message
+      );
+      if (isDraft) onDraftCreated(data);
     } catch (err) {
       toastError(err);
+      if (isDraft) {
+        setLoading(false);
+        return;
+      }
     }
 
     setInputMessage("");
@@ -580,8 +599,13 @@ const MessageInput = ({ ticketStatus }) => {
       formData.append("medias", blob, filename);
       formData.append("body", "");
       formData.append("fromMe", true);
+      if (isDraft) formData.append("number", draftNumber);
 
-      await api.post(`/messages/${ticketId}`, formData);
+      const { data } = await api.post(
+        isDraft ? "/tickets/by-number" : `/messages/${ticketId}`,
+        formData
+      );
+      if (isDraft) onDraftCreated(data);
     } catch (err) {
       toastError(err);
     }

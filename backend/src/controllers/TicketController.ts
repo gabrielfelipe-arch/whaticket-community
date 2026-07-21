@@ -1,13 +1,19 @@
 import { Request, Response } from "express";
 import { getIO } from "../libs/socket";
+import AppError from "../errors/AppError";
 
 import CreateTicketService from "../services/TicketServices/CreateTicketService";
+import CreateTicketByNumberService from "../services/TicketServices/CreateTicketByNumberService";
+import ValidateDirectPhoneNumberService from "../services/TicketServices/ValidateDirectPhoneNumberService";
+import TransferTicketService from "../services/TicketServices/TransferTicketService";
+import ListTransferUsersService from "../services/TicketServices/ListTransferUsersService";
 import DeleteTicketService from "../services/TicketServices/DeleteTicketService";
 import ListTicketsService from "../services/TicketServices/ListTicketsService";
 import ListPreviousTicketMessagesService from "../services/TicketServices/ListPreviousTicketMessagesService";
 import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import UpdateTicketService from "../services/TicketServices/UpdateTicketService";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
 import ShowWhatsAppService from "../services/WhatsappService/ShowWhatsAppService";
 import CreateMessageService from "../services/MessageServices/CreateMessageService";
 import {
@@ -44,6 +50,12 @@ interface TicketData {
   sendSatisfactionSurvey?: boolean;
   assumeAi?: boolean;
   forceAcceptOverLimit?: boolean;
+}
+
+interface TicketByNumberData {
+  number: string;
+  body: string;
+  queueId?: number;
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -94,6 +106,87 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   });
 
   return res.status(200).json(ticket);
+};
+
+export const storeByNumber = async (req: Request, res: Response): Promise<Response> => {
+  const { number, body, queueId }: TicketByNumberData = req.body;
+  const medias = req.files as Express.Multer.File[];
+
+  if (!String(body || "").trim() && !medias?.length) {
+    throw new AppError("ERR_REQUIRED_MESSAGE", 400);
+  }
+
+  const ticket = await CreateTicketByNumberService({
+    number,
+    status: "open",
+    queueId: queueId || undefined,
+    userId: Number(req.user.id)
+  });
+
+  if (medias?.length) {
+    await Promise.all(
+      medias.map(media => SendWhatsAppMedia({
+        media,
+        ticket,
+        body: String(body || "").trim()
+      }))
+    );
+  } else {
+    await SendWhatsAppMessage({
+      body: String(body).trim(),
+      ticket
+    });
+  }
+
+  const io = getIO();
+  io.to(ticket.status).emit("ticket", {
+    action: "update",
+    ticket
+  });
+
+  return res.status(200).json(ticket);
+};
+
+export const validateNumber = async (req: Request, res: Response): Promise<Response> => {
+  const { number } = req.body as { number: string };
+  const validNumber = await ValidateDirectPhoneNumberService({
+    number,
+    userId: Number(req.user.id)
+  });
+
+  return res.status(200).json({ number: validNumber });
+};
+
+export const transfer = async (req: Request, res: Response): Promise<Response> => {
+  const { targetType, targetId, whatsappId } = req.body as {
+    targetType: "user" | "queue";
+    targetId: number;
+    whatsappId?: number;
+  };
+  await assertUserCanAccessTicket(req.user.id, req.user.profile, req.params.ticketId);
+  const ticket = await TransferTicketService({
+    ticketId: req.params.ticketId,
+    targetType,
+    targetId: Number(targetId),
+    actorUserId: Number(req.user.id),
+    whatsappId: whatsappId ? Number(whatsappId) : undefined
+  });
+
+  return res.status(200).json(ticket);
+};
+
+export const transferUsers = async (req: Request, res: Response): Promise<Response> => {
+  const ticket = await assertUserCanAccessTicket(
+    req.user.id,
+    req.user.profile,
+    req.params.ticketId
+  );
+  const users = await ListTransferUsersService({
+    searchParam: String(req.query.searchParam || ""),
+    excludedUserId: ticket.userId
+  });
+
+  return res.status(200).json({ users });
 };
 
 export const show = async (req: Request, res: Response): Promise<Response> => {

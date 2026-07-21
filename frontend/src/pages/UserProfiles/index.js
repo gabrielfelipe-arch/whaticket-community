@@ -145,7 +145,8 @@ const featureRows = [
       { key: "quickAnswers.view", label: "Visualizar" },
       { key: "quickAnswers.create", label: "Adicionar" },
       { key: "quickAnswers.edit", label: "Editar" },
-      { key: "quickAnswers.delete", label: "Excluir" }
+      { key: "quickAnswers.delete", label: "Excluir" },
+      { key: "quickAnswers.publish_global", label: "Publicar para todos" }
     ]
   },
   {

@@ -23,6 +23,8 @@ const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     height: "100%",
+    minHeight: 0,
+    minWidth: 0,
     position: "relative",
     overflow: "hidden",
     background: theme.palette.background.paper,
@@ -50,6 +52,8 @@ const useStyles = makeStyles((theme) => ({
   mainWrapper: {
     flex: 1,
     height: "100%",
+    minHeight: 0,
+    minWidth: 0,
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",

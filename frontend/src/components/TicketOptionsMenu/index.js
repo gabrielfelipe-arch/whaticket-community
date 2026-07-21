@@ -176,9 +176,10 @@ const TicketOptionsMenu = ({ ticket, menuOpen, handleClose, anchorEl }) => {
 			<TransferTicketModal
 				modalOpen={transferTicketModalOpen}
 				onClose={handleCloseTransferTicketModal}
-				ticketid={ticket.id}
-				ticketWhatsappId={ticket.whatsappId}
-			/>
+					ticketid={ticket.id}
+					ticketWhatsappId={ticket.whatsappId}
+					currentUserId={ticket.user?.id || ticket.userId}
+				/>
 			<Dialog open={scheduleModalOpen} onClose={handleCloseScheduleModal} maxWidth="xs" fullWidth>
 				<DialogTitle>Agendar mensagem</DialogTitle>
 				<DialogContent>

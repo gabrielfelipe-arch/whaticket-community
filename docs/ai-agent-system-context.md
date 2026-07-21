@@ -144,6 +144,7 @@ Validacao de permissoes ampliada em 2026-07-19:
 - Frontend: rotas e menu lateral passaram a consultar `user.permissions` para Dashboard, Tickets, Contatos, Conexoes, Usuarios, Perfis, Respostas rapidas, Configuracoes, Integracoes, Filas e Mensagens programadas/Campanhas.
 - Mobile: barra inferior tambem consulta permissoes para tickets, contatos, painel e ajustes.
 - Backend: adicionada validacao por `requirePermission` em rotas principais de contatos, mensagens, respostas rapidas, campanhas, mensagens programadas, usuarios, filas, tags, tickets, relatorios, configuracoes, GLPI, conexoes e provedor/atualizacao WhatsApp.
+- Respostas rapidas: `quickAnswers.publish_global` controla separadamente a publicacao para toda a equipe. Administradores recebem a permissao automaticamente; perfis operacionais precisam recebe-la na matriz. O backend rejeita com `403` tentativas de publicar ou retirar a publicacao sem essa permissao, e o frontend nao exibe o controle para usuarios nao autorizados.
 - Observacao: algumas leituras auxiliares, como `GET /queue` e `GET /tags`, continuam liberadas para usuario autenticado para nao quebrar selects/filtros de outras telas. Edicao continua protegida.
 - Dashboard/Painel: `dashboard.view_linked_queues` mostra apenas filas vinculadas ao usuario; `dashboard.view_all_queues` mostra todas as filas. Administrador sempre ve tudo; supervisor so ve tudo se tiver permissao explicita.
 - Mensagens programadas e campanhas filtram a listagem por `userId` quando o usuario nao tem permissao de visualizar todas.
@@ -430,6 +431,18 @@ Configuracoes tambem cobre:
 ### Funcionalidades De Atendimento
 
 - Listar tickets por status/fila/usuario.
+- A API de listagem inclui o responsavel em `ticket.user` somente com `id` e `name`; o frontend usa esses dados para exibir `Voce` ou o primeiro nome e o tooltip com o nome completo.
+- No desktop, a coluna de tickets usa largura responsiva entre 340 e 400 px; no mobile, lista e conversa continuam em telas separadas.
+- O cabecalho da lista possui tres linhas funcionais de 40 px: navegacao (`Inbox`, `Resolvidos`, `Busca`, novo atendimento), escopo/fila (`Meus`, `Todos`, `Todas as filas`) e status (`Atendendo`, `Aguardando`, `Em triagem`).
+- `Meus` limita a tickets do usuario e nao atribuidos; `Todos` depende da permissao `tickets-manager:showall` e inclui tickets de outros atendentes nas filas selecionadas. O backend continua validando esse escopo.
+- Cada ticket ocupa 60 px, sem cartao, sombra, nome repetido da fila ou status repetido. A fila e indicada pela faixa colorida com tooltip; o responsavel aparece no selo do avatar e ao lado do contato, ambos com tooltip.
+- A sidebar nao possui comando de aceite. Clicar em um ticket aguardando apenas abre a conversa; o botao `Aceitar` permanece no cabecalho da conversa, em `TicketActionButtons`, como no fluxo original.
+- A rolagem automatica usa o proprio elemento `MessagesList`; os conteineres de atendimento limitam a altura com `min-height: 0` e `overflow: hidden` para nunca deslocar o cabecalho da conversa para fora da viewport.
+- `Nova conversa` aceita busca por contato ou telefone com DDI/DDD. Tanto um contato existente quanto um numero ainda nao cadastrado abrem apenas um rascunho efemero na area normal da conversa; selecionar o contato nunca cria ticket. Para numero nao cadastrado, `POST /tickets/validate-number` consulta o provedor ao clicar em `Iniciar conversa`; numero inexistente mantem o modal aberto e nao cria rascunho, contato ou ticket. O rascunho usa nome/foto quando o contato existe e oferece o mesmo compositor de texto, respostas rapidas, formatacao, emoji, anexo, audio e assinatura. Voltar ou recarregar descarta o rascunho sem ticket. `POST /tickets/by-number`, protegido por `tickets.manage` e `messages.send`, exige texto ou midia, revalida o numero e somente no primeiro envio reutiliza/cria o contato, abre o ticket e envia. Ao receber uma resposta, nomes tecnicos vazios ou iguais ao numero (`+5521...`) sao substituidos pelo nome informado pelo WhatsApp; nomes cadastrados manualmente nao sao sobrescritos.
+- A transferencia manual usa `POST /tickets/:ticketId/transfer` e aceita exatamente um destino: usuario ou fila. O modal mostra somente o seletor correspondente ao tipo escolhido e remove da lista o usuario que ja atende o ticket; o backend tambem rejeita esse destino com `ERR_TRANSFER_SAME_USER`. Depois da transferencia confirmada, o cliente recebe `O atendente *[assinatura atual]* transferiu seu atendimento para *[assinatura do destino ou nome da fila]*.`, com origem e destino em negrito, e a mensagem fica registrada no historico. Se o ticket nao tiver atendente, a origem e a assinatura do usuario que executou a transferencia. Transferencia para fila remove o atendente atual e coloca o ticket como pendente; transferencia para usuario exige que o destino esteja online.
+- A busca de destinatarios do modal usa `GET /tickets/:ticketId/transfer-users`, protegida por `tickets.manage` e pela autorizacao de acesso ao proprio ticket. Ela nao exige `users.view` e expoe somente `id`, nome, ativo e status operacional, evitando conceder a atendentes acesso ao cadastro administrativo de usuarios.
+- Na abertura direta, telefone brasileiro pode ser informado apenas com DDD e numero (10 ou 11 digitos); o backend acrescenta DDI `55`. O zero de operadora antes do DDD tambem e aceito (`021...` vira `5521...`). Numeros iniciados por `+` preservam o DDI internacional. Baileys e Evolution consultam a existencia no WhatsApp antes de persistir dados. Numero inexistente ou sem WhatsApp mantem o rascunho aberto e retorna `ERR_WAPP_NUMBER_NOT_REGISTERED`; falha tecnica de consulta retorna `ERR_WAPP_CHECK_CONTACT`.
+- Tooltips Material-UI usam globalmente `placement: top`, seta e atraso curto. Eles devem abrir acima do controle apontado para nao cobrir rotulos, opcoes ou conteudo localizado abaixo do ponteiro.
 - Abrir ticket especifico por rota.
 - Enviar mensagem de texto e midia.
 - Receber mensagens via socket/webhook.
@@ -671,6 +684,8 @@ As rotas abaixo sao montadas por `backend/src/routes/index.ts`.
 - `POST /quickAnswers`
 - `PUT /quickAnswers/:quickAnswerId`
 - `DELETE /quickAnswers/:quickAnswerId`
+- Escopo: respostas privadas pertencem ao usuario criador; respostas com `global=true` ficam disponiveis para toda a equipe.
+- Permissoes: `quickAnswers.view`, `quickAnswers.create`, `quickAnswers.edit`, `quickAnswers.delete` e `quickAnswers.publish_global`. A ultima e obrigatoria para alterar o campo `global`, inclusive por chamada direta a API.
 
 ### Tags
 

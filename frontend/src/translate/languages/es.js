@@ -224,10 +224,14 @@ const messages = {
       ticketsManager: {
         buttons: {
           newTicket: "Nuevo",
+          newTicketTooltip: "Iniciar nueva conversacion",
         },
       },
       ticketsQueueSelect: {
         placeholder: "Linhas",
+        all: "Todas las filas",
+        selected: "{{count}} filas",
+        tooltip: "Filtrar conversaciones por fila",
       },
       tickets: {
         toasts: {
@@ -237,19 +241,30 @@ const messages = {
           message: "Mensaje de",
         },
         tabs: {
-          open: { title: "Bandeja" },
-          closed: { title: "Resueltos" },
-          search: { title: "Buscar" },
+          open: { title: "Bandeja", tooltip: "Conversaciones activas" },
+          closed: { title: "Resueltos", tooltip: "Conversaciones finalizadas" },
+          search: { title: "Buscar", tooltip: "Buscar contactos y mensajes" },
         },
         search: {
           placeholder: "Buscar tickets y mensajes.",
         },
         buttons: {
+          mine: "Mios",
           showAll: "Todos",
+        },
+        tooltips: {
+          navigation: "Navegacion de conversaciones",
+          statusNavigation: "Estado de conversaciones",
+          mine: "Mostrar mis conversaciones y las no asignadas",
+          mineFixed: "Puede ver sus conversaciones y las no asignadas",
+          showAll: "Mostrar conversaciones de todos los usuarios en las filas seleccionadas",
         },
       },
       transferTicketModal: {
         title: "Transferir Ticket",
+        targetTypeLabel: "Tipo de destino de la transferencia",
+        targetUser: "Usuario",
+        targetQueue: "Cola",
         fieldLabel: "Escriba para buscar usuarios",
         fieldQueueLabel: "Transferir a la cola",
         fieldConnectionLabel: "Transferir to conexión",
@@ -272,20 +287,40 @@ const messages = {
       ticketsList: {
         pendingHeader: "Cola",
         assignedHeader: "Trabajando en",
+        triageHeader: "En triage",
+        noQueue: "Sin fila",
+        owner: {
+          you: "Tu",
+          unassigned: "Sin agente",
+          attendedBy: "Atendido por {{name}}",
+          attendedByYou: "Atendido por ti ({{name}})",
+          unassignedTooltip: "Conversacion aun no asignada",
+        },
+        tooltips: {
+          assigned: "Conversaciones asignadas a agentes",
+          pending: "Conversaciones esperando atencion",
+          triage: "Conversaciones en triage o automatizacion",
+        },
         noTicketsTitle: "¡Nada acá!",
         connectionTitle: "Conexión que se está utilizando actualmente.",
         noTicketsMessage:
           "No se encontraron tickets con este estado o término de búsqueda",
         buttons: {
           accept: "Acceptar",
+          assumeAi: "Asumir conversacion",
+          assumeTriage: "Asumir triage",
         },
       },
       newTicketModal: {
-        title: "Crear Ticket",
-        fieldLabel: "Escribe para buscar un contacto",
+        title: "Nueva conversación",
+        fieldLabel: "Busca por nombre o escribe un número",
         add: "Añadir",
+        directNumber: "Número no guardado - iniciar conversación",
+        createContact: "Crear un nuevo contacto",
+        phoneHelp: "Para iniciar por teléfono, incluye los códigos de país y área.",
+        unsavedContact: "Contacto aún no guardado",
         buttons: {
-          ok: "Guardar",
+          ok: "Iniciar conversación",
           cancel: "Cancelar",
         },
       },
@@ -438,6 +473,7 @@ const messages = {
         },
       },
       backendErrors: {
+        ERR_TRANSFER_SAME_USER: "La conversación no se puede transferir al usuario que ya la está atendiendo.",
         ERR_NO_OTHER_WHATSAPP:
           "Debe haber al menos una conexión de WhatsApp predeterminada.",
         ERR_NO_DEF_WAPP_FOUND:
@@ -447,6 +483,7 @@ const messages = {
         ERR_WAPP_CHECK_CONTACT:
           "No se pudo verificar el contacto de WhatsApp. Verifique la página de conexiones.",
         ERR_WAPP_INVALID_CONTACT: "Este no es un número de whatsapp válido.",
+        ERR_WAPP_NUMBER_NOT_REGISTERED: "El número informado no existe o no está registrado en WhatsApp.",
         ERR_WAPP_DOWNLOAD_MEDIA:
           "No se pudieron descargar los medios de WhatsApp. Verifique la página de conexiones.",
         ERR_INVALID_CREDENTIALS: "Error de autenticación. Vuelva a intentarlo.",
