@@ -195,6 +195,9 @@ const useStyles = makeStyles((theme) => ({
     position: "relative",
     whiteSpace: "nowrap",
     width: drawerWidth,
+    overflowY: "auto",
+    scrollbarWidth: "thin",
+    scrollbarColor: `rgba(148, 163, 184, 0.58) ${theme.custom.sidebar}`,
     transition: theme.transitions.create("width", {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -214,6 +217,21 @@ const useStyles = makeStyles((theme) => ({
     },
     "& .MuiTypography-root": {
       color: "#FFFFFF",
+    },
+    "&::-webkit-scrollbar": {
+      width: 8,
+    },
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: theme.custom.sidebar,
+    },
+    "&::-webkit-scrollbar-thumb": {
+      minHeight: 40,
+      border: `2px solid ${theme.custom.sidebar}`,
+      borderRadius: 8,
+      backgroundColor: "rgba(148, 163, 184, 0.58)",
+    },
+    "&::-webkit-scrollbar-thumb:hover": {
+      backgroundColor: "rgba(203, 213, 225, 0.72)",
     },
   },
   drawerPaperClose: {
@@ -658,6 +676,7 @@ const LoggedInLayout = ({ children }) => {
             <Switch
               checked={darkMode}
               onChange={toggleTheme}
+              inputProps={{ "aria-label": "Alternar modo escuro" }}
               color="default"
               className={classes.switch}
             />

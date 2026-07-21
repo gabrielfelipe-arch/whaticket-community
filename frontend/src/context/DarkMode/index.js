@@ -1,10 +1,12 @@
-import React, { createContext, useState, useContext, useMemo, useEffect } from "react";
+import React, { createContext, useState, useContext, useMemo, useEffect, useCallback } from "react";
 import PropTypes from "prop-types";
 import { createMuiTheme, ThemeProvider as MUIThemeProvider } from "@material-ui/core/styles";
 import { CssBaseline } from "@material-ui/core";
+import { useLocation } from "react-router-dom";
+import { AuthContext } from "../Auth/AuthContext";
 
 const ThemeContext = createContext();
-const THEME_STORAGE_KEY = "rocketserviceDarkMode";
+const THEME_STORAGE_PREFIX = "rocketserviceDarkMode";
 
 const lightTokens = {
   surface: "#FFFFFF",
@@ -45,25 +47,50 @@ const darkTokens = {
 };
 
 export const ThemeProvider = ({ children }) => {
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem(THEME_STORAGE_KEY) === "true";
-    } catch (err) {
-      return false;
-    }
-  });
-
-  const toggleTheme = () => {
-    setDarkMode((prevMode) => !prevMode);
-  };
+  const { user } = useContext(AuthContext);
+  const location = useLocation();
+  const userThemeKey = user?.id ? `${THEME_STORAGE_PREFIX}:${user.id}` : null;
+  const [preference, setPreference] = useState({ key: null, darkMode: false });
 
   useEffect(() => {
+    if (!userThemeKey) {
+      setPreference({ key: null, darkMode: false });
+      return;
+    }
+
+    let storedDarkMode = false;
     try {
-      localStorage.setItem(THEME_STORAGE_KEY, String(darkMode));
+      storedDarkMode = localStorage.getItem(userThemeKey) === "true";
+    } catch (err) {
+      storedDarkMode = false;
+    }
+    setPreference({ key: userThemeKey, darkMode: storedDarkMode });
+  }, [userThemeKey]);
+
+  const isLoginRoute = location.pathname === "/login";
+  const darkMode = Boolean(
+    !isLoginRoute &&
+    userThemeKey &&
+    preference.key === userThemeKey &&
+    preference.darkMode
+  );
+
+  const toggleTheme = useCallback(() => {
+    if (!userThemeKey) return;
+    setPreference(current => ({
+      key: userThemeKey,
+      darkMode: current.key === userThemeKey ? !current.darkMode : true,
+    }));
+  }, [userThemeKey]);
+
+  useEffect(() => {
+    if (!userThemeKey || preference.key !== userThemeKey) return;
+    try {
+      localStorage.setItem(userThemeKey, String(preference.darkMode));
     } catch (err) {
       // Ignore storage errors and keep the in-memory theme.
     }
-  }, [darkMode]);
+  }, [preference, userThemeKey]);
 
   const tokens = darkMode ? darkTokens : lightTokens;
 
@@ -330,7 +357,10 @@ export const ThemeProvider = ({ children }) => {
     [darkMode, tokens]
   );
 
-  const contextValue = useMemo(() => ({ darkMode, toggleTheme, tokens }), [darkMode, tokens]);
+  const contextValue = useMemo(
+    () => ({ darkMode, toggleTheme, tokens }),
+    [darkMode, toggleTheme, tokens]
+  );
 
   return (
     <ThemeContext.Provider value={contextValue}>
