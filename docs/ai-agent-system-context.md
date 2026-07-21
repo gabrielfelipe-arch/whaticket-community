@@ -796,6 +796,8 @@ Para reativar, trocar `NULL` por `10`. A migration `20260721011000-add-max-durat
 - O eco `fromMe` recebido do WhatsApp nao pode trocar uma mensagem ja gravada como `ai`, `system` ou `ura` para `human`.
 - O bloqueio que impede a IA de responder por cima de atendente considera apenas mensagens realmente humanas na sessao atual.
 - Alteracoes nessa classificacao devem cobrir a ordem de corrida entre envio local e eco do provedor.
+- Antes do envio, textos e legendas passam por `PrepareWhatsAppText`: negrito Markdown `**texto**` vira o formato nativo do WhatsApp `*texto*`.
+- O mesmo normalizador corrige um marcador fechado por engano no meio da palavra, por exemplo `*Gabrie*l` para `*Gabriel*`. A formatacao exibida no frontend nao garante, sozinha, que a sintaxe aceita pelo WhatsApp esteja valida.
 
 ### Agenda Operacional Removida
 
